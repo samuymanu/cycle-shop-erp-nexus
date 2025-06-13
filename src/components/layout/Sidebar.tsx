@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import {
   Settings, 
   Search,
   Calendar,
-  Log_out,
+  LogOut,
   User
 } from 'lucide-react';
 
@@ -119,7 +118,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
           onClick={logout}
           className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
-          <Log_out className="h-4 w-4" />
+          <LogOut className="h-4 w-4" />
           Cerrar Sesión
         </Button>
       </div>
