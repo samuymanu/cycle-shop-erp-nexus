@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PaymentMethod } from '@/types/erp';
+import { PaymentMethod, PaymentMethodLabels } from '@/types/erp';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 
@@ -20,7 +20,7 @@ interface CartItem {
 const POS = () => {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH_VES);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Mock products
@@ -232,10 +232,11 @@ const POS = () => {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={PaymentMethod.CASH}>Efectivo</SelectItem>
-                              <SelectItem value={PaymentMethod.CARD}>Tarjeta</SelectItem>
-                              <SelectItem value={PaymentMethod.TRANSFER}>Transferencia</SelectItem>
-                              <SelectItem value={PaymentMethod.CREDIT}>Crédito</SelectItem>
+                              {Object.entries(PaymentMethodLabels).map(([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
