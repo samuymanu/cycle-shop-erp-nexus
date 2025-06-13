@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import CreatePurchaseDialog from '@/components/dialogs/CreatePurchaseDialog';
 import { Plus, ShoppingCart, Search, Edit, Eye, Truck, CheckCircle, Clock } from 'lucide-react';
 
 const Purchases = () => {
@@ -140,10 +141,7 @@ const Purchases = () => {
               </div>
             </div>
             {hasPermission('purchases', 'create') && (
-              <Button className="material-button-primary gap-2">
-                <Plus className="h-4 w-4" />
-                Nueva Compra
-              </Button>
+              <CreatePurchaseDialog />
             )}
           </div>
         </div>
@@ -152,31 +150,31 @@ const Purchases = () => {
       <div className="p-8 space-y-6">
         {/* Purchase Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
               <p className="text-sm text-gray-600">Total Compras</p>
             </CardContent>
           </Card>
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-orange-600">{stats.pending}</div>
               <p className="text-sm text-gray-600">Pendientes</p>
             </CardContent>
           </Card>
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-blue-600">{stats.inTransit}</div>
               <p className="text-sm text-gray-600">En Tránsito</p>
             </CardContent>
           </Card>
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-green-600">{stats.received}</div>
               <p className="text-sm text-gray-600">Recibidas</p>
             </CardContent>
           </Card>
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-lg font-bold text-primary">{formatCurrency(stats.totalValue)}</div>
               <p className="text-sm text-gray-600">Valor Total</p>
@@ -185,7 +183,7 @@ const Purchases = () => {
         </div>
 
         {/* Filters */}
-        <Card className="material-card">
+        <Card className="bikeERP-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
@@ -199,13 +197,13 @@ const Purchases = () => {
                   placeholder="Buscar por proveedor, número de compra o RIF..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="material-input"
+                  className="bikeERP-input"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="material-select"
+                className="bikeERP-select"
               >
                 <option value="all">Todos los estados</option>
                 <option value="pending">Pendientes</option>
@@ -224,7 +222,7 @@ const Purchases = () => {
             const StatusIcon = statusInfo.icon;
             
             return (
-              <Card key={purchase.id} className="material-card hover:shadow-lg transition-shadow">
+              <Card key={purchase.id} className="bikeERP-card hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{purchase.id}</CardTitle>
@@ -302,7 +300,7 @@ const Purchases = () => {
         </div>
 
         {filteredPurchases.length === 0 && (
-          <Card className="material-card">
+          <Card className="bikeERP-card">
             <CardContent className="text-center py-8">
               <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">No se encontraron compras</p>

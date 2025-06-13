@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import CreateClientDialog from '@/components/dialogs/CreateClientDialog';
 import { Plus, Users, Search, Edit, Eye, UserCheck, UserX } from 'lucide-react';
 
 const Clients = () => {
@@ -128,10 +129,7 @@ const Clients = () => {
               </div>
             </div>
             {hasPermission('clients', 'create') && (
-              <Button className="material-button-primary gap-2">
-                <Plus className="h-4 w-4" />
-                Nuevo Cliente
-              </Button>
+              <CreateClientDialog />
             )}
           </div>
         </div>
@@ -140,25 +138,25 @@ const Clients = () => {
       <div className="p-8 space-y-6">
         {/* Client Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
               <p className="text-sm text-gray-600">Total Clientes</p>
             </CardContent>
           </Card>
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-green-600">{stats.active}</div>
               <p className="text-sm text-gray-600">Activos</p>
             </CardContent>
           </Card>
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-blue-600">{stats.withCredit}</div>
               <p className="text-sm text-gray-600">Con Crédito</p>
             </CardContent>
           </Card>
-          <Card className="material-stat-card">
+          <Card className="bikeERP-stat-card">
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-red-600">{stats.withDebt}</div>
               <p className="text-sm text-gray-600">Con Deuda</p>
@@ -167,7 +165,7 @@ const Clients = () => {
         </div>
 
         {/* Filters */}
-        <Card className="material-card">
+        <Card className="bikeERP-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
@@ -181,13 +179,13 @@ const Clients = () => {
                   placeholder="Buscar por nombre, documento, email o teléfono..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="material-input"
+                  className="bikeERP-input"
                 />
               </div>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="material-select"
+                className="bikeERP-select"
               >
                 <option value="all">Todos los estados</option>
                 <option value="active">Activos</option>
@@ -198,7 +196,7 @@ const Clients = () => {
         </Card>
 
         {/* Clients Table */}
-        <Card className="material-card">
+        <Card className="bikeERP-card">
           <CardHeader>
             <CardTitle>Lista de Clientes</CardTitle>
             <CardDescription>
@@ -220,7 +218,7 @@ const Clients = () => {
                 </thead>
                 <tbody>
                   {filteredClients.map((client) => (
-                    <tr key={client.id} className="material-table-row">
+                    <tr key={client.id} className="bikeERP-table-row">
                       <td className="py-3 px-4">
                         <div>
                           <p className="font-medium">{client.name}</p>
@@ -282,7 +280,7 @@ const Clients = () => {
         </Card>
 
         {filteredClients.length === 0 && (
-          <Card className="material-card">
+          <Card className="bikeERP-card">
             <CardContent className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500">No se encontraron clientes</p>

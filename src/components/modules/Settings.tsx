@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
+import UserManagementDialog from '@/components/dialogs/UserManagementDialog';
 import { 
   Database, 
   Users, 
@@ -15,7 +16,8 @@ import {
   TestTube,
   AlertCircle,
   CheckCircle,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  DollarSign
 } from 'lucide-react';
 
 const Settings = () => {
@@ -27,6 +29,13 @@ const Settings = () => {
     username: 'postgres',
     password: '',
   });
+  
+  const [exchangeRates, setExchangeRates] = useState({
+    parallelRate: 35.50,
+    bcvRate: 36.20,
+    lastUpdated: new Date(),
+  });
+
   const [systemSettings, setSystemSettings] = useState({
     autoBackup: true,
     notifications: true,
@@ -57,6 +66,15 @@ const Settings = () => {
     // Implementar lógica de guardado
   };
 
+  const handleUpdateExchangeRates = () => {
+    console.log('Actualizando tasas de cambio...', exchangeRates);
+    setExchangeRates({
+      ...exchangeRates,
+      lastUpdated: new Date(),
+    });
+    // Implementar lógica de guardado
+  };
+
   const handleExportData = () => {
     console.log('Exportando datos del sistema...');
     // Implementar exportación de datos
@@ -65,6 +83,16 @@ const Settings = () => {
   const handleImportData = () => {
     console.log('Importando datos al sistema...');
     // Implementar importación de datos
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleString('es-VE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   return (
@@ -85,9 +113,66 @@ const Settings = () => {
       </div>
 
       <div className="p-8 space-y-8">
+        {/* Exchange Rates Configuration */}
+        <Card className="bikeERP-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              Tasas de Cambio del Bolívar
+            </CardTitle>
+            <CardDescription>
+              Configura las tasas de cambio USD/Bs (Paralelo y BCV)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="parallelRate">Tasa Paralelo (USD/Bs)</Label>
+                <Input
+                  id="parallelRate"
+                  type="number"
+                  step="0.01"
+                  value={exchangeRates.parallelRate}
+                  onChange={(e) => setExchangeRates({
+                    ...exchangeRates, 
+                    parallelRate: parseFloat(e.target.value) || 0
+                  })}
+                  placeholder="35.50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bcvRate">Tasa BCV (USD/Bs)</Label>
+                <Input
+                  id="bcvRate"
+                  type="number"
+                  step="0.01"
+                  value={exchangeRates.bcvRate}
+                  onChange={(e) => setExchangeRates({
+                    ...exchangeRates, 
+                    bcvRate: parseFloat(e.target.value) || 0
+                  })}
+                  placeholder="36.20"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Última actualización: {formatDate(exchangeRates.lastUpdated)}
+                </p>
+              </div>
+              <Button onClick={handleUpdateExchangeRates} className="bikeERP-button-primary">
+                <Save className="h-4 w-4 mr-2" />
+                Actualizar Tasas
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Database Configuration */}
         {hasPermission('settings', 'update') && (
-          <Card className="erp-card">
+          <Card className="bikeERP-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-5 w-5 text-primary" />
@@ -177,7 +262,7 @@ const Settings = () => {
                   )}
                 </Button>
                 
-                <Button onClick={handleSaveDbConfig} className="gap-2 erp-button-primary">
+                <Button onClick={handleSaveDbConfig} className="gap-2 bikeERP-button-primary">
                   <Save className="h-4 w-4" />
                   Guardar Configuración
                 </Button>
@@ -188,7 +273,7 @@ const Settings = () => {
 
         {/* System Settings */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="erp-card">
+          <Card className="bikeERP-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Server className="h-5 w-5 text-primary" />
@@ -259,7 +344,7 @@ const Settings = () => {
                 />
               </div>
 
-              <Button onClick={handleSaveSystemSettings} className="w-full gap-2 erp-button-primary">
+              <Button onClick={handleSaveSystemSettings} className="w-full gap-2 bikeERP-button-primary">
                 <Save className="h-4 w-4" />
                 Guardar Configuración
               </Button>
@@ -268,7 +353,7 @@ const Settings = () => {
 
           {/* User Management */}
           {hasPermission('users', 'read') && (
-            <Card className="erp-card">
+            <Card className="bikeERP-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5 text-primary" />
@@ -288,9 +373,7 @@ const Settings = () => {
                   <p className="text-xs text-blue-600">{user?.role.displayName}</p>
                 </div>
 
-                <Button variant="outline" className="w-full">
-                  Gestionar Usuarios
-                </Button>
+                <UserManagementDialog />
                 <Button variant="outline" className="w-full">
                   Configurar Roles
                 </Button>
@@ -303,7 +386,7 @@ const Settings = () => {
         </div>
 
         {/* Data Management */}
-        <Card className="erp-card">
+        <Card className="bikeERP-card">
           <CardHeader>
             <CardTitle>Gestión de Datos</CardTitle>
             <CardDescription>
