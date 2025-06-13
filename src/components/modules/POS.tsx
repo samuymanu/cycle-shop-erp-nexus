@@ -119,21 +119,21 @@ const POS = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Punto de Venta</h1>
-          <p className="text-muted-foreground">Sistema POS - Vendedor: {user?.name}</p>
+          <h1 className="text-3xl font-bold text-slate-900">Punto de Venta</h1>
+          <p className="text-slate-600">Sistema POS - Vendedor: {user?.name}</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Products Section */}
         <div className="lg:col-span-2 space-y-4">
-          <Card>
+          <Card className="bikeERP-card">
             <CardHeader>
-              <CardTitle>Productos</CardTitle>
-              <CardDescription>Buscar y agregar productos al carrito</CardDescription>
+              <CardTitle className="text-slate-900">Productos</CardTitle>
+              <CardDescription className="text-slate-600">Buscar y agregar productos al carrito</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -141,23 +141,24 @@ const POS = () => {
                   placeholder="Buscar productos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bikeERP-input"
                 />
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
                   {filteredProducts.map((product) => (
-                    <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                    <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow border-blue-100">
                       <CardContent className="p-4">
                         <div className="space-y-2">
-                          <h4 className="font-medium">{product.name}</h4>
-                          <p className="text-lg font-bold text-primary">
+                          <h4 className="font-medium text-slate-900">{product.name}</h4>
+                          <p className="text-lg font-bold text-blue-600">
                             {formatCurrency(product.price)}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-slate-500">
                             Stock: {product.stock} unidades
                           </p>
                           <Button
                             onClick={() => addToCart(product)}
-                            className="w-full erp-button-primary"
+                            className="w-full bikeERP-button-primary"
                             disabled={product.stock === 0}
                           >
                             {product.stock > 0 ? 'Agregar al Carrito' : 'Sin Stock'}
@@ -174,25 +175,25 @@ const POS = () => {
 
         {/* Cart Section */}
         <div className="space-y-4">
-          <Card>
+          <Card className="bikeERP-card">
             <CardHeader>
-              <CardTitle>Carrito de Compras</CardTitle>
-              <CardDescription>{cart.length} productos</CardDescription>
+              <CardTitle className="text-slate-900">Carrito de Compras</CardTitle>
+              <CardDescription className="text-slate-600">{cart.length} productos</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {cart.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
+                  <p className="text-center text-slate-500 py-8">
                     Carrito vacío
                   </p>
                 ) : (
                   <>
                     <div className="space-y-3 max-h-64 overflow-y-auto">
                       {cart.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div key={item.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
                           <div className="flex-1">
-                            <h5 className="font-medium text-sm">{item.name}</h5>
-                            <p className="text-xs text-muted-foreground">
+                            <h5 className="font-medium text-sm text-slate-900">{item.name}</h5>
+                            <p className="text-xs text-slate-500">
                               {formatCurrency(item.price)} c/u
                             </p>
                           </div>
@@ -216,24 +217,24 @@ const POS = () => {
                       ))}
                     </div>
                     
-                    <div className="pt-4 border-t">
+                    <div className="pt-4 border-t border-slate-200">
                       <div className="flex justify-between items-center mb-4">
-                        <span className="text-lg font-semibold">Total:</span>
-                        <span className="text-2xl font-bold text-primary">
+                        <span className="text-lg font-semibold text-slate-900">Total:</span>
+                        <span className="text-2xl font-bold text-blue-600">
                           {formatCurrency(calculateTotal())}
                         </span>
                       </div>
                       
                       <div className="space-y-3">
                         <div>
-                          <Label htmlFor="payment-method">Método de Pago</Label>
+                          <Label htmlFor="payment-method" className="text-slate-700">Método de Pago</Label>
                           <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}>
-                            <SelectTrigger>
+                            <SelectTrigger className="bikeERP-select">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white border border-slate-200 shadow-lg">
                               {Object.entries(PaymentMethodLabels).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>
+                                <SelectItem key={value} value={value} className="hover:bg-blue-50">
                                   {label}
                                 </SelectItem>
                               ))}
@@ -243,7 +244,7 @@ const POS = () => {
                         
                         <Button
                           onClick={processSale}
-                          className="w-full erp-button-success text-white"
+                          className="w-full bikeERP-button-success text-white"
                           size="lg"
                         >
                           Procesar Venta

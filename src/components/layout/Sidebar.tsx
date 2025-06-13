@@ -83,25 +83,25 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   });
 
   return (
-    <div className="flex flex-col h-full bg-sidebar shadow-lg">
+    <div className="flex flex-col h-full bg-blue-900 shadow-lg">
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="p-6 border-b border-blue-800">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-md">
             <Database className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-sidebar-foreground">BiciCentro</h2>
-            <p className="text-sm text-sidebar-accent-foreground">ERP System</p>
+            <h2 className="text-xl font-bold text-white">BikeERP</h2>
+            <p className="text-sm text-blue-200">Sistema de Gestión</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 p-3 bg-sidebar-accent rounded-lg shadow-sm">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+        <div className="flex items-center gap-3 p-3 bg-blue-800 rounded-lg shadow-sm">
+          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
             <User className="h-4 w-4 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
-            <p className="text-xs text-sidebar-accent-foreground truncate">{user?.role.displayName}</p>
+            <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+            <p className="text-xs text-blue-200 truncate">{user?.role.displayName}</p>
           </div>
         </div>
       </div>
@@ -117,8 +117,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
               key={item.id}
               onClick={() => onPageChange(item.id)}
               className={cn(
-                'material-sidebar-item w-full text-left',
-                isActive && 'bg-primary text-white shadow-md'
+                'bikeERP-sidebar-item w-full text-left',
+                isActive && 'bg-blue-700 text-white shadow-md'
               )}
             >
               <Icon className="h-5 w-5" />
@@ -129,11 +129,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-blue-800">
         <Button
           variant="ghost"
           onClick={logout}
-          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md py-3"
+          className="w-full justify-start gap-3 text-white hover:bg-blue-800 hover:text-white rounded-md py-3"
         >
           <LogOut className="h-5 w-5" />
           <span className="font-medium">Cerrar Sesión</span>

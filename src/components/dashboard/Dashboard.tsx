@@ -69,16 +69,16 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-slate-50">
       {/* Header Section */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className="bg-white shadow-sm border-b border-slate-200">
         <div className="px-8 py-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-slate-900">
                 Dashboard
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-slate-600 mt-1">
                 Bienvenido, {user?.name} - {new Date().toLocaleDateString('es-VE', { 
                   weekday: 'long', 
                   year: 'numeric', 
@@ -88,11 +88,11 @@ const Dashboard = () => {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button onClick={handleDownloadData} variant="outline" className="gap-2">
+              <Button onClick={handleDownloadData} variant="outline" className="gap-2 border-slate-300 text-slate-700 hover:bg-slate-50">
                 <Download className="h-4 w-4" />
                 Descargar Datos
               </Button>
-              <Button onClick={handleGenerateReport} className="gap-2 erp-button-primary">
+              <Button onClick={handleGenerateReport} className="gap-2 bikeERP-button-primary">
                 <BarChart3 className="h-4 w-4" />
                 Generar Reporte
               </Button>
@@ -104,10 +104,10 @@ const Dashboard = () => {
       <div className="p-8 space-y-8">
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="erp-metric-card">
+          <div className="bikeERP-metric-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Ventas Hoy</p>
+                <p className="text-sm font-medium text-slate-600">Ventas Hoy</p>
                 <p className="text-2xl font-bold text-green-600">
                   {formatCurrency(mockStats.todaySales)}
                 </p>
@@ -122,10 +122,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="erp-metric-card">
+          <div className="bikeERP-metric-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Ventas del Mes</p>
+                <p className="text-sm font-medium text-slate-600">Ventas del Mes</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {formatCurrency(mockStats.monthSales)}
                 </p>
@@ -140,10 +140,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="erp-metric-card">
+          <div className="bikeERP-metric-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Stock Bajo</p>
+                <p className="text-sm font-medium text-slate-600">Stock Bajo</p>
                 <p className="text-2xl font-bold text-orange-600">
                   {mockStats.lowStockItems}
                 </p>
@@ -158,10 +158,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="erp-metric-card">
+          <div className="bikeERP-metric-card">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Órdenes Activas</p>
+                <p className="text-sm font-medium text-slate-600">Órdenes Activas</p>
                 <p className="text-2xl font-bold text-purple-600">
                   {mockStats.activeServiceOrders}
                 </p>
@@ -179,18 +179,18 @@ const Dashboard = () => {
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="erp-card">
+          <Card className="bikeERP-card">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-slate-900">
+                <ShoppingCart className="h-5 w-5 text-blue-600" />
                 Acciones Rápidas
               </CardTitle>
-              <CardDescription>Operaciones frecuentes del sistema</CardDescription>
+              <CardDescription className="text-slate-600">Operaciones frecuentes del sistema</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button 
                 onClick={handleNewSale}
-                className="w-full justify-start gap-3 h-12 erp-button-primary"
+                className="w-full justify-start gap-3 h-12 bikeERP-button-primary"
               >
                 <ShoppingCart className="h-5 w-5" />
                 <div className="text-left">
@@ -203,12 +203,12 @@ const Dashboard = () => {
                 <Button 
                   onClick={handleAddProduct}
                   variant="outline" 
-                  className="w-full justify-start gap-3 h-12"
+                  className="w-full justify-start gap-3 h-12 border-blue-200 text-blue-700 hover:bg-blue-50"
                 >
                   <Plus className="h-5 w-5" />
                   <div className="text-left">
                     <div className="font-medium">Agregar Producto</div>
-                    <div className="text-xs text-muted-foreground">Nuevo producto al inventario</div>
+                    <div className="text-xs text-slate-500">Nuevo producto al inventario</div>
                   </div>
                 </Button>
               )}
@@ -217,56 +217,56 @@ const Dashboard = () => {
                 <Button 
                   onClick={handleNewServiceOrder}
                   variant="outline" 
-                  className="w-full justify-start gap-3 h-12"
+                  className="w-full justify-start gap-3 h-12 border-blue-200 text-blue-700 hover:bg-blue-50"
                 >
                   <Wrench className="h-5 w-5" />
                   <div className="text-left">
                     <div className="font-medium">Nueva Orden de Servicio</div>
-                    <div className="text-xs text-muted-foreground">Registrar reparación</div>
+                    <div className="text-xs text-slate-500">Registrar reparación</div>
                   </div>
                 </Button>
               )}
             </CardContent>
           </Card>
 
-          <Card className="erp-card">
+          <Card className="bikeERP-card">
             <CardHeader>
-              <CardTitle>Productos Más Vendidos</CardTitle>
-              <CardDescription>Top 3 del mes actual</CardDescription>
+              <CardTitle className="text-slate-900">Productos Más Vendidos</CardTitle>
+              <CardDescription className="text-slate-600">Top 3 del mes actual</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {mockStats.topSellingProducts.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
                         {index + 1}
                       </div>
-                      <span className="font-medium text-gray-900">{item.product.name}</span>
+                      <span className="font-medium text-slate-900">{item.product.name}</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-600">{item.quantity} unidades</span>
+                    <span className="text-sm font-semibold text-slate-600">{item.quantity} unidades</span>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="erp-card">
+          <Card className="bikeERP-card">
             <CardHeader>
-              <CardTitle>Estado del Sistema</CardTitle>
-              <CardDescription>Información general</CardDescription>
+              <CardTitle className="text-slate-900">Estado del Sistema</CardTitle>
+              <CardDescription className="text-slate-600">Información general</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                <span className="text-sm font-medium">Sistema</span>
+              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-100">
+                <span className="text-sm font-medium text-slate-700">Sistema</span>
                 <span className="text-sm font-semibold text-green-600">En línea</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                <span className="text-sm font-medium">Base de Datos</span>
+              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <span className="text-sm font-medium text-slate-700">Base de Datos</span>
                 <span className="text-sm font-semibold text-blue-600">Conectada</span>
               </div>
-              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                <span className="text-sm font-medium">Sincronización</span>
+              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-100">
+                <span className="text-sm font-medium text-slate-700">Sincronización</span>
                 <span className="text-sm font-semibold text-orange-600">Activa</span>
               </div>
             </CardContent>
