@@ -3,50 +3,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ERP System Design - Professional Blue Theme */
+/* Modern ERP Design - Professional Theme */
 
 @layer base {
   :root {
-    --background: 248 250 252;
-    --foreground: 15 23 42;
+    --background: 249 250 251;
+    --foreground: 17 24 39;
 
     --card: 255 255 255;
-    --card-foreground: 15 23 42;
+    --card-foreground: 17 24 39;
 
     --popover: 255 255 255;
-    --popover-foreground: 15 23 42;
+    --popover-foreground: 17 24 39;
 
     --primary: 59 130 246;
-    --primary-foreground: 248 250 252;
+    --primary-foreground: 255 255 255;
 
-    --secondary: 241 245 249;
-    --secondary-foreground: 51 65 85;
+    --secondary: 243 244 246;
+    --secondary-foreground: 55 65 81;
 
-    --muted: 241 245 249;
-    --muted-foreground: 100 116 139;
+    --muted: 243 244 246;
+    --muted-foreground: 107 114 128;
 
-    --accent: 240 249 255;
-    --accent-foreground: 14 116 144;
+    --accent: 239 246 255;
+    --accent-foreground: 29 78 216;
 
     --destructive: 239 68 68;
-    --destructive-foreground: 248 250 252;
+    --destructive-foreground: 255 255 255;
 
     --success: 34 197 94;
-    --success-foreground: 248 250 252;
+    --success-foreground: 255 255 255;
 
     --warning: 245 158 11;
-    --warning-foreground: 248 250 252;
+    --warning-foreground: 255 255 255;
 
-    --border: 226 232 240;
-    --input: 226 232 240;
+    --border: 229 231 235;
+    --input: 229 231 235;
     --ring: 59 130 246;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
+    /* Modern Sidebar Colors */
     --sidebar-background: 30 41 59;
     --sidebar-foreground: 248 250 252;
     --sidebar-primary: 59 130 246;
-    --sidebar-primary-foreground: 248 250 252;
+    --sidebar-primary-foreground: 255 255 255;
     --sidebar-accent: 51 65 85;
     --sidebar-accent-foreground: 203 213 225;
     --sidebar-border: 51 65 85;
@@ -54,25 +55,25 @@
   }
 
   .dark {
-    --background: 15 23 42;
+    --background: 3 7 18;
     --foreground: 248 250 252;
     
-    --card: 30 41 59;
+    --card: 15 23 42;
     --card-foreground: 248 250 252;
     
-    --popover: 30 41 59;
+    --popover: 15 23 42;
     --popover-foreground: 248 250 252;
     
     --primary: 96 165 250;
     --primary-foreground: 15 23 42;
     
-    --secondary: 51 65 85;
+    --secondary: 30 41 59;
     --secondary-foreground: 203 213 225;
     
-    --muted: 51 65 85;
+    --muted: 30 41 59;
     --muted-foreground: 148 163 184;
     
-    --accent: 51 65 85;
+    --accent: 30 41 59;
     --accent-foreground: 203 213 225;
     
     --destructive: 220 38 38;
@@ -90,29 +91,79 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
   }
 }
 
-/* Custom ERP Utilities */
+/* Modern ERP Components */
 @layer utilities {
   .erp-card {
-    @apply bg-card border border-border rounded-lg shadow-sm;
+    @apply bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-200;
   }
   
   .erp-button-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-colors;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 rounded-lg font-medium shadow-sm hover:shadow-md;
   }
   
   .erp-button-success {
-    @apply bg-success text-success-foreground hover:bg-success/90 transition-colors;
+    @apply bg-success text-success-foreground hover:bg-success/90 transition-all duration-200 rounded-lg font-medium shadow-sm hover:shadow-md;
   }
   
   .erp-stat-card {
-    @apply erp-card p-6 hover:shadow-md transition-shadow;
+    @apply erp-card p-6 hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary;
   }
   
   .erp-sidebar-item {
-    @apply flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors;
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 font-medium;
   }
+
+  .erp-metric-card {
+    @apply bg-gradient-to-br from-white to-gray-50 p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200;
+  }
+
+  .erp-table-row {
+    @apply border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-150;
+  }
+
+  .erp-badge-normal {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800;
+  }
+
+  .erp-badge-low {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800;
+  }
+
+  .erp-badge-high {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(243 244 246);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(156 163 175);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(107 114 128);
+}
+
+/* Search Input Enhancement */
+.erp-search-input {
+  @apply w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
+}
+
+/* Dropdown Enhancement */
+.erp-select {
+  @apply px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
 }

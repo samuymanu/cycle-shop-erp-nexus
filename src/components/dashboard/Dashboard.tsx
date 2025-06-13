@@ -1,8 +1,22 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { DashboardStats } from '@/types/erp';
 import { useAuth } from '@/hooks/useAuth';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  ShoppingCart, 
+  AlertTriangle, 
+  Users, 
+  DollarSign,
+  Package,
+  Wrench,
+  Plus,
+  Download,
+  BarChart3
+} from 'lucide-react';
 
 // Mock data for demonstration
 const mockStats: DashboardStats = {
@@ -19,7 +33,7 @@ const mockStats: DashboardStats = {
 };
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-VE', {
@@ -29,130 +43,235 @@ const Dashboard = () => {
     }).format(amount);
   };
 
+  const handleNewSale = () => {
+    console.log('Abriendo punto de venta...');
+    // Implementar navegación a POS
+  };
+
+  const handleNewServiceOrder = () => {
+    console.log('Creando nueva orden de servicio...');
+    // Implementar navegación a taller
+  };
+
+  const handleAddProduct = () => {
+    console.log('Agregando nuevo producto...');
+    // Implementar modal de agregar producto
+  };
+
+  const handleGenerateReport = () => {
+    console.log('Generando reporte...');
+    // Implementar generación de reportes
+  };
+
+  const handleDownloadData = () => {
+    console.log('Descargando datos...');
+    // Implementar descarga de datos
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Welcome Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground">
-          Bienvenido, {user?.name}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Panel de control principal - {new Date().toLocaleDateString('es-VE', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header Section */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="px-8 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Bienvenido, {user?.name} - {new Date().toLocaleDateString('es-VE', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={handleDownloadData} variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                Descargar Datos
+              </Button>
+              <Button onClick={handleGenerateReport} className="gap-2 erp-button-primary">
+                <BarChart3 className="h-4 w-4" />
+                Generar Reporte
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="erp-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ventas Hoy</CardTitle>
-            <div className="h-4 w-4 text-success">💰</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success">
-              {formatCurrency(mockStats.todaySales)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +12% vs ayer
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="erp-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ventas del Mes</CardTitle>
-            <div className="h-4 w-4 text-primary">📈</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {formatCurrency(mockStats.monthSales)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +8.2% vs mes anterior
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="erp-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Stock Bajo</CardTitle>
-            <div className="h-4 w-4 text-warning">⚠️</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-warning">
-              {mockStats.lowStockItems}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Productos requieren reposición
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="erp-stat-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Órdenes Activas</CardTitle>
-            <div className="h-4 w-4 text-primary">🔧</div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockStats.activeServiceOrders}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Servicios en taller
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Additional Info Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="erp-card">
-          <CardHeader>
-            <CardTitle>Productos Más Vendidos</CardTitle>
-            <CardDescription>Top 3 del mes actual</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {mockStats.topSellingProducts.map((item, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                      {index + 1}
-                    </div>
-                    <span className="font-medium">{item.product.name}</span>
-                  </div>
-                  <span className="text-muted-foreground">{item.quantity} unidades</span>
+      <div className="p-8 space-y-8">
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="erp-metric-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Ventas Hoy</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {formatCurrency(mockStats.todaySales)}
+                </p>
+                <div className="flex items-center mt-2">
+                  <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                  <span className="text-sm text-green-600">+12.5%</span>
                 </div>
-              ))}
+              </div>
+              <div className="p-3 bg-green-100 rounded-lg">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card className="erp-card">
-          <CardHeader>
-            <CardTitle>Acciones Rápidas</CardTitle>
-            <CardDescription>Operaciones frecuentes</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <button className="w-full p-3 text-left bg-primary/5 hover:bg-primary/10 rounded-lg transition-colors">
-              <div className="font-medium">Nueva Venta</div>
-              <div className="text-sm text-muted-foreground">Abrir punto de venta</div>
-            </button>
-            <button className="w-full p-3 text-left bg-accent/50 hover:bg-accent/70 rounded-lg transition-colors">
-              <div className="font-medium">Consultar Inventario</div>
-              <div className="text-sm text-muted-foreground">Verificar stock disponible</div>
-            </button>
-            <button className="w-full p-3 text-left bg-success/10 hover:bg-success/20 rounded-lg transition-colors">
-              <div className="font-medium">Nueva Orden de Servicio</div>
-              <div className="text-sm text-muted-foreground">Registrar reparación</div>
-            </button>
-          </CardContent>
-        </Card>
+          <div className="erp-metric-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Ventas del Mes</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {formatCurrency(mockStats.monthSales)}
+                </p>
+                <div className="flex items-center mt-2">
+                  <TrendingUp className="h-4 w-4 text-blue-500 mr-1" />
+                  <span className="text-sm text-blue-600">+8.2%</span>
+                </div>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <ShoppingCart className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="erp-metric-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Stock Bajo</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {mockStats.lowStockItems}
+                </p>
+                <div className="flex items-center mt-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500 mr-1" />
+                  <span className="text-sm text-orange-600">Productos</span>
+                </div>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <Package className="h-6 w-6 text-orange-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="erp-metric-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Órdenes Activas</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {mockStats.activeServiceOrders}
+                </p>
+                <div className="flex items-center mt-2">
+                  <Wrench className="h-4 w-4 text-purple-500 mr-1" />
+                  <span className="text-sm text-purple-600">Servicios</span>
+                </div>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Wrench className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="erp-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+                Acciones Rápidas
+              </CardTitle>
+              <CardDescription>Operaciones frecuentes del sistema</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={handleNewSale}
+                className="w-full justify-start gap-3 h-12 erp-button-primary"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <div className="text-left">
+                  <div className="font-medium">Nueva Venta</div>
+                  <div className="text-xs opacity-90">Abrir punto de venta</div>
+                </div>
+              </Button>
+              
+              {hasPermission('inventory', 'create') && (
+                <Button 
+                  onClick={handleAddProduct}
+                  variant="outline" 
+                  className="w-full justify-start gap-3 h-12"
+                >
+                  <Plus className="h-5 w-5" />
+                  <div className="text-left">
+                    <div className="font-medium">Agregar Producto</div>
+                    <div className="text-xs text-muted-foreground">Nuevo producto al inventario</div>
+                  </div>
+                </Button>
+              )}
+              
+              {hasPermission('workshop', 'create') && (
+                <Button 
+                  onClick={handleNewServiceOrder}
+                  variant="outline" 
+                  className="w-full justify-start gap-3 h-12"
+                >
+                  <Wrench className="h-5 w-5" />
+                  <div className="text-left">
+                    <div className="font-medium">Nueva Orden de Servicio</div>
+                    <div className="text-xs text-muted-foreground">Registrar reparación</div>
+                  </div>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="erp-card">
+            <CardHeader>
+              <CardTitle>Productos Más Vendidos</CardTitle>
+              <CardDescription>Top 3 del mes actual</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {mockStats.topSellingProducts.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                        {index + 1}
+                      </div>
+                      <span className="font-medium text-gray-900">{item.product.name}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-600">{item.quantity} unidades</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="erp-card">
+            <CardHeader>
+              <CardTitle>Estado del Sistema</CardTitle>
+              <CardDescription>Información general</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                <span className="text-sm font-medium">Sistema</span>
+                <span className="text-sm font-semibold text-green-600">En línea</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                <span className="text-sm font-medium">Base de Datos</span>
+                <span className="text-sm font-semibold text-blue-600">Conectada</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                <span className="text-sm font-medium">Sincronización</span>
+                <span className="text-sm font-semibold text-orange-600">Activa</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

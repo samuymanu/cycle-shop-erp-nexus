@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,12 @@ import {
   Search,
   Calendar,
   LogOut,
-  User
+  User,
+  BarChart3,
+  ShoppingCart,
+  Wrench,
+  Home,
+  Package
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -24,25 +30,25 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: Database,
+      icon: Home,
       requiresPermission: null,
     },
     {
       id: 'pos',
       label: 'Punto de Venta',
-      icon: Search,
+      icon: ShoppingCart,
       requiresPermission: { module: 'sales', action: 'create' },
     },
     {
       id: 'inventory',
       label: 'Inventario',
-      icon: Database,
+      icon: Package,
       requiresPermission: { module: 'inventory', action: 'read' },
     },
     {
       id: 'workshop',
       label: 'Taller',
-      icon: Settings,
+      icon: Wrench,
       requiresPermission: { module: 'workshop', action: 'read' },
     },
     {
@@ -60,8 +66,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
     {
       id: 'reports',
       label: 'Reportes',
-      icon: Search,
+      icon: BarChart3,
       requiresPermission: { module: 'reports', action: 'read' },
+    },
+    {
+      id: 'settings',
+      label: 'Configuración',
+      icon: Settings,
+      requiresPermission: { module: 'settings', action: 'read' },
     },
   ];
 
@@ -71,44 +83,49 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   });
 
   return (
-    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
+    <div className="flex flex-col h-full bg-sidebar shadow-xl">
       {/* Header */}
-      <div className="p-4 border-b border-sidebar-border">
-        <h2 className="text-lg font-semibold text-sidebar-foreground">
-          BiciCentro ERP
-        </h2>
-        <div className="flex items-center gap-2 mt-2">
-          <User className="h-4 w-4 text-sidebar-accent-foreground" />
-          <div className="text-sm">
-            <p className="text-sidebar-foreground font-medium">{user?.name}</p>
-            <p className="text-sidebar-accent-foreground text-xs">{user?.role.displayName}</p>
+      <div className="p-6 border-b border-sidebar-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <Database className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-sidebar-foreground">BiciCentro</h2>
+            <p className="text-sm text-sidebar-accent-foreground">ERP System</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 bg-sidebar-accent rounded-lg">
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+            <User className="h-4 w-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
+            <p className="text-xs text-sidebar-accent-foreground truncate">{user?.role.displayName}</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {filteredItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            
-            return (
-              <li key={item.id}>
-                <button
-                  onClick={() => onPageChange(item.id)}
-                  className={cn(
-                    'erp-sidebar-item w-full text-left',
-                    isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{item.label}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+      <nav className="flex-1 p-4 space-y-1">
+        {filteredItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentPage === item.id;
+          
+          return (
+            <button
+              key={item.id}
+              onClick={() => onPageChange(item.id)}
+              className={cn(
+                'erp-sidebar-item w-full text-left',
+                isActive && 'bg-primary text-white shadow-md'
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* Footer */}
@@ -116,10 +133,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
         <Button
           variant="ghost"
           onClick={logout}
-          className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg py-3"
         >
-          <LogOut className="h-4 w-4" />
-          Cerrar Sesión
+          <LogOut className="h-5 w-5" />
+          <span className="font-medium">Cerrar Sesión</span>
         </Button>
       </div>
     </div>
