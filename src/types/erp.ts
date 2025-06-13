@@ -50,6 +50,8 @@ export interface Sale {
   tax: number;
   subtotal: number;
   notes?: string;
+  exchangeRate?: number; // For USD transactions
+  totalUSD?: number; // Total in USD
 }
 
 export interface SaleItem {
@@ -62,11 +64,24 @@ export interface SaleItem {
 }
 
 export enum PaymentMethod {
-  CASH = 'cash',
+  CASH_VES = 'cash_ves',
+  CASH_USD = 'cash_usd',
   CARD = 'card',
   TRANSFER = 'transfer',
   CREDIT = 'credit',
+  ZELLE = 'zelle',
+  USDT = 'usdt',
 }
+
+export const PaymentMethodLabels = {
+  [PaymentMethod.CASH_VES]: 'Efectivo en Bs',
+  [PaymentMethod.CASH_USD]: 'Efectivo en $',
+  [PaymentMethod.CARD]: 'Tarjeta',
+  [PaymentMethod.TRANSFER]: 'Transferencia',
+  [PaymentMethod.CREDIT]: 'Crédito',
+  [PaymentMethod.ZELLE]: 'Zelle',
+  [PaymentMethod.USDT]: 'USDT',
+};
 
 export enum SaleStatus {
   COMPLETED = 'completed',
@@ -128,4 +143,10 @@ export interface DashboardStats {
     product: Product;
     quantity: number;
   }>;
+}
+
+export interface ExchangeRates {
+  bcv: number;
+  parallel: number;
+  lastUpdate: Date;
 }

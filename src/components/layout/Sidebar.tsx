@@ -83,11 +83,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   });
 
   return (
-    <div className="flex flex-col h-full bg-sidebar shadow-xl">
+    <div className="flex flex-col h-full bg-sidebar shadow-lg">
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
             <Database className="h-6 w-6 text-white" />
           </div>
           <div>
@@ -95,7 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
             <p className="text-sm text-sidebar-accent-foreground">ERP System</p>
           </div>
         </div>
-        <div className="flex items-center gap-3 p-3 bg-sidebar-accent rounded-lg">
+        <div className="flex items-center gap-3 p-3 bg-sidebar-accent rounded-lg shadow-sm">
           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
             <User className="h-4 w-4 text-white" />
           </div>
@@ -107,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-2">
         {filteredItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
@@ -117,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
               key={item.id}
               onClick={() => onPageChange(item.id)}
               className={cn(
-                'erp-sidebar-item w-full text-left',
+                'material-sidebar-item w-full text-left',
                 isActive && 'bg-primary text-white shadow-md'
               )}
             >
@@ -133,7 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
         <Button
           variant="ghost"
           onClick={logout}
-          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg py-3"
+          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md py-3"
         >
           <LogOut className="h-5 w-5" />
           <span className="font-medium">Cerrar Sesión</span>
