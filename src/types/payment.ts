@@ -1,4 +1,8 @@
 
+// Importar y re-exportar enums existentes
+import { PaymentMethod } from './erp';
+export { PaymentMethod } from './erp';
+
 export interface BasePaymentInfo {
   method: PaymentMethod;
   amount: number;
@@ -65,6 +69,3 @@ export interface SalePayment {
   paymentInfo: PaymentInfo;
   createdAt: string;
 }
-
-// Importar enums existentes
-import { PaymentMethod } from './erp';

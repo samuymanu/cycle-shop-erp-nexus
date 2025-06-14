@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { PaymentMethod, PaymentMethodLabels } from '@/types/erp';
-import { PaymentInfo } from '@/types/payment';
+import { PaymentInfo, CashPaymentInfo, CreditPaymentInfo, ZellePaymentInfo, TransferPaymentInfo } from '@/types/payment';
 import { Plus, X, CreditCard } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -57,32 +57,32 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
       case PaymentMethod.CASH_USD:
         return (
           <CashPaymentForm
-            paymentInfo={currentPaymentInfo}
-            onUpdate={setCurrentPaymentInfo}
+            paymentInfo={currentPaymentInfo as Partial<CashPaymentInfo>}
+            onUpdate={(info) => setCurrentPaymentInfo(info)}
             totalAmount={remaining}
           />
         );
       case PaymentMethod.CREDIT:
         return (
           <CreditPaymentForm
-            paymentInfo={currentPaymentInfo}
-            onUpdate={setCurrentPaymentInfo}
+            paymentInfo={currentPaymentInfo as Partial<CreditPaymentInfo>}
+            onUpdate={(info) => setCurrentPaymentInfo(info)}
             totalAmount={remaining}
           />
         );
       case PaymentMethod.ZELLE:
         return (
           <ZellePaymentForm
-            paymentInfo={currentPaymentInfo}
-            onUpdate={setCurrentPaymentInfo}
+            paymentInfo={currentPaymentInfo as Partial<ZellePaymentInfo>}
+            onUpdate={(info) => setCurrentPaymentInfo(info)}
             totalAmount={remaining}
           />
         );
       case PaymentMethod.TRANSFER:
         return (
           <TransferPaymentForm
-            paymentInfo={currentPaymentInfo}
-            onUpdate={setCurrentPaymentInfo}
+            paymentInfo={currentPaymentInfo as Partial<TransferPaymentInfo>}
+            onUpdate={(info) => setCurrentPaymentInfo(info)}
             totalAmount={remaining}
           />
         );

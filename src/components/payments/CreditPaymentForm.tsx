@@ -33,7 +33,7 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
           </SelectTrigger>
           <SelectContent>
             {clients.map((client) => (
-              <SelectItem key={client.id} value={client.id}>
+              <SelectItem key={client.id} value={client.id.toString()}>
                 {client.name} - {client.documentNumber}
               </SelectItem>
             ))}
