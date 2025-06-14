@@ -10,6 +10,7 @@ import Settings from '@/components/modules/Settings';
 import Clients from '@/components/modules/Clients';
 import Purchases from '@/components/modules/Purchases';
 import Reports from '@/components/modules/Reports';
+import CurrencyCalculator from '@/components/modules/CurrencyCalculator';
 
 const MainLayout = () => {
   const { user } = useAuth();
@@ -29,6 +30,8 @@ const MainLayout = () => {
         return <Clients />;
       case 'purchases':
         return <Purchases />;
+      case 'currency-calculator':
+        return <CurrencyCalculator />;
       case 'reports':
         return <Reports />;
       case 'settings':

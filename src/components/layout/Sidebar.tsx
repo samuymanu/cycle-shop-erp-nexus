@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,8 @@ import {
   ShoppingCart,
   Wrench,
   Home,
-  Package
+  Package,
+  Calculator
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -62,6 +62,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
       label: 'Compras',
       icon: Calendar,
       requiresPermission: { module: 'purchases', action: 'read' },
+    },
+    {
+      id: 'currency-calculator',
+      label: 'Calculadora de Divisas',
+      icon: Calculator,
+      requiresPermission: null,
     },
     {
       id: 'reports',
