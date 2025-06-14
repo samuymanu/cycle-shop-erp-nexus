@@ -100,6 +100,11 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleCategoryManagementClose = () => {
+    setShowCategoryDialog(false);
+    // Las categorías se actualizan automáticamente mediante useCategoriesData
+  };
+
   if (!product) return null;
 
   // Encontrar la categoría seleccionada para mostrar su displayName
@@ -266,7 +271,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
 
       <CategoryManagementDialog
         open={showCategoryDialog}
-        onOpenChange={setShowCategoryDialog}
+        onOpenChange={handleCategoryManagementClose}
       />
     </>
   );

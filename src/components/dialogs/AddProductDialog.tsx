@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -89,6 +90,11 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
         variant: 'destructive',
       });
     }
+  };
+
+  const handleCategoryManagementClose = () => {
+    setShowCategoryDialog(false);
+    // No necesitamos hacer nada más aquí porque useCategoriesData se actualiza automáticamente
   };
 
   return (
@@ -266,7 +272,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
               <Button 
                 type="submit" 
                 className="gap-2 erp-button-primary"
-                disabled={createProductMutation.isPending || categoriesError}
+                disabled={createProductMutation.isPending || !!categoriesError}
               >
                 <Save className="h-4 w-4" />
                 {createProductMutation.isPending ? 'Agregando...' : 'Agregar Producto'}
@@ -278,7 +284,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
 
       <CategoryManagementDialog
         open={showCategoryDialog}
-        onOpenChange={setShowCategoryDialog}
+        onOpenChange={handleCategoryManagementClose}
       />
     </>
   );
