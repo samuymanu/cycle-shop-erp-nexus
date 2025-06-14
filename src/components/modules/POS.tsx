@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
+import { useCategoriesData } from '@/hooks/useCategoriesData'; // ⬅️ Importante
 import { useCreateSale } from '@/hooks/useSalesData';
 import { toast } from '@/hooks/use-toast';
 import { Bike, Wrench, Package, Search } from 'lucide-react';
@@ -21,6 +23,30 @@ interface CartItem {
   subtotal: number;
 }
 
+const CATEGORY_ICONS: Record<
+  string,
+  React.ReactNode
+> = {
+  bicicletas: <Bike className="h-4 w-4" />,
+  motocicletas: <Wrench className="h-4 w-4" />,
+  accesorios: (
+    // Se puede personalizar más adelante
+    <Package className="h-4 w-4" />
+  ),
+  repuestos: (
+    // Se puede personalizar más adelante
+    <Wrench className="h-4 w-4" />
+  ),
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  bicicletas: "bg-green-100 text-green-800 border-green-200",
+  motocicletas: "bg-blue-100 text-blue-800 border-blue-200",
+  accesorios: "bg-purple-100 text-purple-800 border-purple-200",
+  repuestos: "bg-orange-100 text-orange-800 border-orange-200",
+  default: "bg-gray-100 text-gray-800 border-gray-200",
+};
+
 const POS = () => {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -29,90 +55,62 @@ const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const { data: products = [], isLoading } = useInventoryData();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategoriesData(); // ⬅️ Usamos las categorías reales
   const createSaleMutation = useCreateSale();
 
-  if (isLoading) {
-    return (
-      <div className="p-6 space-y-6 bg-slate-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando productos...</p>
-        </div>
-      </div>
+  // Determinar a qué categoría real pertenece un producto
+  const getCategoryOfProduct = (productCategoryName: string) => {
+    const matchedCategory = categories.find(
+      (cat) =>
+        cat.name.toLowerCase() === productCategoryName.toLowerCase() ||
+        cat.displayName.toLowerCase() === productCategoryName.toLowerCase()
     );
-  }
-
-  // Categorizar productos
-  const categorizeProducts = () => {
-    const categories = {
-      bicicletas: products.filter(p => 
-        p.category?.toLowerCase().includes('bicicleta') || 
-        p.name.toLowerCase().includes('bicicleta') ||
-        p.category?.toLowerCase().includes('bike')
-      ),
-      motocicletas: products.filter(p => 
-        p.category?.toLowerCase().includes('motocicleta') || 
-        p.category?.toLowerCase().includes('moto') ||
-        p.name.toLowerCase().includes('moto')
-      ),
-      accesorios: products.filter(p => 
-        p.category?.toLowerCase().includes('accesorio') ||
-        p.category?.toLowerCase().includes('seguridad') ||
-        p.category?.toLowerCase().includes('casco')
-      ),
-      repuestos: products.filter(p => 
-        p.category?.toLowerCase().includes('transmisión') ||
-        p.category?.toLowerCase().includes('freno') ||
-        p.category?.toLowerCase().includes('rueda') ||
-        p.category?.toLowerCase().includes('cadena') ||
-        p.category?.toLowerCase().includes('desviador')
-      ),
-    };
-    
-    return categories;
+    return matchedCategory;
   };
 
-  const categorizedProducts = categorizeProducts();
-
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (selectedCategory === 'all') return matchesSearch;
-    
-    const categoryProducts = categorizedProducts[selectedCategory as keyof typeof categorizedProducts] || [];
-    const matchesCategory = categoryProducts.some(p => p.id === product.id);
-    
-    return matchesSearch && matchesCategory;
-  });
-
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case 'bicicletas':
-        return <Bike className="h-4 w-4" />;
-      case 'motocicletas':
-        return <Wrench className="h-4 w-4" />;
-      default:
-        return <Package className="h-4 w-4" />;
-    }
+  // Mapear un nombre técnico de categoría a un identificador estandarizado (para asignar color/icono)
+  // Ejemplo: "bicicletas", "transmision", etc.
+  const getCategoryKey = (categoryName: string) => {
+    // Solo para icono y color. Devuelve 'bicicletas', 'motocicletas', etc, si lo conoce; si no, 'default'
+    if (!categoryName) return 'default';
+    const normalized = categoryName.toLowerCase();
+    if (normalized.includes('bici')) return 'bicicletas';
+    if (normalized.includes('moto')) return 'motocicletas';
+    if (normalized.includes('accesor')) return 'accesorios';
+    if (normalized.includes('repuest') || normalized.includes('transmisión') || normalized.includes('transmision') || normalized.includes('freno') || normalized.includes('rueda')) return 'repuestos';
+    return 'default';
   };
 
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'bicicletas':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'motocicletas':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'accesorios':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'repuestos':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  // Productos filtrados según búsqueda y categoría seleccionada
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.sku.toLowerCase().includes(searchTerm.toLowerCase());
 
+      const matchesCategory =
+        selectedCategory === 'all' ||
+        product.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [products, searchTerm, selectedCategory]);
+
+  // Estadísticas por categoría
+  const categoryStats = useMemo(() => {
+    // Solo categorías activas
+    return categories.map((cat) => {
+      // Cuenta productos en esta categoría
+      const count = products.filter((p) => p.category === cat.name).length;
+      return {
+        ...cat,
+        count,
+      };
+    });
+  }, [categories, products]);
+
+  // --- Funciones de carrito y pago, igual ---
   const addToCart = (product: any) => {
     if (product.currentStock === 0) {
       toast({
@@ -124,7 +122,7 @@ const POS = () => {
     }
 
     const existingItem = cart.find(item => item.id === product.id.toString());
-    
+
     if (existingItem) {
       if (existingItem.quantity >= product.currentStock) {
         toast({
@@ -134,7 +132,7 @@ const POS = () => {
         });
         return;
       }
-      
+
       setCart(cart.map(item =>
         item.id === product.id.toString()
           ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
@@ -149,7 +147,7 @@ const POS = () => {
         subtotal: product.salePrice,
       }]);
     }
-    
+
     toast({
       title: "Producto agregado",
       description: `${product.name} agregado al carrito`,
@@ -165,7 +163,7 @@ const POS = () => {
       removeFromCart(itemId);
       return;
     }
-    
+
     const product = products.find(p => p.id.toString() === itemId);
     if (product && newQuantity > product.currentStock) {
       toast({
@@ -175,7 +173,7 @@ const POS = () => {
       });
       return;
     }
-    
+
     setCart(cart.map(item =>
       item.id === itemId
         ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
@@ -257,6 +255,17 @@ const POS = () => {
     }).format(amount);
   };
 
+  if (isLoading || categoriesLoading) {
+    return (
+      <div className="p-6 space-y-6 bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando productos y categorías...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex items-center justify-between">
@@ -286,51 +295,58 @@ const POS = () => {
                       className="pl-10 bikeERP-input"
                     />
                   </div>
+                  {/* Select dinámico de categorías */}
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Categoría" />
+                      <SelectValue placeholder="Categoría">
+                        {selectedCategory === 'all'
+                          ? 'Todas las categorías'
+                          : categories.find(cat => cat.name === selectedCategory)?.displayName}
+                      </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[100] bg-white">
                       <SelectItem value="all">Todas las categorías</SelectItem>
-                      <SelectItem value="bicicletas">🚲 Bicicletas</SelectItem>
-                      <SelectItem value="motocicletas">🏍️ Motocicletas</SelectItem>
-                      <SelectItem value="accesorios">🛡️ Accesorios</SelectItem>
-                      <SelectItem value="repuestos">🔧 Repuestos</SelectItem>
+                      {categories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.displayName}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Category Statistics */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                  {Object.entries(categorizedProducts).map(([category, items]) => (
-                    <div key={category} className={`p-2 rounded-lg border ${getCategoryColor(category)}`}>
-                      <div className="flex items-center gap-1">
-                        {getCategoryIcon(category)}
-                        <span className="text-xs font-medium capitalize">{category}</span>
+                {/* Estadísticas de cada categoría */}
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
+                  {categoryStats.map(cat => {
+                    const catKey = getCategoryKey(cat.name);
+                    return (
+                      <div
+                        key={cat.id}
+                        className={`p-2 rounded-lg border ${CATEGORY_COLORS[catKey] || CATEGORY_COLORS.default}`}
+                      >
+                        <div className="flex items-center gap-1">
+                          {(CATEGORY_ICONS[catKey] || <Package className="h-4 w-4" />)}
+                          <span className="text-xs font-medium capitalize">{cat.displayName}</span>
+                        </div>
+                        <div className="text-sm font-bold">{cat.count} producto{cat.count === 1 ? '' : 's'}</div>
                       </div>
-                      <div className="text-sm font-bold">{items.length} productos</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-                
+
+                {/* Lista de productos */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
                   {filteredProducts.map((product) => {
-                    // Determinar categoría para el color
-                    let productCategory = 'otros';
-                    Object.entries(categorizedProducts).forEach(([category, items]) => {
-                      if (items.some(p => p.id === product.id)) {
-                        productCategory = category;
-                      }
-                    });
-
+                    const category = getCategoryOfProduct(product.category);
+                    const catKey = getCategoryKey(product.category);
                     return (
                       <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow border-blue-100">
                         <CardContent className="p-4">
                           <div className="space-y-2">
                             <div className="flex justify-between items-start">
                               <h4 className="font-medium text-slate-900">{product.name}</h4>
-                              <Badge variant="outline" className={`text-xs ${getCategoryColor(productCategory)}`}>
-                                {productCategory}
+                              <Badge variant="outline" className={`text-xs ${CATEGORY_COLORS[catKey] || CATEGORY_COLORS.default}`}>
+                                {category ? category.displayName : product.category}
                               </Badge>
                             </div>
                             <p className="text-xs text-slate-500">{product.brand} - {product.model}</p>
@@ -401,7 +417,7 @@ const POS = () => {
                         </div>
                       ))}
                     </div>
-                    
+
                     <div className="pt-4 border-t border-slate-200">
                       <div className="flex justify-between items-center mb-4">
                         <span className="text-lg font-semibold text-slate-900">Total:</span>
@@ -425,7 +441,7 @@ const POS = () => {
                   payments={payments}
                   onPaymentsUpdate={setPayments}
                 />
-                
+
                 <div className="mt-4">
                   <Button
                     onClick={processSale}
@@ -433,8 +449,8 @@ const POS = () => {
                     size="lg"
                     disabled={createSaleMutation.isPending || !canProcessSale()}
                   >
-                    {createSaleMutation.isPending ? 'Procesando...' : 
-                     !canProcessSale() ? 'Complete el pago' : 'Procesar Venta'}
+                    {createSaleMutation.isPending ? 'Procesando...' :
+                      !canProcessSale() ? 'Complete el pago' : 'Procesar Venta'}
                   </Button>
                 </div>
               </CardContent>
@@ -447,3 +463,4 @@ const POS = () => {
 };
 
 export default POS;
+
