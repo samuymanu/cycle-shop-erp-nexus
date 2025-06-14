@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Settings, Trash2 } from 'lucide-react';
 import BarcodeDisplay from '@/components/ui/BarcodeDisplay';
+import BarcodeActions from './BarcodeActions';
 
 interface InventoryTableProps {
   filteredInventory: any[];
@@ -70,7 +70,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                     </div>
                   </td>
                   <td className="p-4">
-                    <BarcodeDisplay value={item.sku || `PROD${item.id}`} />
+                    <div className="flex flex-col gap-1">
+                      <BarcodeDisplay value={item.sku || `PROD${item.id}`} />
+                      <BarcodeActions value={item.sku || `PROD${item.id}`} />
+                    </div>
                   </td>
                   <td className="p-4">
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
