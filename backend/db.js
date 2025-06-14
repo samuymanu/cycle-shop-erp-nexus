@@ -142,6 +142,51 @@ db.serialize(() => {
     }
   });
 
+  // Insertar algunos clientes de ejemplo si no existen
+  db.get("SELECT COUNT(*) as count FROM clients", [], (err, row) => {
+    if (!err && row.count === 0) {
+      const exampleClients = [
+        {
+          name: 'María González',
+          documentType: 'DNI',
+          documentNumber: '87654321',
+          address: 'Av. Principal, Caracas',
+          phone: '0424-7654321',
+          email: 'maria@email.com',
+          balance: 15000,
+          isActive: 1
+        },
+        {
+          name: 'Carlos Rodríguez',
+          documentType: 'RIF',
+          documentNumber: 'J-12345678-9',
+          address: 'Calle 5, Valencia',
+          phone: '0412-9876543',
+          email: 'carlos@tienda.com',
+          balance: -5000,
+          isActive: 1
+        },
+        {
+          name: 'Juan Pérez',
+          documentType: 'DNI',
+          documentNumber: '12345678',
+          address: 'Urbanización El Valle, Maracay',
+          phone: '0414-1234567',
+          email: 'juan@email.com',
+          balance: 0,
+          isActive: 1
+        }
+      ];
+
+      exampleClients.forEach(client => {
+        db.run(
+          "INSERT INTO clients (name, documentType, documentNumber, address, phone, email, balance, isActive) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          [client.name, client.documentType, client.documentNumber, client.address, client.phone, client.email, client.balance, client.isActive]
+        );
+      });
+    }
+  });
+
   // Insertar algunas órdenes de servicio de ejemplo
   db.get("SELECT COUNT(*) as count FROM service_orders", [], (err, row) => {
     if (!err && row.count === 0) {

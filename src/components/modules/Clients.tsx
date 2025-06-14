@@ -7,7 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useClientsData } from '@/hooks/useClientsData';
 import CreateClientDialog from '@/components/dialogs/CreateClientDialog';
-import { Plus, Users, Search, Edit, Eye, UserCheck, UserX } from 'lucide-react';
+import ViewClientDialog from '@/components/dialogs/ViewClientDialog';
+import EditClientDialog from '@/components/dialogs/EditClientDialog';
+import DeleteClientDialog from '@/components/dialogs/DeleteClientDialog';
+import { Plus, Users, Search, Edit, Eye, UserCheck, UserX, Trash2 } from 'lucide-react';
 
 const Clients = () => {
   const { user, hasPermission } = useAuth();
@@ -41,8 +44,8 @@ const Clients = () => {
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          client.documentNumber.includes(searchTerm) ||
-                         client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.phone.includes(searchTerm);
+                         client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         client.phone?.includes(searchTerm);
     
     const matchesStatus = statusFilter === 'all' || 
                          (statusFilter === 'active' && client.isActive) ||
@@ -221,13 +224,12 @@ const Clients = () => {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <ViewClientDialog client={client} />
                           {hasPermission('clients', 'update') && (
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <EditClientDialog client={client} />
+                          )}
+                          {hasPermission('clients', 'delete') && (
+                            <DeleteClientDialog client={client} />
                           )}
                         </div>
                       </td>

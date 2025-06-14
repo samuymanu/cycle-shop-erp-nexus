@@ -5,26 +5,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import { useCreateClient } from '@/hooks/useClientsData';
-import { Plus, UserPlus } from 'lucide-react';
+import { Client, useUpdateClient } from '@/hooks/useClientsData';
+import { Edit, Save } from 'lucide-react';
 
-const CreateClientDialog = () => {
+interface EditClientDialogProps {
+  client: Client;
+  trigger?: React.ReactNode;
+}
+
+const EditClientDialog = ({ client, trigger }: EditClientDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [clientData, setClientData] = useState({
-    name: '',
-    documentType: 'DNI',
-    documentNumber: '',
-    phone: '',
-    email: '',
-    address: '',
-    balance: 0,
-    isActive: 1,
+    name: client.name,
+    documentType: client.documentType,
+    documentNumber: client.documentNumber,
+    phone: client.phone || '',
+    email: client.email || '',
+    address: client.address || '',
+    balance: client.balance.toString(),
+    isActive: client.isActive === 1,
   });
 
-  const createClientMutation = useCreateClient();
+  const updateClientMutation = useUpdateClient();
 
-  const handleCreateClient = async () => {
+  const handleUpdateClient = async () => {
     if (!clientData.name || !clientData.documentNumber || !clientData.phone) {
       toast({
         title: "Error",
@@ -35,29 +41,28 @@ const CreateClientDialog = () => {
     }
 
     try {
-      await createClientMutation.mutateAsync(clientData);
+      await updateClientMutation.mutateAsync({
+        id: client.id,
+        name: clientData.name,
+        documentType: clientData.documentType,
+        documentNumber: clientData.documentNumber,
+        phone: clientData.phone,
+        email: clientData.email,
+        address: clientData.address,
+        balance: parseFloat(clientData.balance) || 0,
+        isActive: clientData.isActive ? 1 : 0,
+      });
 
       toast({
-        title: "Cliente Creado",
-        description: `Cliente ${clientData.name} creado exitosamente`,
+        title: "Cliente Actualizado",
+        description: `Cliente ${clientData.name} actualizado exitosamente`,
       });
 
-      // Reset form and close dialog
-      setClientData({
-        name: '',
-        documentType: 'DNI',
-        documentNumber: '',
-        phone: '',
-        email: '',
-        address: '',
-        balance: 0,
-        isActive: 1,
-      });
       setIsOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "No se pudo crear el cliente",
+        description: "No se pudo actualizar el cliente",
         variant: "destructive",
       });
     }
@@ -66,19 +71,20 @@ const CreateClientDialog = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="bikeERP-button-primary gap-2">
-          <Plus className="h-4 w-4" />
-          Nuevo Cliente
-        </Button>
+        {trigger || (
+          <Button variant="outline" size="sm">
+            <Edit className="h-4 w-4" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-primary" />
-            Crear Nuevo Cliente
+            <Edit className="h-5 w-5 text-primary" />
+            Editar Cliente
           </DialogTitle>
           <DialogDescription>
-            Registra un nuevo cliente en el sistema
+            Modifica la información del cliente
           </DialogDescription>
         </DialogHeader>
 
@@ -132,15 +138,27 @@ const CreateClientDialog = () => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Correo Electrónico</Label>
-            <Input
-              id="email"
-              type="email"
-              value={clientData.email}
-              onChange={(e) => setClientData({...clientData, email: e.target.value})}
-              placeholder="cliente@ejemplo.com"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Correo Electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                value={clientData.email}
+                onChange={(e) => setClientData({...clientData, email: e.target.value})}
+                placeholder="cliente@ejemplo.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="balance">Balance</Label>
+              <Input
+                id="balance"
+                type="number"
+                value={clientData.balance}
+                onChange={(e) => setClientData({...clientData, balance: e.target.value})}
+                placeholder="0"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -153,17 +171,26 @@ const CreateClientDialog = () => {
             />
           </div>
 
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isActive"
+              checked={clientData.isActive}
+              onCheckedChange={(checked) => setClientData({...clientData, isActive: checked})}
+            />
+            <Label htmlFor="isActive">Cliente activo</Label>
+          </div>
+
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
             <Button 
-              onClick={handleCreateClient} 
+              onClick={handleUpdateClient} 
               className="bikeERP-button-primary"
-              disabled={createClientMutation.isPending}
+              disabled={updateClientMutation.isPending}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              {createClientMutation.isPending ? 'Creando...' : 'Crear Cliente'}
+              <Save className="h-4 w-4 mr-2" />
+              {updateClientMutation.isPending ? 'Guardando...' : 'Guardar Cambios'}
             </Button>
           </div>
         </div>
@@ -172,4 +199,4 @@ const CreateClientDialog = () => {
   );
 };
 
-export default CreateClientDialog;
+export default EditClientDialog;
