@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,9 @@ import { toast } from '@/hooks/use-toast';
 import { Bike, Wrench, Package, Search } from 'lucide-react';
 import { PaymentInfo } from '@/types/payment';
 import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector';
+import ProductList from './ProductList';
+import CategoryStats from './CategoryStats';
+import Cart from './Cart';
 
 interface CartItem {
   id: string;
@@ -316,59 +318,19 @@ const POS = () => {
                 </div>
 
                 {/* Estadísticas de cada categoría */}
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
-                  {categoryStats.map(cat => {
-                    const catKey = getCategoryKey(cat.name);
-                    return (
-                      <div
-                        key={cat.id}
-                        className={`p-2 rounded-lg border ${CATEGORY_COLORS[catKey] || CATEGORY_COLORS.default}`}
-                      >
-                        <div className="flex items-center gap-1">
-                          {(CATEGORY_ICONS[catKey] || <Package className="h-4 w-4" />)}
-                          <span className="text-xs font-medium capitalize">{cat.displayName}</span>
-                        </div>
-                        <div className="text-sm font-bold">{cat.count} producto{cat.count === 1 ? '' : 's'}</div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <CategoryStats categoryStats={categoryStats} getCategoryKey={getCategoryKey} />
 
                 {/* Lista de productos */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                  {filteredProducts.map((product) => {
-                    const category = getCategoryOfProduct(product.category);
-                    const catKey = getCategoryKey(product.category);
-                    return (
-                      <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow border-blue-100">
-                        <CardContent className="p-4">
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-start">
-                              <h4 className="font-medium text-slate-900">{product.name}</h4>
-                              <Badge variant="outline" className={`text-xs ${CATEGORY_COLORS[catKey] || CATEGORY_COLORS.default}`}>
-                                {category ? category.displayName : product.category}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-slate-500">{product.brand} - {product.model}</p>
-                            <p className="text-lg font-bold text-blue-600">
-                              {formatCurrency(product.salePrice)}
-                            </p>
-                            <p className="text-sm text-slate-500">
-                              Stock: {product.currentStock} unidades
-                            </p>
-                            <Button
-                              onClick={() => addToCart(product)}
-                              className="w-full bikeERP-button-primary"
-                              disabled={product.currentStock === 0}
-                            >
-                              {product.currentStock > 0 ? 'Agregar al Carrito' : 'Sin Stock'}
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                <ProductList
+                  products={products}
+                  filteredProducts={filteredProducts}
+                  getCategoryOfProduct={getCategoryOfProduct}
+                  getCategoryKey={getCategoryKey}
+                  CATEGORY_COLORS={CATEGORY_COLORS}
+                  CATEGORY_ICONS={CATEGORY_ICONS}
+                  addToCart={addToCart}
+                  formatCurrency={formatCurrency}
+                />
               </div>
             </CardContent>
           </Card>
@@ -376,61 +338,13 @@ const POS = () => {
 
         {/* Cart and Payment Section */}
         <div className="space-y-4">
-          <Card className="bikeERP-card">
-            <CardHeader>
-              <CardTitle className="text-slate-900">Carrito de Compras</CardTitle>
-              <CardDescription className="text-slate-600">{cart.length} productos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {cart.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">
-                    Carrito vacío
-                  </p>
-                ) : (
-                  <>
-                    <div className="space-y-3 max-h-40 overflow-y-auto">
-                      {cart.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
-                          <div className="flex-1">
-                            <h5 className="font-medium text-sm text-slate-900">{item.name}</h5>
-                            <p className="text-xs text-slate-500">
-                              {formatCurrency(item.price)} c/u
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity}
-                              onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 0)}
-                              className="w-16 h-8"
-                            />
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => removeFromCart(item.id)}
-                            >
-                              ×
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-200">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-lg font-semibold text-slate-900">Total:</span>
-                        <span className="text-2xl font-bold text-blue-600">
-                          {formatCurrency(calculateTotal())}
-                        </span>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <Cart
+            cart={cart}
+            removeFromCart={removeFromCart}
+            updateQuantity={updateQuantity}
+            formatCurrency={formatCurrency}
+            calculateTotal={calculateTotal}
+          />
 
           {/* Payment Methods */}
           {cart.length > 0 && (
@@ -463,4 +377,3 @@ const POS = () => {
 };
 
 export default POS;
-
