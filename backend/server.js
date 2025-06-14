@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
@@ -6,6 +5,7 @@ const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 const clientRoutes = require('./routes/clients');
 const salesRoutes = require('./routes/sales');
+const saleItemsRoutes = require('./routes/sale_items');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -20,6 +20,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/sales', salesRoutes);
+app.use('/api/sale_items', saleItemsRoutes);
 
 // Basic route
 app.get('/', (req, res) => {
