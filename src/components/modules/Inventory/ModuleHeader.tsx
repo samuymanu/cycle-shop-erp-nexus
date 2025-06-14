@@ -1,8 +1,8 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Package, Plus, Download } from 'lucide-react';
+import { Package, Plus, Download, ScanBarcode } from 'lucide-react';
 import { useBarcodeConnectionStatus } from "@/hooks/useBarcodeConnectionStatus";
-import { scanBarcode } from "lucide-react";
 
 interface ModuleHeaderProps {
   hasPermissionCreate: boolean;
@@ -30,7 +30,7 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
               <h1 className="text-3xl font-bold text-gray-900">Gestión de Inventario</h1>
               <p className="text-gray-600">Control de stock y productos</p>
               <div className="flex items-center gap-2 mt-1">
-                <scanBarcode className={"w-4 h-4 " + (connected ? "text-green-600" : "text-red-500")} />
+                <ScanBarcode className={"w-4 h-4 " + (connected ? "text-green-600" : "text-red-500")} />
                 <span className={"text-xs font-bold " + (connected ? "text-green-700" : "text-red-700")}>
                   {deviceName}: {connected ? "Conectado" : "Desconectado"}
                 </span>

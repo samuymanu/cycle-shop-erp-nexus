@@ -1,6 +1,6 @@
 
 import React from "react";
-import { printer, scanBarcode } from "lucide-react";
+import { Printer, ScanBarcode } from "lucide-react";
 import BarcodeDisplay from "@/components/ui/BarcodeDisplay";
 
 interface BarcodeActionsProps {
@@ -78,7 +78,7 @@ const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value }) => {
         className="p-1 hover:bg-blue-50 rounded transition-colors"
         type="button"
       >
-        <scanBarcode className="w-4 h-4 text-blue-600" />
+        <ScanBarcode className="w-4 h-4 text-blue-600" />
       </button>
       <button
         onClick={() => handlePrint(value)}
@@ -86,7 +86,7 @@ const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value }) => {
         className="p-1 hover:bg-green-50 rounded transition-colors"
         type="button"
       >
-        <printer className="w-4 h-4 text-green-600" />
+        <Printer className="w-4 h-4 text-green-600" />
       </button>
     </div>
   );
