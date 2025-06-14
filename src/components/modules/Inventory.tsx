@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +23,8 @@ import {
   Settings,
   Trash2
 } from 'lucide-react';
+import BarcodeDisplay from '@/components/ui/BarcodeDisplay';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 
 const Inventory = () => {
   const { hasPermission } = useAuth();
@@ -59,6 +60,12 @@ const Inventory = () => {
       </div>
     );
   }
+
+  // Integrar búsqueda con escáner de código de barras usando el hook
+  useBarcodeScanner((barcode) => {
+    // Fijar el searchTerm con el valor escaneado, lo que filtra la tabla instantáneamente
+    setSearchTerm(barcode);
+  });
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -282,7 +289,7 @@ const Inventory = () => {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left p-4 font-semibold text-gray-700">Producto</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">SKU</th>
+                    <th className="text-left p-4 font-semibold text-gray-700">SKU / Código de Barra</th>
                     <th className="text-left p-4 font-semibold text-gray-700">Categoría</th>
                     <th className="text-left p-4 font-semibold text-gray-700">Stock</th>
                     <th className="text-left p-4 font-semibold text-gray-700">Estado</th>
@@ -305,7 +312,8 @@ const Inventory = () => {
                           </div>
                         </td>
                         <td className="p-4">
-                          <code className="bg-gray-100 px-2 py-1 rounded text-sm">{item.sku}</code>
+                          {/* Muestra código de barras o SKU visualmente */}
+                          <BarcodeDisplay value={item.sku || `PROD${item.id}`} />
                         </td>
                         <td className="p-4">
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">

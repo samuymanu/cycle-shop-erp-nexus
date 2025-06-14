@@ -17,6 +17,7 @@ import ProductList from './ProductList';
 import CategoryStats from './CategoryStats';
 import Cart from './Cart';
 import { useUpdateClient, useClientsData } from '@/hooks/useClientsData';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 
 interface CartItem {
   id: string;
@@ -62,6 +63,17 @@ const POS = () => {
   const { data: clients = [] } = useClientsData();
   const createSaleMutation = useCreateSale();
   const updateClientMutation = useUpdateClient();
+
+  // Integrar scaner en POS: cuando escaneas, busca el producto y lo agrega al carrito
+  useBarcodeScanner((barcode) => {
+    // Se busca por SKU exacto
+    const product = products.find(
+      (p) => p.sku && p.sku.trim().toUpperCase() === barcode.trim().toUpperCase()
+    );
+    if (product) {
+      addToCart(product);
+    }
+  });
 
   // Determinar a qué categoría real pertenece un producto
   const getCategoryOfProduct = (productCategoryName: string) => {
