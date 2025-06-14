@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { useClientsData } from '@/hooks/useClientsData';
 import CreateClientDialog from '@/components/dialogs/CreateClientDialog';
 import { Plus, Users, Search, Edit, Eye, UserCheck, UserX } from 'lucide-react';
 
@@ -12,66 +13,30 @@ const Clients = () => {
   const { user, hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  const { data: clients = [], isLoading, error } = useClientsData();
 
-  // Mock clients data
-  const [clients] = useState([
-    {
-      id: 'CLI-001',
-      name: 'Juan Pérez',
-      documentType: 'DNI',
-      documentNumber: '12345678',
-      phone: '0414-1234567',
-      email: 'juan.perez@email.com',
-      address: 'Av. Principal #123, Caracas',
-      balance: 0,
-      isActive: true,
-      createdAt: new Date('2024-01-15'),
-      totalOrders: 5,
-      lastOrder: new Date('2024-06-10'),
-    },
-    {
-      id: 'CLI-002',
-      name: 'María González',
-      documentType: 'DNI',
-      documentNumber: '87654321',
-      phone: '0426-9876543',
-      email: 'maria.gonzalez@email.com',
-      address: 'Calle 2 #456, Valencia',
-      balance: 25000,
-      isActive: true,
-      createdAt: new Date('2024-02-20'),
-      totalOrders: 3,
-      lastOrder: new Date('2024-06-12'),
-    },
-    {
-      id: 'CLI-003',
-      name: 'Pedro Ramírez',
-      documentType: 'RIF',
-      documentNumber: 'J-123456789',
-      phone: '0412-5555555',
-      email: 'pedro.ramirez@empresa.com',
-      address: 'Centro Comercial Plaza, Maracay',
-      balance: -15000,
-      isActive: true,
-      createdAt: new Date('2024-03-10'),
-      totalOrders: 8,
-      lastOrder: new Date('2024-06-13'),
-    },
-    {
-      id: 'CLI-004',
-      name: 'Carmen Silva',
-      documentType: 'DNI',
-      documentNumber: '11223344',
-      phone: '0424-7777777',
-      email: 'carmen.silva@email.com',
-      address: 'Urbanización Los Pinos, Barquisimeto',
-      balance: 0,
-      isActive: false,
-      createdAt: new Date('2024-01-05'),
-      totalOrders: 2,
-      lastOrder: new Date('2024-04-15'),
-    },
-  ]);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando clientes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error al cargar clientes</p>
+          <p className="text-gray-600">Verifica que el backend esté ejecutándose</p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredClients = clients.filter(client => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -94,8 +59,8 @@ const Clients = () => {
     }).format(amount);
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('es-VE', {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-VE', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -211,7 +176,7 @@ const Clients = () => {
                     <th className="text-left py-3 px-4 font-medium">Cliente</th>
                     <th className="text-left py-3 px-4 font-medium">Contacto</th>
                     <th className="text-left py-3 px-4 font-medium">Balance</th>
-                    <th className="text-left py-3 px-4 font-medium">Órdenes</th>
+                    <th className="text-left py-3 px-4 font-medium">Fecha Registro</th>
                     <th className="text-left py-3 px-4 font-medium">Estado</th>
                     <th className="text-left py-3 px-4 font-medium">Acciones</th>
                   </tr>
@@ -243,12 +208,7 @@ const Clients = () => {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <div>
-                          <p className="font-medium">{client.totalOrders}</p>
-                          <p className="text-sm text-gray-500">
-                            Última: {formatDate(client.lastOrder)}
-                          </p>
-                        </div>
+                        <p className="text-sm">{formatDate(client.createdAt)}</p>
                       </td>
                       <td className="py-3 px-4">
                         <Badge variant={client.isActive ? 'default' : 'secondary'}>

@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PaymentMethod, PaymentMethodLabels } from '@/types/erp';
 import { useAuth } from '@/hooks/useAuth';
+import { useInventoryData } from '@/hooks/useInventoryData';
+import { useCreateSale } from '@/hooks/useSalesData';
 import { toast } from '@/hooks/use-toast';
 
 interface CartItem {
@@ -23,35 +25,60 @@ const POS = () => {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH_VES);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mock products
-  const mockProducts = [
-    { id: '1', name: 'Bicicleta Trek Mountain', price: 850000, stock: 5 },
-    { id: '2', name: 'Casco Specialized', price: 120000, stock: 15 },
-    { id: '3', name: 'Cadena Shimano 11v', price: 75000, stock: 25 },
-    { id: '4', name: 'Pedales MTB', price: 95000, stock: 12 },
-    { id: '5', name: 'Llanta 26" Maxxis', price: 180000, stock: 8 },
-  ];
+  const { data: products = [], isLoading } = useInventoryData();
+  const createSaleMutation = useCreateSale();
 
-  const filteredProducts = mockProducts.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6 bg-slate-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando productos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const addToCart = (product: any) => {
-    const existingItem = cart.find(item => item.id === product.id);
+    if (product.currentStock === 0) {
+      toast({
+        title: "Sin stock",
+        description: `${product.name} no tiene stock disponible`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const existingItem = cart.find(item => item.id === product.id.toString());
     
     if (existingItem) {
+      if (existingItem.quantity >= product.currentStock) {
+        toast({
+          title: "Stock insuficiente",
+          description: `Solo hay ${product.currentStock} unidades disponibles`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setCart(cart.map(item =>
-        item.id === product.id
+        item.id === product.id.toString()
           ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
           : item
       ));
     } else {
       setCart([...cart, {
-        id: product.id,
+        id: product.id.toString(),
         name: product.name,
-        price: product.price,
+        price: product.salePrice,
         quantity: 1,
-        subtotal: product.price,
+        subtotal: product.salePrice,
       }]);
     }
     
@@ -71,6 +98,16 @@ const POS = () => {
       return;
     }
     
+    const product = products.find(p => p.id.toString() === itemId);
+    if (product && newQuantity > product.currentStock) {
+      toast({
+        title: "Stock insuficiente",
+        description: `Solo hay ${product.currentStock} unidades disponibles`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setCart(cart.map(item =>
       item.id === itemId
         ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
@@ -82,7 +119,7 @@ const POS = () => {
     return cart.reduce((total, item) => total + item.subtotal, 0);
   };
 
-  const processSale = () => {
+  const processSale = async () => {
     if (cart.length === 0) {
       toast({
         title: "Error",
@@ -92,22 +129,30 @@ const POS = () => {
       return;
     }
 
-    // Mock sale processing
-    console.log('Processing sale:', {
-      items: cart,
-      total: calculateTotal(),
-      paymentMethod,
-      userId: user?.id,
-      timestamp: new Date(),
-    });
+    try {
+      const saleData = {
+        clientId: 1, // Por ahora usamos un cliente por defecto
+        saleDate: new Date().toISOString().split('T')[0],
+        total: calculateTotal(),
+        userId: 1, // Por ahora usamos un usuario por defecto
+      };
 
-    toast({
-      title: "Venta Completada",
-      description: `Venta procesada por ${formatCurrency(calculateTotal())}`,
-    });
+      await createSaleMutation.mutateAsync(saleData);
 
-    // Clear cart
-    setCart([]);
+      toast({
+        title: "Venta Completada",
+        description: `Venta procesada por ${formatCurrency(calculateTotal())}`,
+      });
+
+      // Clear cart
+      setCart([]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al procesar la venta",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -150,18 +195,19 @@ const POS = () => {
                       <CardContent className="p-4">
                         <div className="space-y-2">
                           <h4 className="font-medium text-slate-900">{product.name}</h4>
+                          <p className="text-xs text-slate-500">{product.brand} - {product.model}</p>
                           <p className="text-lg font-bold text-blue-600">
-                            {formatCurrency(product.price)}
+                            {formatCurrency(product.salePrice)}
                           </p>
                           <p className="text-sm text-slate-500">
-                            Stock: {product.stock} unidades
+                            Stock: {product.currentStock} unidades
                           </p>
                           <Button
                             onClick={() => addToCart(product)}
                             className="w-full bikeERP-button-primary"
-                            disabled={product.stock === 0}
+                            disabled={product.currentStock === 0}
                           >
-                            {product.stock > 0 ? 'Agregar al Carrito' : 'Sin Stock'}
+                            {product.currentStock > 0 ? 'Agregar al Carrito' : 'Sin Stock'}
                           </Button>
                         </div>
                       </CardContent>
@@ -246,8 +292,9 @@ const POS = () => {
                           onClick={processSale}
                           className="w-full bikeERP-button-success text-white"
                           size="lg"
+                          disabled={createSaleMutation.isPending}
                         >
-                          Procesar Venta
+                          {createSaleMutation.isPending ? 'Procesando...' : 'Procesar Venta'}
                         </Button>
                       </div>
                     </div>

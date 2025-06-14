@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ProductCategory, ProductType } from '@/types/erp';
 import { useAuth } from '@/hooks/useAuth';
+import { useInventoryData } from '@/hooks/useInventoryData';
 import AddProductDialog from '@/components/dialogs/AddProductDialog';
 import { 
   Package, 
@@ -26,71 +26,31 @@ const Inventory = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  // Mock inventory data
-  const [mockInventory, setMockInventory] = useState([
-    {
-      id: '1',
-      name: 'Bicicleta Trek Mountain FX 3',
-      sku: 'BCT-FX3-001',
-      category: ProductCategory.BICYCLES,
-      type: ProductType.BICYCLE_NEW,
-      currentStock: 5,
-      minStock: 2,
-      maxStock: 15,
-      salePrice: 850000,
-      costPrice: 650000,
-      brand: 'Trek',
-      model: 'FX 3',
-      location: 'A1-01',
-    },
-    {
-      id: '2',
-      name: 'Casco Specialized Align',
-      sku: 'CSC-ALG-002',
-      category: ProductCategory.BICYCLE_ACCESSORIES,
-      type: ProductType.ACCESSORY,
-      currentStock: 15,
-      minStock: 5,
-      maxStock: 30,
-      salePrice: 120000,
-      costPrice: 85000,
-      brand: 'Specialized',
-      model: 'Align',
-      location: 'B2-03',
-    },
-    {
-      id: '3',
-      name: 'Cadena Shimano XT 11v',
-      sku: 'CHN-XT11-003',
-      category: ProductCategory.BICYCLE_PARTS,
-      type: ProductType.PART,
-      currentStock: 3,
-      minStock: 8,
-      maxStock: 25,
-      salePrice: 75000,
-      costPrice: 55000,
-      brand: 'Shimano',
-      model: 'XT CN-HG701',
-      location: 'C1-15',
-    },
-    {
-      id: '4',
-      name: 'Casco Moto AGV K1',
-      sku: 'CMT-K1-004',
-      category: ProductCategory.MOTORCYCLE_HELMETS,
-      type: ProductType.HELMET,
-      currentStock: 8,
-      minStock: 3,
-      maxStock: 20,
-      salePrice: 450000,
-      costPrice: 320000,
-      brand: 'AGV',
-      model: 'K1',
-      location: 'D1-05',
-    },
-  ]);
+  const { data: inventory = [], isLoading, error } = useInventoryData();
 
-  const filteredInventory = mockInventory.filter(item => {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando inventario...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error al cargar inventario</p>
+          <p className="text-gray-600">Verifica que el backend esté ejecutándose</p>
+        </div>
+      </div>
+    );
+  }
+
+  const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.brand.toLowerCase().includes(searchTerm.toLowerCase());
@@ -114,31 +74,20 @@ const Inventory = () => {
     }).format(amount);
   };
 
-  const getCategoryDisplayName = (category: string) => {
-    const categoryNames = {
-      [ProductCategory.BICYCLES]: 'Bicicletas',
-      [ProductCategory.BICYCLE_PARTS]: 'Repuestos Bicicleta',
-      [ProductCategory.BICYCLE_ACCESSORIES]: 'Accesorios Bicicleta',
-      [ProductCategory.MOTORCYCLE_PARTS]: 'Repuestos Moto',
-      [ProductCategory.MOTORCYCLE_HELMETS]: 'Cascos Moto',
-      [ProductCategory.MOTORCYCLE_ACCESSORIES]: 'Accesorios Moto',
-    };
-    return categoryNames[category as ProductCategory] || category;
-  };
-
-  const handleProductAdded = (newProduct: any) => {
-    setMockInventory([...mockInventory, newProduct]);
-    console.log('Producto agregado:', newProduct);
+  const handleProductAdded = () => {
+    console.log('Producto agregado, actualizando lista...');
   };
 
   const handleExportData = () => {
     console.log('Exportando datos de inventario...');
-    // Implementar exportación
   };
 
-  const totalValue = mockInventory.reduce((total, item) => total + (item.currentStock * item.costPrice), 0);
-  const lowStockCount = mockInventory.filter(item => item.currentStock <= item.minStock).length;
-  const totalUnits = mockInventory.reduce((total, item) => total + item.currentStock, 0);
+  const totalValue = inventory.reduce((total, item) => total + (item.currentStock * item.costPrice), 0);
+  const lowStockCount = inventory.filter(item => item.currentStock <= item.minStock).length;
+  const totalUnits = inventory.reduce((total, item) => total + item.currentStock, 0);
+
+  // Obtener categorías únicas de los productos reales
+  const categories = [...new Set(inventory.map(item => item.category))];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -181,7 +130,7 @@ const Inventory = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Productos</p>
-                <p className="text-2xl font-bold text-gray-900">{mockInventory.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{inventory.length}</p>
               </div>
               <div className="p-3 bg-blue-100 rounded-lg">
                 <Package className="h-6 w-6 text-blue-600" />
@@ -255,9 +204,9 @@ const Inventory = () => {
                 className="erp-select"
               >
                 <option value="all">Todas las categorías</option>
-                {Object.values(ProductCategory).map(category => (
+                {categories.map(category => (
                   <option key={category} value={category}>
-                    {getCategoryDisplayName(category)}
+                    {category}
                   </option>
                 ))}
               </select>
@@ -283,7 +232,6 @@ const Inventory = () => {
                     <th className="text-left p-4 font-semibold text-gray-700">Categoría</th>
                     <th className="text-left p-4 font-semibold text-gray-700">Stock</th>
                     <th className="text-left p-4 font-semibold text-gray-700">Estado</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Ubicación</th>
                     <th className="text-left p-4 font-semibold text-gray-700">Precio Venta</th>
                     {hasPermission('inventory', 'update') && (
                       <th className="text-left p-4 font-semibold text-gray-700">Acciones</th>
@@ -309,7 +257,7 @@ const Inventory = () => {
                         </td>
                         <td className="p-4">
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                            {getCategoryDisplayName(item.category)}
+                            {item.category}
                           </Badge>
                         </td>
                         <td className="p-4">
@@ -324,9 +272,6 @@ const Inventory = () => {
                           <span className={stockStatus.bgClass}>
                             {stockStatus.label}
                           </span>
-                        </td>
-                        <td className="p-4">
-                          <code className="bg-gray-100 px-2 py-1 rounded text-sm">{item.location}</code>
                         </td>
                         <td className="p-4 font-bold text-green-600">
                           {formatCurrency(item.salePrice)}
