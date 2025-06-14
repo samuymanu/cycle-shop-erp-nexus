@@ -3,85 +3,85 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BikeERP Color Scheme - Based on uploaded dashboard */
+/* Material Design 3 Inspired Color Scheme */
 
 @layer base {
   :root {
-    --background: 248 250 252;
-    --foreground: 30 41 59;
+    --background: 245 245 245; /* MD3 surface */
+    --foreground: 32 33 36;
 
     --card: 255 255 255;
-    --card-foreground: 30 41 59;
+    --card-foreground: 32 33 36;
 
     --popover: 255 255 255;
-    --popover-foreground: 30 41 59;
+    --popover-foreground: 32 33 36;
 
-    --primary: 59 130 246;
+    --primary: 33 150 243;         /* Material Blue 500 */
     --primary-foreground: 255 255 255;
 
-    --secondary: 241 245 249;
-    --secondary-foreground: 51 65 85;
+    --secondary: 0 188 212;        /* Material Cyan 500 */
+    --secondary-foreground: 255 255 255;
 
-    --muted: 248 250 252;
-    --muted-foreground: 100 116 139;
+    --muted: 238 238 238;
+    --muted-foreground: 97 97 97;
 
-    --accent: 219 234 254;
-    --accent-foreground: 29 78 216;
+    --accent: 76 175 80;           /* Material Green 500 */
+    --accent-foreground: 255 255 255;
 
-    --destructive: 239 68 68;
+    --destructive: 244 67 54;      /* Material Red 500 */
     --destructive-foreground: 255 255 255;
 
-    --success: 34 197 94;
+    --success: 56 142 60;          /* Deep Green */
     --success-foreground: 255 255 255;
 
-    --warning: 251 146 60;
-    --warning-foreground: 255 255 255;
+    --warning: 251 192 45;         /* Material Yellow 600 */
+    --warning-foreground: 32 33 36;
 
-    --border: 226 232 240;
-    --input: 226 232 240;
-    --ring: 59 130 246;
+    --border: 224 224 224;
+    --input: 224 224 224;
+    --ring: 33 150 243;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem; /* Material soft rounded */
 
-    /* BikeERP Sidebar - Dark Blue Theme */
-    --sidebar-background: 30 58 138;
+    /* Sidebar Material Design */
+    --sidebar-background: 33 49 85; /* Deep Blue */
     --sidebar-foreground: 255 255 255;
-    --sidebar-primary: 59 130 246;
+    --sidebar-primary: 33 150 243;
     --sidebar-primary-foreground: 255 255 255;
-    --sidebar-accent: 37 99 235;
-    --sidebar-accent-foreground: 219 234 254;
-    --sidebar-border: 37 99 235;
-    --sidebar-ring: 59 130 246;
+    --sidebar-accent: 21 101 192;
+    --sidebar-accent-foreground: 200 230 201;
+    --sidebar-border: 21 101 192;
+    --sidebar-ring: 33 150 243;
   }
 
   .dark {
-    --background: 15 23 42;
-    --foreground: 248 250 252;
-    
-    --card: 30 41 59;
-    --card-foreground: 248 250 252;
-    
-    --popover: 30 41 59;
-    --popover-foreground: 248 250 252;
-    
-    --primary: 96 165 250;
-    --primary-foreground: 15 23 42;
-    
-    --secondary: 51 65 85;
-    --secondary-foreground: 203 213 225;
-    
-    --muted: 51 65 85;
-    --muted-foreground: 148 163 184;
-    
-    --accent: 51 65 85;
-    --accent-foreground: 203 213 225;
-    
-    --destructive: 248 113 113;
-    --destructive-foreground: 15 23 42;
-    
-    --border: 51 65 85;
-    --input: 51 65 85;
-    --ring: 96 165 250;
+    --background: 27 28 30;
+    --foreground: 238 238 238;
+
+    --card: 45 49 54;
+    --card-foreground: 238 238 238;
+
+    --popover: 45 49 54;
+    --popover-foreground: 238 238 238;
+
+    --primary: 100 181 246;    /* Light Blue A200 */
+    --primary-foreground: 27 28 30;
+
+    --secondary: 77 208 225;   /* Cyan A200 */
+    --secondary-foreground: 30 41 59;
+
+    --muted: 66 66 66;
+    --muted-foreground: 200 200 200;
+
+    --accent: 129 199 132;
+    --accent-foreground: 27 28 30;
+
+    --destructive: 239 83 80;
+    --destructive-foreground: 27 28 30;
+
+    --border: 66 66 66;
+    --input: 66 66 66;
+    --ring: 100 181 246;
   }
 }
 
@@ -96,83 +96,82 @@
   }
 }
 
-/* BikeERP Components */
+/* Material Design Components */
 @layer utilities {
   .bikeERP-card {
-    @apply bg-card border border-border rounded-lg shadow-sm hover:shadow-md transition-all duration-200;
+    @apply bg-card border border-border rounded-xl shadow-[0_3px_10px_0_rgba(32,33,36,0.05)] hover:shadow-lg transition-all duration-200;
   }
   
   .bikeERP-button-primary {
-    @apply bg-primary text-primary-foreground hover:bg-blue-600 transition-all duration-200 rounded-md font-medium shadow-sm hover:shadow-md;
+    @apply bg-primary text-primary-foreground hover:bg-blue-600/90 transition-all duration-200 rounded-[1.5rem] font-medium shadow-md hover:shadow-lg;
   }
   
   .bikeERP-button-success {
-    @apply bg-success text-success-foreground hover:bg-green-600 transition-all duration-200 rounded-md font-medium shadow-sm hover:shadow-md;
+    @apply bg-accent text-accent-foreground hover:bg-green-700/90 transition-all duration-200 rounded-[1.5rem] font-medium shadow-md hover:shadow-lg;
   }
 
   .bikeERP-button-warning {
-    @apply bg-warning text-warning-foreground hover:bg-orange-600 transition-all duration-200 rounded-md font-medium shadow-sm hover:shadow-md;
+    @apply bg-warning text-warning-foreground hover:bg-yellow-500/90 transition-all duration-200 rounded-[1.5rem] font-medium shadow-md hover:shadow-lg;
   }
   
   .bikeERP-stat-card {
-    @apply bikeERP-card p-6 hover:shadow-lg transition-all duration-300;
+    @apply bikeERP-card p-6 hover:shadow-xl transition-all duration-300;
   }
   
   .bikeERP-sidebar-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 font-medium;
+    @apply flex items-center gap-3 px-4 py-3 rounded-2xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-200 font-semibold;
   }
 
   .bikeERP-metric-card {
-    @apply bg-gradient-to-br from-white to-blue-50 p-6 rounded-lg shadow-sm border border-blue-100 hover:shadow-md transition-all duration-200;
+    @apply bg-gradient-to-br from-white to-blue-50 p-6 rounded-xl shadow-md border border-blue-100 hover:shadow-lg transition-all duration-200;
   }
 
   .bikeERP-table-row {
-    @apply border-b border-gray-100 hover:bg-blue-50/50 transition-colors duration-150;
+    @apply border-b border-gray-100 hover:bg-blue-50/70 transition-colors duration-150;
   }
 
   .bikeERP-badge-primary {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800;
+    @apply inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800;
   }
 
   .bikeERP-badge-success {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800;
+    @apply inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800;
   }
 
   .bikeERP-badge-warning {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800;
+    @apply inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800;
   }
 
   .bikeERP-badge-error {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800;
+    @apply inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800;
   }
 }
 
-/* Enhanced Scrollbar - BikeERP Style */
+/* Enhanced Scrollbar - Material Style */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgb(248 250 252);
-  border-radius: 3px;
+  background: rgb(240 240 240);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgb(148 163 184);
-  border-radius: 3px;
+  background: rgb(189 189 189);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(100 116 139);
+  background: rgb(120 144 156);
 }
 
-/* BikeERP Form Controls */
+/* Material Style Form Controls */
 .bikeERP-input {
-  @apply w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
+  @apply w-full px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary/70 transition-all duration-200;
 }
 
 .bikeERP-select {
-  @apply px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
+  @apply px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary/70 transition-all duration-200;
 }
-
