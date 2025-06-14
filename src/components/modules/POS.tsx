@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
-import { useCategoriesData } from '@/hooks/useCategoriesData'; // ⬅️ Importante
+import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useCreateSale } from '@/hooks/useSalesData';
 import { toast } from '@/hooks/use-toast';
 import { Bike, Wrench, Package, Search } from 'lucide-react';
@@ -16,6 +16,7 @@ import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector';
 import ProductList from './ProductList';
 import CategoryStats from './CategoryStats';
 import Cart from './Cart';
+import { useUpdateClient, useClientsData } from '@/hooks/useClientsData';
 
 interface CartItem {
   id: string;
@@ -57,8 +58,10 @@ const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const { data: products = [], isLoading } = useInventoryData();
-  const { data: categories = [], isLoading: categoriesLoading } = useCategoriesData(); // ⬅️ Usamos las categorías reales
+  const { data: categories = [], isLoading: categoriesLoading } = useCategoriesData();
+  const { data: clients = [] } = useClientsData();
   const createSaleMutation = useCreateSale();
+  const updateClientMutation = useUpdateClient();
 
   // Determinar a qué categoría real pertenece un producto
   const getCategoryOfProduct = (productCategoryName: string) => {
@@ -213,8 +216,15 @@ const POS = () => {
       const subtotal = total * 0.84; // Asumiendo 16% de IVA
       const tax = total - subtotal;
 
+      // --- Identificar si hay pago a crédito ---
+      const creditPayment = payments.find((p) => p.method === "credit");
+
+      // Se asume que el cliente seleccionado tiene id 1
+      const clientId = 1;
+      const client = clients.find(c => c.id === clientId);
+
       const saleData = {
-        clientId: 1,
+        clientId: clientId,
         saleDate: new Date().toISOString().split('T')[0],
         total: total,
         userId: 1,
@@ -231,6 +241,28 @@ const POS = () => {
       };
 
       await createSaleMutation.mutateAsync(saleData);
+
+      // --- Si hay pago a crédito, actualizar el balance del cliente ---
+      if (creditPayment && client) {
+        // El monto exacto del crédito para sumar al balance
+        const creditAmount = creditPayment.amount || 0;
+        // Incrementar balance, asumiendo saldo positivo es deuda
+        const newBalance = (client.balance || 0) + creditAmount;
+
+        // Actualiza el cliente con el nuevo balance
+        await updateClientMutation.mutateAsync({
+          id: client.id,
+          // Mantener la información existente del cliente 
+          name: client.name,
+          documentType: client.documentType,
+          documentNumber: client.documentNumber,
+          address: client.address,
+          phone: client.phone,
+          email: client.email,
+          balance: newBalance,
+          isActive: client.isActive,
+        });
+      }
 
       toast({
         title: "Venta Completada",
