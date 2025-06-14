@@ -1,10 +1,11 @@
+
 import React, { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DashboardStats } from '@/types/erp';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useDashboardData } from '@/hooks/useDashboardData';
 import AddProductDialog from '@/components/dialogs/AddProductDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -18,29 +19,9 @@ import {
   Wrench,
   Plus,
   Download,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from 'lucide-react';
-
-// Mock API call a ser reemplazada por una real
-const fetchDashboardStats = async (): Promise<DashboardStats> => {
-  console.log('Buscando estadísticas del dashboard...');
-  
-  const mockStats: DashboardStats = {
-    todaySales: 2450000,
-    monthSales: 45600000,
-    lowStockItems: 5,
-    activeServiceOrders: 8,
-    pendingPayments: 1250000,
-    topSellingProducts: [
-      { product: { name: 'Bicicleta Mountain Bike Trek' } as any, quantity: 15 },
-      { product: { name: 'Casco Specialized' } as any, quantity: 23 },
-      { product: { name: 'Cadena Shimano' } as any, quantity: 45 },
-    ],
-  };
-
-  // Simula la espera de la red
-  return new Promise(resolve => setTimeout(() => resolve(mockStats), 1000));
-};
 
 interface DashboardProps {
   onPageChange: (page: string) => void;
@@ -52,10 +33,7 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
   const queryClient = useQueryClient();
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ['dashboardStats'],
-    queryFn: fetchDashboardStats,
-  });
+  const { data: stats, isLoading, error, refetch, isRefetching } = useDashboardData();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-VE', {
@@ -84,6 +62,7 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
       description: 'El producto ha sido agregado al inventario.',
     });
     queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+    queryClient.invalidateQueries({ queryKey: ['products'] });
   };
 
   const handleGenerateReport = () => {
@@ -97,6 +76,14 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
     toast({
       title: "Función en desarrollo",
       description: "La descarga de datos estará disponible pronto.",
+    });
+  };
+
+  const handleRefreshData = () => {
+    refetch();
+    toast({
+      title: "Actualizando datos",
+      description: "Obteniendo la información más reciente de la base de datos.",
     });
   };
 
@@ -118,8 +105,22 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                   day: 'numeric' 
                 })}
               </p>
+              {error && (
+                <p className="text-red-600 text-sm mt-1">
+                  ⚠️ Error conectando con la base de datos - mostrando datos de respaldo
+                </p>
+              )}
             </div>
             <div className="flex gap-3">
+              <Button 
+                onClick={handleRefreshData} 
+                variant="outline" 
+                className="gap-2 border-slate-300 text-slate-700 hover:bg-slate-50"
+                disabled={isRefetching}
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                {isRefetching ? 'Actualizando...' : 'Actualizar'}
+              </Button>
               <Button onClick={handleDownloadData} variant="outline" className="gap-2 border-slate-300 text-slate-700 hover:bg-slate-50">
                 <Download className="h-4 w-4" />
                 Descargar Datos
@@ -154,7 +155,7 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                     </p>
                     <div className="flex items-center mt-2">
                       <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                      <span className="text-sm text-green-600">+12.5%</span>
+                      <span className="text-sm text-green-600">Tiempo real</span>
                     </div>
                   </div>
                   <div className="p-3 bg-green-100 rounded-lg">
@@ -172,7 +173,7 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                     </p>
                     <div className="flex items-center mt-2">
                       <TrendingUp className="h-4 w-4 text-blue-500 mr-1" />
-                      <span className="text-sm text-blue-600">+8.2%</span>
+                      <span className="text-sm text-blue-600">Mes actual</span>
                     </div>
                   </div>
                   <div className="p-3 bg-blue-100 rounded-lg">
@@ -190,7 +191,9 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                     </p>
                     <div className="flex items-center mt-2">
                       <AlertTriangle className="h-4 w-4 text-orange-500 mr-1" />
-                      <span className="text-sm text-orange-600">Productos</span>
+                      <span className="text-sm text-orange-600">
+                        {stats?.lowStockItems === 0 ? 'Todo en stock' : 'Productos'}
+                      </span>
                     </div>
                   </div>
                   <div className="p-3 bg-orange-100 rounded-lg">
@@ -308,17 +311,23 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
               <CardDescription className="text-slate-600">Información general</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-100">
-                <span className="text-sm font-medium text-slate-700">Sistema</span>
-                <span className="text-sm font-semibold text-green-600">En línea</span>
+              <div className={`flex justify-between items-center p-3 rounded-lg border ${error ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'}`}>
+                <span className="text-sm font-medium text-slate-700">Base de Datos</span>
+                <span className={`text-sm font-semibold ${error ? 'text-red-600' : 'text-green-600'}`}>
+                  {error ? 'Desconectada' : 'Conectada'}
+                </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-100">
-                <span className="text-sm font-medium text-slate-700">Base de Datos</span>
-                <span className="text-sm font-semibold text-blue-600">Conectada</span>
+                <span className="text-sm font-medium text-slate-700">Última actualización</span>
+                <span className="text-sm font-semibold text-blue-600">
+                  {new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
               <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-100">
                 <span className="text-sm font-medium text-slate-700">Sincronización</span>
-                <span className="text-sm font-semibold text-orange-600">Activa</span>
+                <span className="text-sm font-semibold text-orange-600">
+                  {isRefetching ? 'Sincronizando...' : 'Activa'}
+                </span>
               </div>
             </CardContent>
           </Card>
