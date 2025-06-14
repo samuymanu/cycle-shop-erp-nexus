@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { PaymentMethod, PaymentMethodLabels } from '@/types/erp';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
 import { useCreateSale } from '@/hooks/useSalesData';
 import { toast } from '@/hooks/use-toast';
 import { Bike, Wrench, Package, Search } from 'lucide-react';
+import { PaymentInfo } from '@/types/payment';
+import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector';
 
 interface CartItem {
   id: string;
@@ -24,7 +24,7 @@ interface CartItem {
 const POS = () => {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH_VES);
+  const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -187,33 +187,59 @@ const POS = () => {
     return cart.reduce((total, item) => total + item.subtotal, 0);
   };
 
+  const getTotalPaid = () => {
+    return payments.reduce((sum, payment) => {
+      const amount = payment.currency === 'USD' ? payment.amount * 36 : payment.amount;
+      return sum + amount;
+    }, 0);
+  };
+
+  const canProcessSale = () => {
+    return cart.length > 0 && getTotalPaid() >= calculateTotal();
+  };
+
   const processSale = async () => {
-    if (cart.length === 0) {
+    if (!canProcessSale()) {
       toast({
         title: "Error",
-        description: "No hay productos en el carrito",
+        description: "Complete el carrito y los pagos antes de procesar la venta",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      const total = calculateTotal();
+      const subtotal = total * 0.84; // Asumiendo 16% de IVA
+      const tax = total - subtotal;
+
       const saleData = {
-        clientId: 1, // Por ahora usamos un cliente por defecto
+        clientId: 1,
         saleDate: new Date().toISOString().split('T')[0],
-        total: calculateTotal(),
-        userId: 1, // Por ahora usamos un usuario por defecto
+        total: total,
+        userId: 1,
+        payments: payments,
+        items: cart.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          subtotal: item.subtotal,
+        })),
+        status: 'completed' as const,
+        subtotal: subtotal,
+        tax: tax,
       };
 
       await createSaleMutation.mutateAsync(saleData);
 
       toast({
         title: "Venta Completada",
-        description: `Venta procesada por ${formatCurrency(calculateTotal())}`,
+        description: `Venta procesada por ${formatCurrency(total)} con ${payments.length} método(s) de pago`,
       });
 
-      // Clear cart
+      // Clear cart and payments
       setCart([]);
+      setPayments([]);
     } catch (error) {
       toast({
         title: "Error",
@@ -332,7 +358,7 @@ const POS = () => {
           </Card>
         </div>
 
-        {/* Cart Section */}
+        {/* Cart and Payment Section */}
         <div className="space-y-4">
           <Card className="bikeERP-card">
             <CardHeader>
@@ -347,7 +373,7 @@ const POS = () => {
                   </p>
                 ) : (
                   <>
-                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <div className="space-y-3 max-h-40 overflow-y-auto">
                       {cart.map((item) => (
                         <div key={item.id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
                           <div className="flex-1">
@@ -383,39 +409,37 @@ const POS = () => {
                           {formatCurrency(calculateTotal())}
                         </span>
                       </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="payment-method" className="text-slate-700">Método de Pago</Label>
-                          <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}>
-                            <SelectTrigger className="bikeERP-select">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white border border-slate-200 shadow-lg">
-                              {Object.entries(PaymentMethodLabels).map(([value, label]) => (
-                                <SelectItem key={value} value={value} className="hover:bg-blue-50">
-                                  {label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        
-                        <Button
-                          onClick={processSale}
-                          className="w-full bikeERP-button-success text-white"
-                          size="lg"
-                          disabled={createSaleMutation.isPending}
-                        >
-                          {createSaleMutation.isPending ? 'Procesando...' : 'Procesar Venta'}
-                        </Button>
-                      </div>
                     </div>
                   </>
                 )}
               </div>
             </CardContent>
           </Card>
+
+          {/* Payment Methods */}
+          {cart.length > 0 && (
+            <Card className="bikeERP-card">
+              <CardContent className="p-4">
+                <PaymentMethodSelector
+                  totalAmount={calculateTotal()}
+                  payments={payments}
+                  onPaymentsUpdate={setPayments}
+                />
+                
+                <div className="mt-4">
+                  <Button
+                    onClick={processSale}
+                    className="w-full bikeERP-button-success text-white"
+                    size="lg"
+                    disabled={createSaleMutation.isPending || !canProcessSale()}
+                  >
+                    {createSaleMutation.isPending ? 'Procesando...' : 
+                     !canProcessSale() ? 'Complete el pago' : 'Procesar Venta'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
