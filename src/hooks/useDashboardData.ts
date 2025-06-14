@@ -1,53 +1,76 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, API_CONFIG } from "@/config/api";
-import { DashboardStats } from "@/types/erp";
+import { DashboardStats, Product } from "@/types/erp";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
   console.log('📊 Obteniendo estadísticas del dashboard desde la base de datos...');
-  
+
   try {
-    // Obtener datos en paralelo desde el backend
-    const [salesResponse, productsResponse] = await Promise.all([
-      apiRequest(API_CONFIG.endpoints.sales),
-      apiRequest(API_CONFIG.endpoints.products)
+    // Obtener ventas, productos y items de venta en paralelo
+    const [salesResponse, productsResponse, saleItemsResponse] = await Promise.all([
+      apiRequest(API_CONFIG.endpoints.sales),         // ventas
+      apiRequest(API_CONFIG.endpoints.products),      // productos
+      apiRequest(API_CONFIG.endpoints.sale_items),    // sale_items - debe haber un endpoint configurado
     ]);
 
-    console.log('✅ Datos obtenidos:', { 
-      sales: salesResponse.length, 
-      products: productsResponse.length 
+    // Mapear products por id para fácil acceso
+    const productsMap: Record<string, Product> = {};
+    productsResponse.forEach((p: any) => {
+      productsMap[p.id] = {
+        ...p,
+        isActive: true, // fallback por si falta
+        category: p.category,
+        type: p.type || 'part',
+        createdAt: new Date(p.createdAt ?? Date.now()),
+        updatedAt: new Date(p.updatedAt ?? Date.now()),
+      };
     });
 
-    // Calcular ventas de hoy
+    // Calcular ventas de hoy y del mes actual usando salesResponse
     const today = new Date().toISOString().split('T')[0];
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
     const todaySales = salesResponse
       .filter((sale: any) => sale.saleDate?.startsWith(today))
       .reduce((total: number, sale: any) => total + (sale.total || 0), 0);
 
-    // Calcular ventas del mes actual
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
     const monthSales = salesResponse
       .filter((sale: any) => sale.saleDate?.startsWith(currentMonth))
       .reduce((total: number, sale: any) => total + (sale.total || 0), 0);
 
-    // Calcular productos con stock bajo
+    // Calcular stock bajo
     const lowStockItems = productsResponse
       .filter((product: any) => 
         product.currentStock <= (product.minStock || 5)
       ).length;
 
-    // Simular órdenes activas del taller (por ahora mock hasta crear tabla workshop)
-    const activeServiceOrders = 8;
+    // Calcular el Top 3 productos más vendidos del mes actual usando saleItemsResponse
+    const saleIdsMonth = salesResponse
+      .filter((sale: any) => sale.saleDate?.startsWith(currentMonth))
+      .map((sale: any) => sale.id);
 
+    // Agrupar items por producto solo para las ventas de este mes
+    const productQuantityMap: Record<string, number> = {};
+    saleItemsResponse.forEach((item: any) => {
+      if (saleIdsMonth.includes(item.sale_id)) {
+        productQuantityMap[item.product_id] = (productQuantityMap[item.product_id] || 0) + (item.quantity || 0);
+      }
+    });
+
+    // Convertir a array y ordenar descendente por cantidad
+    const topSellingArr = Object.entries(productQuantityMap)
+      .map(([productId, quantity]) => ({
+        product: productsMap[productId] || { id: productId, name: "Producto desconocido" } as Product,
+        quantity,
+      }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 3);
+
+    // Simular órdenes activas del taller (por ahora mock hasta conectar)
+    const activeServiceOrders = 8;
     // Simular pagos pendientes
     const pendingPayments = 1250000;
-
-    // Top productos más vendidos (simulado - necesitaría tabla sale_items detallada)
-    const topSellingProducts = [
-      { product: { name: 'Bicicleta Mountain Bike Trek' } as any, quantity: 15 },
-      { product: { name: 'Casco Specialized' } as any, quantity: 23 },
-      { product: { name: 'Cadena Shimano' } as any, quantity: 45 },
-    ];
 
     return {
       todaySales,
@@ -55,12 +78,11 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       lowStockItems,
       activeServiceOrders,
       pendingPayments,
-      topSellingProducts,
+      topSellingProducts: topSellingArr,
     };
 
   } catch (error) {
     console.error('❌ Error obteniendo estadísticas del dashboard:', error);
-    
     // Datos de fallback en caso de error
     return {
       todaySales: 0,
