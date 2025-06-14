@@ -3,7 +3,7 @@
 export const API_CONFIG = {
   // URL base - cambiar por la IP de tu servidor para acceso desde red
   baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api',
-  
+
   // Endpoints específicos
   endpoints: {
     auth: '/auth',
@@ -11,9 +11,10 @@ export const API_CONFIG = {
     categories: '/categories',
     sales: '/sales',
     clients: '/clients',
+    sale_items: '/sale_items', // <-- Añadir esta línea
     // Agregar más endpoints según sea necesario
   },
-  
+
   // Configuración de requests
   timeout: 10000, // 10 segundos
   retries: 2,
@@ -27,7 +28,7 @@ export const buildApiUrl = (endpoint: string) => {
 // Helper para hacer requests con configuración estándar
 export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   const url = buildApiUrl(endpoint);
-  
+
   const defaultOptions: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
@@ -37,14 +38,14 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
   };
 
   console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
-  
+
   try {
     const response = await fetch(url, defaultOptions);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
-    
+
     const data = await response.json();
     console.log(`✅ API Response: ${url}`, data);
     return data;
@@ -53,3 +54,4 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     throw error;
   }
 };
+
