@@ -6,12 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import CreatePurchaseDialog from '@/components/dialogs/CreatePurchaseDialog';
+import ViewPurchaseDialog from '@/components/dialogs/ViewPurchaseDialog';
+import EditPurchaseDialog from '@/components/dialogs/EditPurchaseDialog';
 import { Plus, ShoppingCart, Search, Edit, Eye, Truck, CheckCircle, Clock } from 'lucide-react';
 
 const Purchases = () => {
   const { user, hasPermission } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState<any>(null);
 
   // Mock purchases data
   const [purchases] = useState([
@@ -121,6 +126,23 @@ const Purchases = () => {
       received: purchases.filter(p => p.status === 'received').length,
       totalValue: purchases.reduce((sum, p) => sum + p.total, 0),
     };
+  };
+
+  const handleViewPurchase = (purchase: any) => {
+    console.log('👁️ Viendo detalles de compra:', purchase.id);
+    setSelectedPurchase(purchase);
+    setShowViewDialog(true);
+  };
+
+  const handleEditPurchase = (purchase: any) => {
+    console.log('✏️ Editando compra:', purchase.id);
+    setSelectedPurchase(purchase);
+    setShowEditDialog(true);
+  };
+
+  const handlePurchaseUpdated = () => {
+    console.log('🔄 Compra actualizada, refrescando datos...');
+    // Aquí se actualizarían los datos
   };
 
   const stats = getPurchaseStats();
@@ -283,11 +305,19 @@ const Purchases = () => {
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewPurchase(purchase)}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                       {hasPermission('purchases', 'update') && (
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditPurchase(purchase)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                       )}
@@ -308,6 +338,20 @@ const Purchases = () => {
           </Card>
         )}
       </div>
+
+      {/* Dialogs */}
+      <ViewPurchaseDialog
+        open={showViewDialog}
+        onOpenChange={setShowViewDialog}
+        purchase={selectedPurchase}
+      />
+
+      <EditPurchaseDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        purchase={selectedPurchase}
+        onPurchaseUpdated={handlePurchaseUpdated}
+      />
     </div>
   );
 };

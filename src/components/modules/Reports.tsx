@@ -7,6 +7,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { BarChart3, TrendingUp, FileText, Download, Calendar, DollarSign, Package, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useReportsData } from '@/hooks/useReportsData';
+import { useSalesData } from '@/hooks/useSalesData';
+import { useInventoryData } from '@/hooks/useInventoryData';
+import { useClientsData } from '@/hooks/useClientsData';
+import { generatePDFReport, generateExcelReport, downloadData } from '@/utils/reportGenerator';
 
 const Reports = () => {
   const { user } = useAuth();
@@ -14,6 +18,11 @@ const Reports = () => {
   const [dateFrom, setDateFrom] = useState('2024-06-01');
   const [dateTo, setDateTo] = useState('2024-06-13');
   const { data, isLoading, refetch } = useReportsData({ dateFrom, dateTo });
+  
+  // Obtener datos reales para generar reportes
+  const { data: salesData = [] } = useSalesData();
+  const { data: inventoryData = [] } = useInventoryData();
+  const { data: clientsData = [] } = useClientsData();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-VE', {
@@ -24,19 +33,167 @@ const Reports = () => {
   };
 
   const handleGenerateReport = (reportType: string) => {
+    console.log('📊 Generando reporte:', reportType);
+    
+    let reportData;
+    
+    switch (reportType) {
+      case 'Ventas':
+        const filteredSales = salesData.filter(sale => {
+          const saleDate = new Date(sale.saleDate);
+          const fromDate = new Date(dateFrom);
+          const toDate = new Date(dateTo);
+          return saleDate >= fromDate && saleDate <= toDate;
+        });
+        
+        reportData = {
+          title: 'Reporte de Ventas',
+          dateRange: `${dateFrom} - ${dateTo}`,
+          data: filteredSales,
+          summary: {
+            'Total Ventas': formatCurrency(data?.sales.totalSales ?? 0),
+            'Transacciones': data?.sales.transactions ?? 0,
+            'Ticket Promedio': formatCurrency(data?.sales.averageTicket ?? 0),
+            'Crecimiento': `${data?.sales.growth ?? 0}%`
+          }
+        };
+        break;
+        
+      case 'Inventario':
+        reportData = {
+          title: 'Reporte de Inventario',
+          dateRange: new Date().toLocaleDateString('es-VE'),
+          data: inventoryData,
+          summary: {
+            'Total Productos': data?.inventory.totalProducts ?? 0,
+            'Stock Bajo': data?.inventory.lowStock ?? 0,
+            'Valor Total': formatCurrency(data?.inventory.totalValue ?? 0),
+            'Rotación': `${data?.inventory.turnover ?? 0}x`
+          }
+        };
+        break;
+        
+      case 'Clientes':
+        reportData = {
+          title: 'Reporte de Clientes',
+          dateRange: `${dateFrom} - ${dateTo}`,
+          data: clientsData,
+          summary: {
+            'Total Clientes': data?.clients.totalClients ?? 0,
+            'Nuevos Clientes': data?.clients.newClients ?? 0,
+            'Clientes Activos': data?.clients.activeClients ?? 0,
+            'Retención': `${data?.clients.retention ?? 0}%`
+          }
+        };
+        break;
+        
+      case 'Taller':
+        reportData = {
+          title: 'Reporte de Taller',
+          dateRange: `${dateFrom} - ${dateTo}`,
+          data: [], // Datos simulados del taller
+          summary: {
+            'Órdenes Totales': data?.workshop.totalOrders ?? 0,
+            'Completadas': data?.workshop.completed ?? 0,
+            'Ingresos': formatCurrency(data?.workshop.revenue ?? 0),
+            'Tiempo Promedio': `${data?.workshop.avgTime ?? 0} días`
+          }
+        };
+        break;
+        
+      default:
+        toast({
+          title: 'Error',
+          description: 'Tipo de reporte no válido',
+          variant: 'destructive',
+        });
+        return;
+    }
+    
+    generatePDFReport(reportData);
+    
     toast({
-      title: 'Generando reporte',
-      description: `Se está generando el reporte detallado para "${reportType}" del período seleccionado.`,
+      title: 'Reporte generado',
+      description: `El reporte detallado de "${reportType}" ha sido generado y descargado.`,
     });
-    // Aquí puedes abrir un modal o navegar a una pantalla de detalles según sea necesario
   };
 
   const handleExportReport = (reportType: string, format: string) => {
+    console.log('💾 Exportando reporte:', reportType, format);
+    
+    let exportData;
+    let filename;
+    
+    switch (reportType) {
+      case 'Ventas':
+        const filteredSales = salesData.filter(sale => {
+          const saleDate = new Date(sale.saleDate);
+          const fromDate = new Date(dateFrom);
+          const toDate = new Date(dateTo);
+          return saleDate >= fromDate && saleDate <= toDate;
+        });
+        exportData = filteredSales;
+        filename = 'Reporte_Ventas';
+        break;
+        
+      case 'Inventario':
+        exportData = inventoryData;
+        filename = 'Reporte_Inventario';
+        break;
+        
+      case 'Clientes':
+        exportData = clientsData;
+        filename = 'Reporte_Clientes';
+        break;
+        
+      case 'Taller':
+        exportData = []; // Datos del taller (simulados)
+        filename = 'Reporte_Taller';
+        break;
+        
+      default:
+        toast({
+          title: 'Error',
+          description: 'Tipo de reporte no válido',
+          variant: 'destructive',
+        });
+        return;
+    }
+    
+    if (format === 'excel') {
+      const reportData = {
+        title: `Reporte de ${reportType}`,
+        dateRange: `${dateFrom} - ${dateTo}`,
+        data: exportData
+      };
+      generateExcelReport(reportData);
+    } else {
+      downloadData(exportData, filename, 'csv');
+    }
+    
     toast({
-      title: 'Exportando reporte',
-      description: `Exportando "${reportType}" como ${format === 'pdf' ? 'PDF' : 'Excel'}.`,
+      title: 'Exportación completada',
+      description: `Los datos de "${reportType}" han sido exportados como ${format === 'pdf' ? 'PDF' : 'Excel/CSV'}.`,
     });
-    // Aquí puedes agregar la lógica real de exportación (PDF/Excel)
+  };
+
+  const handleDownloadAllData = () => {
+    console.log('📥 Descargando todos los datos del sistema...');
+    
+    const allData = {
+      sales: salesData,
+      inventory: inventoryData,
+      clients: clientsData,
+      reportPeriod: { dateFrom, dateTo },
+      generatedAt: new Date().toISOString()
+    };
+    
+    downloadData([allData], 'BikeERP_Backup_Completo', 'json');
+    
+    toast({
+      title: 'Descarga completada',
+      description: 'Todos los datos del sistema han sido descargados exitosamente.',
+    });
   };
 
   const handleUpdatePeriod = () => {
@@ -51,14 +208,20 @@ const Reports = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="px-8 py-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <BarChart3 className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Reportes y Análisis</h1>
+                <p className="text-gray-600">Genera reportes detallados del negocio</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Reportes y Análisis</h1>
-              <p className="text-gray-600">Genera reportes detallados del negocio</p>
-            </div>
+            <Button onClick={handleDownloadAllData} className="gap-2 bg-blue-600 hover:bg-blue-700">
+              <Download className="h-4 w-4" />
+              Descargar Datos
+            </Button>
           </div>
         </div>
       </div>

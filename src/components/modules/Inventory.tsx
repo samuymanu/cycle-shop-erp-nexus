@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
 import AddProductDialog from '@/components/dialogs/AddProductDialog';
+import EditProductDialog from '@/components/dialogs/EditProductDialog';
+import AdjustStockDialog from '@/components/dialogs/AdjustStockDialog';
+import DeleteProductDialog from '@/components/dialogs/DeleteProductDialog';
 import { 
   Package, 
   AlertTriangle, 
@@ -17,7 +20,8 @@ import {
   Filter,
   Download,
   Edit,
-  Settings
+  Settings,
+  Trash2
 } from 'lucide-react';
 
 const Inventory = () => {
@@ -25,8 +29,12 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAdjustDialog, setShowAdjustDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
-  const { data: inventory = [], isLoading, error } = useInventoryData();
+  const { data: inventory = [], isLoading, error, refetch } = useInventoryData();
 
   if (isLoading) {
     return (
@@ -76,10 +84,51 @@ const Inventory = () => {
 
   const handleProductAdded = () => {
     console.log('Producto agregado, actualizando lista...');
+    refetch();
+  };
+
+  const handleProductUpdated = () => {
+    console.log('Producto actualizado, actualizando lista...');
+    refetch();
+  };
+
+  const handleStockAdjusted = () => {
+    console.log('Stock ajustado, actualizando lista...');
+    refetch();
+  };
+
+  const handleProductDeleted = () => {
+    console.log('Producto eliminado, actualizando lista...');
+    refetch();
+  };
+
+  const handleEditProduct = (product: any) => {
+    setSelectedProduct(product);
+    setShowEditDialog(true);
+  };
+
+  const handleAdjustStock = (product: any) => {
+    setSelectedProduct(product);
+    setShowAdjustDialog(true);
+  };
+
+  const handleDeleteProduct = (product: any) => {
+    setSelectedProduct(product);
+    setShowDeleteDialog(true);
   };
 
   const handleExportData = () => {
     console.log('Exportando datos de inventario...');
+    const dataStr = JSON.stringify(inventory, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `inventario_${new Date().getTime()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const totalValue = inventory.reduce((total, item) => total + (item.currentStock * item.costPrice), 0);
@@ -233,9 +282,7 @@ const Inventory = () => {
                     <th className="text-left p-4 font-semibold text-gray-700">Stock</th>
                     <th className="text-left p-4 font-semibold text-gray-700">Estado</th>
                     <th className="text-left p-4 font-semibold text-gray-700">Precio Venta</th>
-                    {hasPermission('inventory', 'update') && (
-                      <th className="text-left p-4 font-semibold text-gray-700">Acciones</th>
-                    )}
+                    <th className="text-left p-4 font-semibold text-gray-700">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -276,22 +323,43 @@ const Inventory = () => {
                         <td className="p-4 font-bold text-green-600">
                           {formatCurrency(item.salePrice)}
                         </td>
-                        {hasPermission('inventory', 'update') && (
-                          <td className="p-4">
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="gap-1">
+                        <td className="p-4">
+                          <div className="flex gap-2">
+                            {hasPermission('inventory', 'update') && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="gap-1"
+                                onClick={() => handleEditProduct(item)}
+                              >
                                 <Edit className="h-3 w-3" />
                                 Editar
                               </Button>
-                              {hasPermission('inventory', 'adjust') && (
-                                <Button variant="outline" size="sm" className="gap-1">
-                                  <Settings className="h-3 w-3" />
-                                  Ajustar
-                                </Button>
-                              )}
-                            </div>
-                          </td>
-                        )}
+                            )}
+                            {hasPermission('inventory', 'adjust') && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="gap-1"
+                                onClick={() => handleAdjustStock(item)}
+                              >
+                                <Settings className="h-3 w-3" />
+                                Ajustar
+                              </Button>
+                            )}
+                            {hasPermission('inventory', 'delete') && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteProduct(item)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Eliminar
+                              </Button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -302,10 +370,32 @@ const Inventory = () => {
         </Card>
       </div>
 
+      {/* Dialogs */}
       <AddProductDialog
         open={showAddDialog}
         onOpenChange={setShowAddDialog}
         onProductAdded={handleProductAdded}
+      />
+
+      <EditProductDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        product={selectedProduct}
+        onProductUpdated={handleProductUpdated}
+      />
+
+      <AdjustStockDialog
+        open={showAdjustDialog}
+        onOpenChange={setShowAdjustDialog}
+        product={selectedProduct}
+        onStockAdjusted={handleStockAdjusted}
+      />
+
+      <DeleteProductDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        product={selectedProduct}
+        onProductDeleted={handleProductDeleted}
       />
     </div>
   );

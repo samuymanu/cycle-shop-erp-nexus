@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { PaymentMethod, PaymentMethodLabels } from '@/types/erp';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
 import { useCreateSale } from '@/hooks/useSalesData';
 import { toast } from '@/hooks/use-toast';
+import { Bike, Wrench, Package, Search } from 'lucide-react';
 
 interface CartItem {
   id: string;
@@ -24,6 +26,7 @@ const POS = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.CASH_VES);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   const { data: products = [], isLoading } = useInventoryData();
   const createSaleMutation = useCreateSale();
@@ -39,11 +42,76 @@ const POS = () => {
     );
   }
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Categorizar productos
+  const categorizeProducts = () => {
+    const categories = {
+      bicicletas: products.filter(p => 
+        p.category?.toLowerCase().includes('bicicleta') || 
+        p.name.toLowerCase().includes('bicicleta') ||
+        p.category?.toLowerCase().includes('bike')
+      ),
+      motocicletas: products.filter(p => 
+        p.category?.toLowerCase().includes('motocicleta') || 
+        p.category?.toLowerCase().includes('moto') ||
+        p.name.toLowerCase().includes('moto')
+      ),
+      accesorios: products.filter(p => 
+        p.category?.toLowerCase().includes('accesorio') ||
+        p.category?.toLowerCase().includes('seguridad') ||
+        p.category?.toLowerCase().includes('casco')
+      ),
+      repuestos: products.filter(p => 
+        p.category?.toLowerCase().includes('transmisión') ||
+        p.category?.toLowerCase().includes('freno') ||
+        p.category?.toLowerCase().includes('rueda') ||
+        p.category?.toLowerCase().includes('cadena') ||
+        p.category?.toLowerCase().includes('desviador')
+      ),
+    };
+    
+    return categories;
+  };
+
+  const categorizedProducts = categorizeProducts();
+
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (selectedCategory === 'all') return matchesSearch;
+    
+    const categoryProducts = categorizedProducts[selectedCategory as keyof typeof categorizedProducts] || [];
+    const matchesCategory = categoryProducts.some(p => p.id === product.id);
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'bicicletas':
+        return <Bike className="h-4 w-4" />;
+      case 'motocicletas':
+        return <Wrench className="h-4 w-4" />;
+      default:
+        return <Package className="h-4 w-4" />;
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'bicicletas':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'motocicletas':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'accesorios':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'repuestos':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
 
   const addToCart = (product: any) => {
     if (product.currentStock === 0) {
@@ -182,37 +250,82 @@ const POS = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Input
-                  placeholder="Buscar productos..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bikeERP-input"
-                />
+                <div className="flex gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Buscar productos..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 bikeERP-input"
+                    />
+                  </div>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las categorías</SelectItem>
+                      <SelectItem value="bicicletas">🚲 Bicicletas</SelectItem>
+                      <SelectItem value="motocicletas">🏍️ Motocicletas</SelectItem>
+                      <SelectItem value="accesorios">🛡️ Accesorios</SelectItem>
+                      <SelectItem value="repuestos">🔧 Repuestos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Category Statistics */}
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {Object.entries(categorizedProducts).map(([category, items]) => (
+                    <div key={category} className={`p-2 rounded-lg border ${getCategoryColor(category)}`}>
+                      <div className="flex items-center gap-1">
+                        {getCategoryIcon(category)}
+                        <span className="text-xs font-medium capitalize">{category}</span>
+                      </div>
+                      <div className="text-sm font-bold">{items.length} productos</div>
+                    </div>
+                  ))}
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                  {filteredProducts.map((product) => (
-                    <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow border-blue-100">
-                      <CardContent className="p-4">
-                        <div className="space-y-2">
-                          <h4 className="font-medium text-slate-900">{product.name}</h4>
-                          <p className="text-xs text-slate-500">{product.brand} - {product.model}</p>
-                          <p className="text-lg font-bold text-blue-600">
-                            {formatCurrency(product.salePrice)}
-                          </p>
-                          <p className="text-sm text-slate-500">
-                            Stock: {product.currentStock} unidades
-                          </p>
-                          <Button
-                            onClick={() => addToCart(product)}
-                            className="w-full bikeERP-button-primary"
-                            disabled={product.currentStock === 0}
-                          >
-                            {product.currentStock > 0 ? 'Agregar al Carrito' : 'Sin Stock'}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {filteredProducts.map((product) => {
+                    // Determinar categoría para el color
+                    let productCategory = 'otros';
+                    Object.entries(categorizedProducts).forEach(([category, items]) => {
+                      if (items.some(p => p.id === product.id)) {
+                        productCategory = category;
+                      }
+                    });
+
+                    return (
+                      <Card key={product.id} className="cursor-pointer hover:shadow-md transition-shadow border-blue-100">
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-start">
+                              <h4 className="font-medium text-slate-900">{product.name}</h4>
+                              <Badge variant="outline" className={`text-xs ${getCategoryColor(productCategory)}`}>
+                                {productCategory}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-slate-500">{product.brand} - {product.model}</p>
+                            <p className="text-lg font-bold text-blue-600">
+                              {formatCurrency(product.salePrice)}
+                            </p>
+                            <p className="text-sm text-slate-500">
+                              Stock: {product.currentStock} unidades
+                            </p>
+                            <Button
+                              onClick={() => addToCart(product)}
+                              className="w-full bikeERP-button-primary"
+                              disabled={product.currentStock === 0}
+                            >
+                              {product.currentStock > 0 ? 'Agregar al Carrito' : 'Sin Stock'}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             </CardContent>
