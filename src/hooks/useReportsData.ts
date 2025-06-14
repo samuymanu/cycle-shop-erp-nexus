@@ -1,18 +1,35 @@
-
 import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@supabase/supabase-js";
-
-// Si ya tienes Supabase conectado con Lovable, estos env vars ya existen:
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL!;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export type ReportFilter = {
   dateFrom: string;
   dateTo: string;
 };
 
+// Datos simulados para desarrollo local
+const getMockData = () => ({
+  sales: { totalSales: 1250000, transactions: 45, averageTicket: 27777, growth: 12.5 },
+  inventory: { totalProducts: 180, lowStock: 12, totalValue: 8500000, turnover: 2.3 },
+  workshop: { totalOrders: 28, completed: 24, revenue: 750000, avgTime: 3.2 },
+  clients: { totalClients: 156, newClients: 12, activeClients: 142, retention: 75.3 }
+});
+
 const fetchReports = async ({ dateFrom, dateTo }: ReportFilter) => {
+  // Verificar si las variables de Supabase están disponibles
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  // Si no hay configuración de Supabase, devolver datos mock
+  if (!supabaseUrl || !supabaseKey) {
+    console.log('🔧 Modo desarrollo local: usando datos simulados');
+    // Simular delay de API
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return getMockData();
+  }
+
+  // Código original de Supabase (solo se ejecuta si las variables están disponibles)
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   // 1. Ventas
   const { data: sales, error: salesError } = await supabase
     .from('sales')
