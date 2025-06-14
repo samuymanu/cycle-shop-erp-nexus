@@ -19,9 +19,14 @@ import {
   Settings as SettingsIcon,
   DollarSign
 } from 'lucide-react';
+import BarcodeScannerStatus from './BarcodeScannerStatus';
+import { useBarcodeConnectionManager } from '@/hooks/useBarcodeConnectionManager';
+import { setGlobalBarcodeConnection } from '@/hooks/useBarcodeConnectionStatus';
 
 const Settings = () => {
   const { user, hasPermission } = useAuth();
+  const barcodeManager = useBarcodeConnectionManager(true); // inicia conectado por defecto
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
   const [dbConfig, setDbConfig] = useState({
     host: 'localhost',
     port: '5432',
@@ -117,6 +122,24 @@ const Settings = () => {
     });
   };
 
+  const handleBarcodeConnect = async () => {
+    setBarcodeLoading(true);
+    setTimeout(() => {
+      barcodeManager.connect();
+      setGlobalBarcodeConnection(true);
+      setBarcodeLoading(false);
+    }, 1000);
+  };
+
+  const handleBarcodeDisconnect = async () => {
+    setBarcodeLoading(true);
+    setTimeout(() => {
+      barcodeManager.disconnect();
+      setGlobalBarcodeConnection(false);
+      setBarcodeLoading(false);
+    }, 1000);
+  };
+
   const formatDate = (date: Date) => {
     return date.toLocaleString('es-VE', {
       day: '2-digit',
@@ -145,6 +168,26 @@ const Settings = () => {
       </div>
 
       <div className="p-8 space-y-8">
+        {/* Gestión de Lector de Código de Barras */}
+        <div>
+          <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+            <span className="text-primary">Lector de Códigos de Barras</span>
+          </h2>
+          <div className="max-w-xl">
+            <BarcodeScannerStatus
+              connected={barcodeManager.connected}
+              deviceName={barcodeManager.deviceName}
+              onConnect={handleBarcodeConnect}
+              onDisconnect={handleBarcodeDisconnect}
+              loading={barcodeLoading}
+            />
+            <div className="text-xs text-gray-600 mt-2 ml-1">
+              Gestiona el estado de conexión del lector Bartech 5130-BLE desde aquí. <br />
+              Esto es una simulación visual, para conectar un lector BLE real, consulta la documentación de WebBluetooth.
+            </div>
+          </div>
+        </div>
+
         {/* Exchange Rates Configuration */}
         <Card className="bikeERP-card">
           <CardHeader>

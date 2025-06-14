@@ -1,27 +1,46 @@
 
 import { useEffect, useState } from "react";
 
+let externalSetConnected: ((val: boolean) => void) | null = null;
+
 /**
  * Hook para simular y representar el estado de conexión de un lector de barcode.
- * Si se quiere integrar realmente con WebBluetooth, habría que desarrollarlo con la API real.
+ * Ahora puede sincronizarse con el "manager" para ser controlado globalmente.
  */
 export function useBarcodeConnectionStatus() {
-  // Por ahora, simulamos el estado (podría ser real usando WebBluetooth/USB)
+  // Puede ser controlado desde el manager o automáticamente.
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    // Simulación: inicia "conectado" y alterna a "desconectado" aleatoriamente
+    externalSetConnected = setConnected;
+
+    // Simulación (si no se controla desde fuera)
     setConnected(true);
     const interval = setInterval(() => {
-      // Simulación: alterna cada 30 segundos (ajustable/futuro: usar lógica real)
-      setConnected((prev) => Math.random() > 0.2); // 80% chance de "conectado"
+      setConnected((prev) => Math.random() > 0.2);
     }, 30000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      externalSetConnected = null;
+    };
   }, []);
 
   return {
     connected,
-    deviceName: 'Bartech 5130-BLE'
+    deviceName: 'Bartech 5130-BLE',
+    // Internamente se puede usar setConnected para "forzar" el estado desde afuera
+    setConnected: (val: boolean) => {
+      setConnected(val);
+      if (externalSetConnected) externalSetConnected(val);
+    }
   };
+}
+
+/**
+ * Permite sincronizar el estado de conexión global, desde Configuración,
+ * y que otros módulos visualicen el mismo estado.
+ */
+export function setGlobalBarcodeConnection(val: boolean) {
+  if (externalSetConnected) externalSetConnected(val);
 }
