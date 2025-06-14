@@ -13,7 +13,21 @@ export interface Category {
 
 const fetchCategories = async (): Promise<Category[]> => {
   console.log('🔧 Obteniendo categorías desde backend local...');
-  return await apiRequest(API_CONFIG.endpoints.categories || '/categories');
+  try {
+    return await apiRequest(API_CONFIG.endpoints.categories || '/categories');
+  } catch (error) {
+    console.error('Error al obtener categorías:', error);
+    // Fallback: devolver categorías por defecto si el backend no está disponible
+    return [
+      { id: 1, name: 'bicicletas', displayName: 'Bicicletas', isActive: true, createdAt: '', updatedAt: '' },
+      { id: 2, name: 'transmision', displayName: 'Transmisión', isActive: true, createdAt: '', updatedAt: '' },
+      { id: 3, name: 'frenos', displayName: 'Frenos', isActive: true, createdAt: '', updatedAt: '' },
+      { id: 4, name: 'ruedas', displayName: 'Ruedas', isActive: true, createdAt: '', updatedAt: '' },
+      { id: 5, name: 'seguridad', displayName: 'Seguridad', isActive: true, createdAt: '', updatedAt: '' },
+      { id: 6, name: 'accesorios', displayName: 'Accesorios', isActive: true, createdAt: '', updatedAt: '' },
+      { id: 7, name: 'motocicletas', displayName: 'Motocicletas', isActive: true, createdAt: '', updatedAt: '' },
+    ];
+  }
 };
 
 const createCategory = async (categoryData: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: number }> => {
@@ -42,6 +56,7 @@ export function useCategoriesData() {
     queryFn: fetchCategories,
     staleTime: 5 * 60 * 1000,
     retry: 2,
+    refetchOnWindowFocus: false,
   });
 }
 

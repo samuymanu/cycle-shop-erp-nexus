@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -14,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useCreateProduct } from '@/hooks/useInventoryData';
 import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Save, Settings } from 'lucide-react';
+import { Plus, Save, Settings, AlertCircle } from 'lucide-react';
 import CategoryManagementDialog from './CategoryManagementDialog';
 
 interface AddProductDialogProps {
@@ -43,7 +42,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
 
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
 
-  const { data: categories = [] } = useCategoriesData();
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useCategoriesData();
   const createProductMutation = useCreateProduct();
   const { toast } = useToast();
 
@@ -144,20 +143,35 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
                     Gestionar
                   </Button>
                 </div>
-                <select
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="erp-select w-full"
-                  required
-                >
-                  <option value="">Seleccionar categoría</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.name}>
-                      {category.displayName}
-                    </option>
-                  ))}
-                </select>
+                
+                {categoriesError ? (
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <span className="text-sm text-yellow-700">
+                      Error al cargar categorías. Verifique que el backend esté ejecutándose.
+                    </span>
+                  </div>
+                ) : categoriesLoading ? (
+                  <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    <span className="text-sm text-blue-700">Cargando categorías...</span>
+                  </div>
+                ) : (
+                  <select
+                    id="category"
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="erp-select w-full"
+                    required
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.name}>
+                        {category.displayName}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -252,7 +266,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
               <Button 
                 type="submit" 
                 className="gap-2 erp-button-primary"
-                disabled={createProductMutation.isPending}
+                disabled={createProductMutation.isPending || categoriesError}
               >
                 <Save className="h-4 w-4" />
                 {createProductMutation.isPending ? 'Agregando...' : 'Agregar Producto'}
