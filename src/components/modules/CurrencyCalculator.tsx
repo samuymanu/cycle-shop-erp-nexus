@@ -5,10 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calculator, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import ExchangeRateDisplay from './ExchangeRateDisplay';
 import CurrencyConverter from './CurrencyConverter';
-import ConversionHistory from './ConversionHistory';
-import CommercialCalculatorFields from './CommercialCalculatorFields';
 import CommercialArticleTable from './CommercialArticleTable';
 
 interface ExchangeRates {
@@ -201,39 +198,20 @@ const CurrencyCalculator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calculator className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Calculadora de Divisas</h1>
-                <p className="text-gray-600">Convierte entre Bolívares y Dólares con tasas actualizadas</p>
-              </div>
-            </div>
-            <Button
-              onClick={updateRatesFromSettings}
-              variant="outline"
-              className="gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Sincronizar Tasas
-            </Button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#f4fafd] to-[#e6ecfa] py-6 px-0 md:px-8 flex justify-center">
+      <div className="w-full max-w-5xl mx-auto">
+        {/* Título principal */}
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold text-gray-900 mb-1">Calculadora</h1>
+          <p className="text-gray-500">Gestión profesional de precios y conversiones</p>
         </div>
-      </div>
 
-      <div className="p-8 space-y-8">
-        {/* Selector de perfil */}
-        <Card className="mb-4 max-w-xl">
-          <CardContent className="flex flex-col gap-4 p-4">
-            <Label>Perfil de conversión</Label>
+        {/* Selector de tipo de perfil */}
+        <Card className="mb-4 shadow border-0 rounded-xl bg-white">
+          <CardContent className="flex flex-col md:flex-row items-center gap-4 p-6">
+            <Label className="mr-2 text-lg font-semibold">Perfil</Label>
             <Select value={profileType} onValueChange={(v: 'simple' | 'comercial') => setProfileType(v)}>
-              <SelectTrigger className="w-52">
+              <SelectTrigger className="w-52 font-semibold">
                 <SelectValue placeholder="Seleccione Perfil" />
               </SelectTrigger>
               <SelectContent>
@@ -241,20 +219,17 @@ const CurrencyCalculator = () => {
                 <SelectItem value="comercial">Comercial</SelectItem>
               </SelectContent>
             </Select>
-            <span className="text-xs text-gray-500">
-              Simple: Conversión tradicional. Comercial: Conversión + margen de ganancia.
+            <span className="text-xs text-gray-400 flex-1 mt-2 md:mt-0 md:text-right">
+              Simple: Conversión tradicional.&nbsp;|&nbsp;Comercial: Conversión + margen de ganancia.
             </span>
           </CardContent>
         </Card>
 
-        {/* Exchange Rates Display */}
-        <ExchangeRateDisplay exchangeRates={exchangeRates} />
-
-        {/* Main Calculator */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
-            {/* SOLO MODO SIMPLE */}
-            {profileType === 'simple' && (
+        {/* CUERPO PRINCIPAL ADAPTABLE */}
+        <div className="bg-white shadow-xl rounded-3xl py-8 px-6 md:px-10">
+          {/* SIMPLE */}
+          {profileType === 'simple' && (
+            <div className="flex flex-col items-center max-w-lg mx-auto">
               <CurrencyConverter
                 fromAmount={fromAmount}
                 setFromAmount={setFromAmount}
@@ -270,36 +245,31 @@ const CurrencyCalculator = () => {
                 formatCurrency={formatCurrency}
                 getCurrentRate={getCurrentRate}
               />
-            )}
+            </div>
+          )}
 
-            {/* SOLO MODO COMERCIAL */}
-            {profileType === 'comercial' && (
-              <CommercialArticleTable
-                articles={commercialArticles}
-                setArticles={setCommercialArticles}
-                profitMargin={commercialProfitMargin}
-                setProfitMargin={setCommercialProfitMargin}
-                exchangeRate={getCurrentRate()}
-                formatCurrency={formatCurrency}
-              />
-            )}
-
-            {/* Botón de agregar al historial (SOLO modo comercial, fuera de la tabla para UX) */}
-            {profileType === 'comercial' && (
-              <Button
-                className="mt-6 w-full bikeERP-button-primary"
-                onClick={handleCommercialConvert}
-              >
-                Agregar al Historial Comercial
-              </Button>
-            )}
-          </div>
-
-          <ConversionHistory
-            history={conversionHistory}
-            formatCurrency={formatCurrency}
-            onClearHistory={() => setConversionHistory([])}
-          />
+          {/* COMERCIAL */}
+          {profileType === 'comercial' && (
+            <div className="flex flex-col gap-8">
+              <div>
+                <h2 className="text-2xl font-bold mb-4 text-gray-800">Perfil Comercial</h2>
+                <CommercialArticleTable
+                  articles={commercialArticles}
+                  setArticles={setCommercialArticles}
+                  profitMargin={commercialProfitMargin}
+                  setProfitMargin={setCommercialProfitMargin}
+                  exchangeRate={getCurrentRate()}
+                  formatCurrency={formatCurrency}
+                />
+                <Button
+                  className="mt-6 w-full bikeERP-button-primary"
+                  onClick={handleCommercialConvert}
+                >
+                  Agregar al Historial Comercial
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

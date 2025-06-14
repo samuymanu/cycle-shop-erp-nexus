@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -65,7 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
     },
     {
       id: 'currency-calculator',
-      label: 'Calculadora de Divisas',
+      label: 'Calculadora',
       icon: Calculator,
       requiresPermission: null,
     },
@@ -150,3 +151,4 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
 };
 
 export default Sidebar;
+
