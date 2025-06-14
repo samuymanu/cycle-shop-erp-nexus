@@ -1,13 +1,19 @@
 
 import React from 'react';
-import { CATEGORY_COLORS, CATEGORY_ICONS } from './POS';
 
 interface CategoryStatsProps {
   categoryStats: any[];
   getCategoryKey: (category: string) => string;
+  CATEGORY_COLORS: Record<string, string>;
+  CATEGORY_ICONS: Record<string, React.ReactNode>;
 }
 
-const CategoryStats: React.FC<CategoryStatsProps> = ({ categoryStats, getCategoryKey }) => {
+const CategoryStats: React.FC<CategoryStatsProps> = ({
+  categoryStats,
+  getCategoryKey,
+  CATEGORY_COLORS,
+  CATEGORY_ICONS
+}) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-2 mb-4">
       {categoryStats.map(cat => {

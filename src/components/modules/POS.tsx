@@ -318,8 +318,12 @@ const POS = () => {
                 </div>
 
                 {/* Estadísticas de cada categoría */}
-                <CategoryStats categoryStats={categoryStats} getCategoryKey={getCategoryKey} />
-
+                <CategoryStats
+                  categoryStats={categoryStats}
+                  getCategoryKey={getCategoryKey}
+                  CATEGORY_COLORS={CATEGORY_COLORS}
+                  CATEGORY_ICONS={CATEGORY_ICONS}
+                />
                 {/* Lista de productos */}
                 <ProductList
                   products={products}
