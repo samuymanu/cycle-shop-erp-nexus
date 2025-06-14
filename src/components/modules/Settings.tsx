@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import UserManagementDialog from '@/components/dialogs/UserManagementDialog';
+import { toast } from '@/hooks/use-toast';
 import { 
   Database, 
   Users, 
@@ -83,6 +83,38 @@ const Settings = () => {
   const handleImportData = () => {
     console.log('Importando datos al sistema...');
     // Implementar importación de datos
+  };
+
+  const handleConfigureRoles = () => {
+    console.log('Configurando roles...');
+    toast({
+      title: 'Función no implementada',
+      description: 'La configuración de roles estará disponible próximamente.',
+    });
+  };
+
+  const handleConfigurePermissions = () => {
+    console.log('Configurando permisos...');
+    toast({
+      title: 'Función no implementada',
+      description: 'La configuración de permisos estará disponible próximamente.',
+    });
+  };
+
+  const handleCreateBackup = () => {
+    console.log('Creando respaldo...');
+    toast({
+      title: 'Creando Respaldo',
+      description: 'Se ha iniciado la creación de un respaldo manual.',
+    });
+  };
+
+  const handleRestoreSystem = () => {
+    console.log('Restaurando sistema...');
+    toast({
+      title: 'Función no implementada',
+      description: 'La restauración del sistema estará disponible próximamente.',
+    });
   };
 
   const formatDate = (date: Date) => {
@@ -374,10 +406,10 @@ const Settings = () => {
                 </div>
 
                 <UserManagementDialog />
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={handleConfigureRoles}>
                   Configurar Roles
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={handleConfigurePermissions}>
                   Permisos del Sistema
                 </Button>
               </CardContent>
@@ -403,11 +435,11 @@ const Settings = () => {
                 <Database className="h-4 w-4" />
                 Importar Datos
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button onClick={handleCreateBackup} variant="outline" className="gap-2">
                 <Save className="h-4 w-4" />
                 Crear Respaldo
               </Button>
-              <Button variant="outline" className="gap-2">
+              <Button onClick={handleRestoreSystem} variant="outline" className="gap-2">
                 <Server className="h-4 w-4" />
                 Restaurar Sistema
               </Button>
