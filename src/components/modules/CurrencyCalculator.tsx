@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import ExchangeRateDisplay from './ExchangeRateDisplay';
 import CurrencyConverter from './CurrencyConverter';
 import ConversionHistory from './ConversionHistory';
 import CommercialCalculatorFields from './CommercialCalculatorFields';
+import CommercialArticleTable from './CommercialArticleTable';
 
 interface ExchangeRates {
   bcv: number;
@@ -47,6 +47,11 @@ const CurrencyCalculator = () => {
   const [profileType, setProfileType] = useState<'simple' | 'comercial'>('simple');
   const [commercialProfitMargin, setCommercialProfitMargin] = useState<number>(0); // sólo se usa en comercial
 
+  // Estado de artículos solo en perfil comercial
+  const [commercialArticles, setCommercialArticles] = useState<
+    { id: string; name: string; quantity: number; priceUsd: number }[]
+  >([]);
+
   const getCurrentRate = () => {
     return selectedRate === 'bcv' ? exchangeRates.bcv : exchangeRates.parallel;
   };
@@ -65,16 +70,8 @@ const CurrencyCalculator = () => {
     return amount;
   };
 
-  // En modo comercial, aplicar margen de ganancia si corresponde (solo de USD a VES, como el repositorio original)
-  const calculateCommercialAmount = (converted: number, from: 'VES' | 'USD', to: 'VES' | 'USD', margin: number) => {
-    // Solo aplicar margen si el usuario quiere ver el cálculo comercial y el margen es mayor a 0
-    if (margin > 0 && from === 'USD' && to === 'VES') {
-      return converted * (1 + margin / 100);
-    }
-    return converted;
-  };
-
-  const handleConvert = () => {
+  // -- LOGICA DE CONVERSION SIMPLE --
+  const handleSimpleConvert = () => {
     const amount = parseFloat(fromAmount);
 
     if (isNaN(amount) || amount <= 0) {
@@ -87,49 +84,76 @@ const CurrencyCalculator = () => {
     }
 
     const convertedAmount = convertCurrency(amount, fromCurrency, toCurrency);
-    let commercialAmount = undefined;
 
-    if (profileType === 'comercial') {
-      commercialAmount = calculateCommercialAmount(
-        convertedAmount,
-        fromCurrency,
-        toCurrency,
-        commercialProfitMargin
-      );
+    setConversionHistory(prev => [{
+      id: Date.now().toString(),
+      fromAmount: amount,
+      fromCurrency,
+      toAmount: convertedAmount,
+      toCurrency,
+      rate: getCurrentRate(),
+      rateType: selectedRate,
+      timestamp: new Date(),
+    }, ...prev.slice(0, 9)]);
+    toast({
+      title: 'Conversión realizada',
+      description: `${formatCurrency(amount, fromCurrency)} = ${formatCurrency(convertedAmount, toCurrency)}`,
+    });
+  };
 
-      // En modo comercial, el historial muestra ambos
-      setConversionHistory(prev => [{
-        id: Date.now().toString(),
-        fromAmount: amount,
-        fromCurrency,
-        toAmount: convertedAmount,
-        toCurrency,
-        rate: getCurrentRate(),
-        rateType: selectedRate,
-        timestamp: new Date(),
-        profitMargin: commercialProfitMargin,
-        commercialAmount,
-      }, ...prev.slice(0, 9)]);
+  // -- LOGICA DE CONVERSION COMERCIAL CON TABLA --
+  const handleCommercialConvert = () => {
+    if (commercialArticles.length === 0) {
       toast({
-        title: 'Conversión realizada (Comercial)',
-        description: `${formatCurrency(amount, fromCurrency)} = ${formatCurrency(commercialAmount, toCurrency)} (${commercialProfitMargin}% margen)`,
+        title: 'Agregue artículos',
+        description: 'Ingrese al menos un artículo para calcular.',
+        variant: 'destructive',
       });
-    } else {
-      setConversionHistory(prev => [{
-        id: Date.now().toString(),
-        fromAmount: amount,
-        fromCurrency,
-        toAmount: convertedAmount,
-        toCurrency,
-        rate: getCurrentRate(),
-        rateType: selectedRate,
-        timestamp: new Date(),
-      }, ...prev.slice(0, 9)]);
-      toast({
-        title: 'Conversión realizada',
-        description: `${formatCurrency(amount, fromCurrency)} = ${formatCurrency(convertedAmount, toCurrency)}`,
-      });
+      return;
     }
+    // Validación: que no haya filas vacías de nombre o precio/cantidad inválidos
+    const hasInvalid = commercialArticles.some(
+      art =>
+        !art.name.trim() ||
+        isNaN(art.priceUsd) ||
+        art.priceUsd < 0 ||
+        isNaN(art.quantity) ||
+        art.quantity <= 0
+    );
+    if (hasInvalid) {
+      toast({
+        title: 'Error en artículos',
+        description: 'Verifique los nombres, cantidades y precios de los artículos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Calcular totales
+    const subtotalUsd = commercialArticles.reduce((total, item) => total + item.priceUsd * item.quantity, 0);
+    const exchangeRate = getCurrentRate();
+    const subtotalVes = subtotalUsd * exchangeRate;
+    const marginVes = subtotalVes * (commercialProfitMargin / 100);
+    const totalFinalVes = subtotalVes + marginVes;
+
+    setConversionHistory(prev => [{
+      id: Date.now().toString(),
+      fromAmount: subtotalUsd,
+      fromCurrency: 'USD',
+      toAmount: totalFinalVes,
+      toCurrency: 'VES',
+      rate: exchangeRate,
+      rateType: selectedRate,
+      timestamp: new Date(),
+      profitMargin: commercialProfitMargin,
+      commercialAmount: totalFinalVes,
+      // O agregue articles: commercialArticles, si quiere extender el historial en el futuro.
+    }, ...prev.slice(0, 9)]);
+
+    toast({
+      title: 'Conversión comercial procesada',
+      description: `Subtotal: ${formatCurrency(subtotalVes, 'VES')}, Margen: ${formatCurrency(marginVes, 'VES')}, Total: ${formatCurrency(totalFinalVes, 'VES')}`,
+    });
   };
 
   const swapCurrencies = () => {
@@ -153,16 +177,16 @@ const CurrencyCalculator = () => {
     }).format(amount);
   };
 
-  // El valor convertido según perfil
+  // El valor convertido según perfil, solo para vista rápida input derecha
   const convertedAmount = useMemo(() => {
-    const amount = parseFloat(fromAmount);
-    if (isNaN(amount) || amount <= 0) return 0;
-    const baseConversion = convertCurrency(amount, fromCurrency, toCurrency);
-    if (profileType === 'comercial') {
-      return calculateCommercialAmount(baseConversion, fromCurrency, toCurrency, commercialProfitMargin);
+    if (profileType === 'simple') {
+      const amount = parseFloat(fromAmount);
+      if (isNaN(amount) || amount <= 0) return 0;
+      return convertCurrency(amount, fromCurrency, toCurrency);
     }
-    return baseConversion;
-  }, [fromAmount, fromCurrency, toCurrency, selectedRate, exchangeRates, profileType, commercialProfitMargin]);
+    // Comercial ya no usa esta visualización, muestra la tabla abajo.
+    return 0;
+  }, [fromAmount, fromCurrency, toCurrency, selectedRate, exchangeRates, profileType]);
 
   const updateRatesFromSettings = () => {
     // Simula sincronizar
@@ -229,36 +253,45 @@ const CurrencyCalculator = () => {
         {/* Main Calculator */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
-            <CurrencyConverter
-              fromAmount={fromAmount}
-              setFromAmount={setFromAmount}
-              fromCurrency={fromCurrency}
-              setFromCurrency={setFromCurrency}
-              toCurrency={toCurrency}
-              setToCurrency={setToCurrency}
-              selectedRate={selectedRate}
-              setSelectedRate={setSelectedRate}
-              convertedAmount={convertedAmount}
-              onConvert={handleConvert}
-              onSwapCurrencies={swapCurrencies}
-              formatCurrency={formatCurrency}
-              getCurrentRate={getCurrentRate}
-            />
+            {/* SOLO MODO SIMPLE */}
+            {profileType === 'simple' && (
+              <CurrencyConverter
+                fromAmount={fromAmount}
+                setFromAmount={setFromAmount}
+                fromCurrency={fromCurrency}
+                setFromCurrency={setFromCurrency}
+                toCurrency={toCurrency}
+                setToCurrency={setToCurrency}
+                selectedRate={selectedRate}
+                setSelectedRate={setSelectedRate}
+                convertedAmount={convertedAmount}
+                onConvert={handleSimpleConvert}
+                onSwapCurrencies={swapCurrencies}
+                formatCurrency={formatCurrency}
+                getCurrentRate={getCurrentRate}
+              />
+            )}
 
-            {/* Campos adicionales si se selecciona perfil comercial */}
+            {/* SOLO MODO COMERCIAL */}
             {profileType === 'comercial' && (
-              <CommercialCalculatorFields
+              <CommercialArticleTable
+                articles={commercialArticles}
+                setArticles={setCommercialArticles}
                 profitMargin={commercialProfitMargin}
                 setProfitMargin={setCommercialProfitMargin}
-                currencyFrom={fromCurrency}
-                currencyTo={toCurrency}
-                baseConverted={convertCurrency(
-                  parseFloat(fromAmount || '0'),
-                  fromCurrency,
-                  toCurrency
-                )}
+                exchangeRate={getCurrentRate()}
                 formatCurrency={formatCurrency}
               />
+            )}
+
+            {/* Botón de agregar al historial (SOLO modo comercial, fuera de la tabla para UX) */}
+            {profileType === 'comercial' && (
+              <Button
+                className="mt-6 w-full bikeERP-button-primary"
+                onClick={handleCommercialConvert}
+              >
+                Agregar al Historial Comercial
+              </Button>
             )}
           </div>
 
