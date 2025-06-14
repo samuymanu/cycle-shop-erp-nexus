@@ -77,11 +77,11 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
     setShowAddDialog(true);
   };
   
-  const handleProductAdded = (newProduct: any) => {
+  const handleProductAdded = () => {
     setShowAddDialog(false);
     toast({
       title: 'Producto Agregado',
-      description: `${newProduct.name} ha sido agregado al inventario.`,
+      description: 'El producto ha sido agregado al inventario.',
     });
     queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
   };
