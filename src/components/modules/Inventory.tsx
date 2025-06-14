@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
+import { useCategoriesData } from '@/hooks/useCategoriesData';
 import AddProductDialog from '@/components/dialogs/AddProductDialog';
 import EditProductDialog from '@/components/dialogs/EditProductDialog';
 import AdjustStockDialog from '@/components/dialogs/AdjustStockDialog';
@@ -35,6 +36,7 @@ const Inventory = () => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const { data: inventory = [], isLoading, error, refetch } = useInventoryData();
+  const { data: categories = [] } = useCategoriesData();
 
   if (isLoading) {
     return (
@@ -135,8 +137,11 @@ const Inventory = () => {
   const lowStockCount = inventory.filter(item => item.currentStock <= item.minStock).length;
   const totalUnits = inventory.reduce((total, item) => total + item.currentStock, 0);
 
-  // Obtener categorías únicas de los productos reales
-  const categories = [...new Set(inventory.map(item => item.category))];
+  // Función para obtener el nombre para mostrar de la categoría
+  const getCategoryDisplayName = (categoryName: string) => {
+    const category = categories.find(cat => cat.name === categoryName);
+    return category ? category.displayName : categoryName;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -254,8 +259,8 @@ const Inventory = () => {
               >
                 <option value="all">Todas las categorías</option>
                 {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category}
+                  <option key={category.id} value={category.name}>
+                    {category.displayName}
                   </option>
                 ))}
               </select>
@@ -304,7 +309,7 @@ const Inventory = () => {
                         </td>
                         <td className="p-4">
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                            {item.category}
+                            {getCategoryDisplayName(item.category)}
                           </Badge>
                         </td>
                         <td className="p-4">

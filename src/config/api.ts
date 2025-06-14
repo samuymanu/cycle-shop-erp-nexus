@@ -8,6 +8,7 @@ export const API_CONFIG = {
   endpoints: {
     auth: '/auth',
     products: '/products',
+    categories: '/categories',
     sales: '/sales',
     clients: '/clients',
     // Agregar más endpoints según sea necesario

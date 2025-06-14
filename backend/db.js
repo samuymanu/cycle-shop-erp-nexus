@@ -12,6 +12,16 @@ db.serialize(() => {
     role TEXT NOT NULL
   )`);
 
+  // Tabla de categorías
+  db.run(`CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    displayName TEXT NOT NULL,
+    isActive INTEGER DEFAULT 1,
+    createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   db.run(`CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -49,6 +59,28 @@ db.serialize(() => {
     isActive INTEGER DEFAULT 1,
     createdAt TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  // Insertar categorías por defecto si no existen
+  db.get("SELECT COUNT(*) as count FROM categories", [], (err, row) => {
+    if (!err && row.count === 0) {
+      const defaultCategories = [
+        { name: 'bicicletas', displayName: 'Bicicletas' },
+        { name: 'transmision', displayName: 'Transmisión' },
+        { name: 'frenos', displayName: 'Frenos' },
+        { name: 'ruedas', displayName: 'Ruedas' },
+        { name: 'seguridad', displayName: 'Seguridad' },
+        { name: 'accesorios', displayName: 'Accesorios' },
+        { name: 'motocicletas', displayName: 'Motocicletas' },
+      ];
+
+      defaultCategories.forEach(category => {
+        db.run(
+          "INSERT INTO categories (name, displayName) VALUES (?, ?)",
+          [category.name, category.displayName]
+        );
+      });
+    }
+  });
 
   // Agrega aquí el resto de tus tablas importantes (inventario, workshop, proveedores, etc)
 });
