@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Printer, ScanBarcode, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -79,7 +78,6 @@ const generateBarcodeCanvas = (barcode: string, width: number = 400, height: num
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  
   if (!ctx) return canvas;
 
   // Fondo blanco puro
@@ -87,31 +85,38 @@ const generateBarcodeCanvas = (barcode: string, width: number = 400, height: num
   ctx.fillRect(0, 0, width, height);
 
   const { pattern, ean13 } = generateEAN13BinaryPattern(barcode);
-  
-  // Configuración para barras nítidas
-  const moduleWidth = width / pattern.length;
-  const barHeight = height - 40;
-  const startY = 10;
 
-  ctx.fillStyle = "#000000";
+  // Ajustes: más ancho de módulo, barra alta, NO etiquetas EAN-13
+  const moduleWidth = Math.floor((width - 32) / pattern.length); // 16px de zona tranquila
+  const barcodeWidth = moduleWidth * pattern.length;
+  const quietZone = (width - barcodeWidth) / 2;
+  const barHeight = height - 38;
+  const startY = 8;
 
-  // Dibujar barras según el patrón binario EAN-13
+  ctx.fillStyle = "#222";
+
   for (let i = 0; i < pattern.length; i++) {
     if (pattern[i] === '1') {
-      const x = i * moduleWidth;
-      ctx.fillRect(Math.round(x), startY, Math.ceil(moduleWidth), barHeight);
+      let isGuardBar = (
+        i < 3 ||
+        (i >= 45 && i < 50) ||
+        i >= (pattern.length - 3)
+      );
+      const x = Math.round(quietZone + i * moduleWidth);
+      ctx.fillRect(
+        x,
+        startY,
+        moduleWidth + 0.3, // evita defectos del escáner
+        isGuardBar ? barHeight + 11 : barHeight
+      );
     }
   }
 
-  // Texto del código nítido
+  // Texto del código debajo, claro, sin la etiqueta 'EAN-13'
   ctx.fillStyle = "#000000";
-  ctx.font = "bold 16px 'Courier New', monospace";
+  ctx.font = "bold 18px 'Courier New', monospace";
   ctx.textAlign = "center";
-  ctx.fillText(ean13, width / 2, height - 8);
-
-  // Texto EAN-13
-  ctx.font = "12px Arial, sans-serif";
-  ctx.fillText("EAN-13", width / 2, height - 25);
+  ctx.fillText(ean13, width / 2, height - 11);
 
   return canvas;
 };

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Barcode } from "lucide-react";
 
@@ -40,11 +39,9 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
     large:   { width: 340, height: 170, fontSize: '18px', iconSize: 'h-8 w-8', codeFont: '23px', labelFont: '15px' },
   };
   const config = sizeConfig[size];
-
-  // Zonas blancas laterales (quiet zones, estándar: mínimo 7 módulos a cada lado)
-  const QUIET_ZONE_MODULES = 9;
-  const TOP_MARGIN = 12;
-  const TEXT_GAP = 28; // Aumentado para separar más el texto
+  const QUIET_ZONE_MODULES = 13; // Más seguridad visual
+  const TOP_MARGIN = 8;
+  const TEXT_GAP = 30; // suficiente separación texto/código
   const BAR_HEIGHT = config.height - TOP_MARGIN - TEXT_GAP;
 
   // Generar patrón binario EAN-13 y corregir el valor/texto mostrado
@@ -80,33 +77,28 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
   const isValidEAN13 = /^\d{13}$/.test(ean13);
 
   // Determinar ancho de módulo
-  const moduleWidth = Math.max(
-    Math.floor((config.width - 2 * QUIET_ZONE_MODULES) / pattern.length),
-    2
-  );
+  const moduleWidth = Math.floor((config.width - 2 * QUIET_ZONE_MODULES) / pattern.length);
   const barcodeWidth = moduleWidth * pattern.length;
   const quietZone = (config.width - barcodeWidth) / 2;
 
-  // Barras EAN-13
+  // Mejor trazo: barras más anchas y sin esquinas redondeadas, mayor altura en guardas.
   const renderBars = () => {
     const bars = [];
     for (let i = 0; i < pattern.length; i++) {
       if (pattern[i] === "1") {
-        // Guardas más largas visualmente
         let isGuardBar = (
-          i < 3 || // inicio
-          (i >= 45 && i < 50) || // central
-          i >= (pattern.length - 3) // fin
+          i < 3 ||
+          (i >= 45 && i < 50) ||
+          i >= (pattern.length - 3)
         );
         bars.push(
           <rect
             key={i}
             x={quietZone + i * moduleWidth}
             y={TOP_MARGIN}
-            width={moduleWidth * 1.06}
-            height={isGuardBar ? BAR_HEIGHT + 8 : BAR_HEIGHT}
+            width={moduleWidth + 0.3}
+            height={isGuardBar ? BAR_HEIGHT + 15 : BAR_HEIGHT}
             fill="#111"
-            rx={moduleWidth * 0.33}
           />
         );
       }
@@ -187,9 +179,6 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
         style={{ fontSize: config.fontSize }}
       >
         {isValidEAN13 ? ean13 : value}
-      </div>
-      <div className="text-xs text-gray-600" style={{marginTop: '2px', fontSize:config.labelFont}}>
-        EAN-13
       </div>
       {isValidEAN13
         ? <div className="text-xs text-green-600 font-medium mt-1">EAN-13 <b>✓</b></div>
