@@ -36,6 +36,27 @@ const CATEGORY_COLORS: Record<string, string> = {
   default: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
+// Función para extraer ID del producto desde EAN-13
+const extractProductIdFromEAN13 = (ean13: string): number | null => {
+  if (!ean13 || ean13.length !== 13 || !/^\d{13}$/.test(ean13)) {
+    return null;
+  }
+  
+  // Los códigos EAN-13 generados tienen el formato: 1PPPPPPPPPPPC
+  // donde P es el ID del producto (10 dígitos) y C es el dígito de verificación
+  if (ean13.startsWith('1')) {
+    const productIdStr = ean13.slice(1, 11); // Extraer los 10 dígitos del ID
+    const productId = parseInt(productIdStr, 10);
+    
+    // Validar que sea un ID razonable (mayor a 0, menor a 1 millón)
+    if (productId > 0 && productId < 1000000) {
+      return productId;
+    }
+  }
+  
+  return null;
+};
+
 const POS = () => {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -61,7 +82,19 @@ const POS = () => {
       return null;
     }
 
-    // Buscar por SKU exacto (sin importar mayúsculas/minúsculas)
+    // 1. Primero intentar extraer ID del producto desde EAN-13
+    const productIdFromEAN13 = extractProductIdFromEAN13(barcode);
+    if (productIdFromEAN13) {
+      console.log(`🔢 ID extraído del EAN-13: ${productIdFromEAN13}`);
+      const product = products.find(p => p.id === productIdFromEAN13);
+      if (product) {
+        console.log(`✅ Producto encontrado por ID desde EAN-13: ${product.name} (ID: ${product.id})`);
+        return product;
+      }
+      console.log(`❌ No se encontró producto con ID ${productIdFromEAN13} extraído del EAN-13`);
+    }
+
+    // 2. Buscar por SKU exacto (sin importar mayúsculas/minúsculas)
     let product = products.find(
       (p) => p.sku && p.sku.toString().toLowerCase() === barcode.toLowerCase()
     );
@@ -71,7 +104,7 @@ const POS = () => {
       return product;
     }
 
-    // Si no encuentra por SKU exacto, buscar por SKU que contenga el código
+    // 3. Si no encuentra por SKU exacto, buscar por SKU que contenga el código
     product = products.find(
       (p) => p.sku && p.sku.toString().toLowerCase().includes(barcode.toLowerCase())
     );
@@ -81,7 +114,7 @@ const POS = () => {
       return product;
     }
 
-    // Como último recurso, buscar en nombre si el código tiene más de 3 caracteres
+    // 4. Como último recurso, buscar en nombre si el código tiene más de 3 caracteres
     if (barcode.length > 3) {
       product = products.find(
         (p) => p.name.toLowerCase().includes(barcode.toLowerCase())
