@@ -9,6 +9,7 @@ interface BarcodeDisplayProps {
   size?: 'small' | 'medium' | 'large';
 }
 
+// Patrones estándar EAN-13
 const L_PATTERNS = [
   "0001101", "0011001", "0010011", "0111101", "0100011",
   "0110001", "0101111", "0111011", "0110111", "0001011"
@@ -26,25 +27,33 @@ const FIRST_DIGIT_PATTERNS = [
   "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"
 ];
 
-// Cambios: mayor zona blanca en el fondo, texto partidos en grupos y alineación
 const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
   value,
   label,
   className = "",
   size = "medium"
 }) => {
+  // Configuración según tamaño
   const sizeConfig = {
-    small:   { width: 180, height: 76, fontSize: '10px', iconSize: 'h-4 w-4', codeFont: '12px', labelFont: '9px' },
-    medium:  { width: 260, height: 114, fontSize: '13px', iconSize: 'h-6 w-6', codeFont: '17px', labelFont: '11px' },
-    large:   { width: 340, height: 140, fontSize: '16px', iconSize: 'h-8 w-8', codeFont: '22px', labelFont: '13px' },
+    small:   { width: 180, height: 80, fontSize: '10px', iconSize: 'h-4 w-4', codeFont: '13px', labelFont: '8px' },
+    medium:  { width: 260, height: 128, fontSize: '14px', iconSize: 'h-6 w-6', codeFont: '18px', labelFont: '11px' },
+    large:   { width: 340, height: 170, fontSize: '18px', iconSize: 'h-8 w-8', codeFont: '23px', labelFont: '15px' },
   };
   const config = sizeConfig[size];
 
+  // Zonas blancas laterales (quiet zones, estándar: mínimo 7 módulos a cada lado)
+  const QUIET_ZONE_MODULES = 9;
+  const TOP_MARGIN = 12;
+  const TEXT_GAP = 28; // Aumentado para separar más el texto
+  const BAR_HEIGHT = config.height - TOP_MARGIN - TEXT_GAP;
+
+  // Generar patrón binario EAN-13 y corregir el valor/texto mostrado
   const generateEAN13Pattern = (code: string) => {
-    let ean13 = code.padStart(13, '0').substring(0, 13);
+    let ean13 = code.padStart(13, '0').slice(0, 13);
 
     if (!/^\d{13}$/.test(ean13)) {
-      const numericCode = code.replace(/\D/g, '').padStart(12, '0').substring(0,12);
+      // Corregir a solo dígitos + dígito control
+      const numericCode = code.replace(/\D/g, '').padStart(12, '0').slice(0,12);
       let sum = 0;
       for (let i = 0; i < 12; i++) {
         const digit = parseInt(numericCode[i]);
@@ -54,53 +63,50 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
       ean13 = numericCode + checkDigit;
     }
     const digits = ean13.split('').map(d => parseInt(d));
-    const pattern = FIRST_DIGIT_PATTERNS[digits[0]];
-    let binaryString = "101";
+    const firstPattern = FIRST_DIGIT_PATTERNS[digits[0]];
+    let binary = "101";
     for (let i = 0; i < 6; i++) {
-      binaryString += (pattern[i] === 'L' ? L_PATTERNS[digits[i+1]] : G_PATTERNS[digits[i+1]]);
+      binary += (firstPattern[i] === 'L' ? L_PATTERNS[digits[i+1]] : G_PATTERNS[digits[i+1]]);
     }
-    binaryString += "01010";
+    binary += "01010";
     for (let i = 0; i < 6; i++) {
-      binaryString += R_PATTERNS[digits[i+7]];
+      binary += R_PATTERNS[digits[i+7]];
     }
-    binaryString += "101";
-    return { pattern: binaryString, ean13, digits };
+    binary += "101";
+    return { binary, ean13, digits };
   };
 
-  const { pattern, ean13, digits } = generateEAN13Pattern(value);
+  const { binary: pattern, ean13 } = generateEAN13Pattern(value);
   const isValidEAN13 = /^\d{13}$/.test(ean13);
 
-  // Zonas — 10 arriba, 40 abajo (texto separado de barras), más margen izquierdo/derecho para dígitos
-  const BAR_TOP_MARGIN = 10;
-  const BAR_BOTTOM_MARGIN = 40; // mucho mayor
-  const BAR_LEFT_MARGIN = 18;
-  const BAR_RIGHT_MARGIN = 18;
-  const codeWidth = config.width - BAR_LEFT_MARGIN - BAR_RIGHT_MARGIN;
-  let moduleWidth = codeWidth / pattern.length;
-  moduleWidth = Math.max(moduleWidth, 2);
+  // Determinar ancho de módulo
+  const moduleWidth = Math.max(
+    Math.floor((config.width - 2 * QUIET_ZONE_MODULES) / pattern.length),
+    2
+  );
+  const barcodeWidth = moduleWidth * pattern.length;
+  const quietZone = (config.width - barcodeWidth) / 2;
 
-  // Render barra EAN-13 con todos los templates y patrones matemáticos
+  // Barras EAN-13
   const renderBars = () => {
     const bars = [];
     for (let i = 0; i < pattern.length; i++) {
-      if (pattern[i] === '1') {
-        // Guardas centrales más largas (barras delimitadoras)
+      if (pattern[i] === "1") {
+        // Guardas más largas visualmente
         let isGuardBar = (
-          // Start
-          i < 3 ||
-          // Center
-          (i >= 45 && i < 50) ||
-          // End
-          i >= (pattern.length - 3)
+          i < 3 || // inicio
+          (i >= 45 && i < 50) || // central
+          i >= (pattern.length - 3) // fin
         );
         bars.push(
           <rect
             key={i}
-            x={BAR_LEFT_MARGIN + i * moduleWidth}
-            y={BAR_TOP_MARGIN}
-            width={moduleWidth + 0.45}
-            height={isGuardBar ? config.height - BAR_TOP_MARGIN - 12 : config.height - BAR_TOP_MARGIN - BAR_BOTTOM_MARGIN}
+            x={quietZone + i * moduleWidth}
+            y={TOP_MARGIN}
+            width={moduleWidth * 1.06}
+            height={isGuardBar ? BAR_HEIGHT + 8 : BAR_HEIGHT}
             fill="#111"
+            rx={moduleWidth * 0.33}
           />
         );
       }
@@ -108,58 +114,59 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
     return bars;
   };
 
-  // Render texto EAN-13 clásico: primer dígito a la izquierda (fuera de barras),
-  // grupo 6 dígitos centrados bajo el grupo izquierdo, 6 dígitos centrados bajo grupo derecho
+  // Texto separado: primer dígito bien a la izquierda, 6/6 dígitos exactamente bajo cada bloque
   const renderCodeText = () => {
-    // posiciones estrictamente calculadas según estándar, como la referencia
-    const digitPositions = [];
-    
-    // Primer dígito muy a la izquierda, fuera de barras, alineado al margen izquierdo
-    digitPositions.push({
+    // Posiciones aproximadamente: 
+    // Primer dígito (izquierda fuera de barras)
+    // 6 siguientes bajo barras izquierda
+    // 6 últimos bajo barras derecha
+    const digitPos = [];
+    // Primer dígito
+    digitPos.push({
       digit: ean13[0],
-      x: BAR_LEFT_MARGIN - 5,
+      x: quietZone - moduleWidth * 2.2,
       anchor: 'middle'
     });
-    // Siguiente 6 dígitos (lado izquierdo)
+    // Siguientes 6, bajo la parte izquierda de las barras
     for (let i = 1; i <= 6; i++) {
-      // Centrados bajo sus respectivas barras (simplificado)
-      digitPositions.push({
+      digitPos.push({
         digit: ean13[i],
-        x: BAR_LEFT_MARGIN + (3 + (i - 1) * 7) * moduleWidth,
+        x: quietZone + (3 + (i-1)*7) * moduleWidth + moduleWidth * 3.5,
         anchor: 'middle'
       });
     }
-    // Últimos 6 dígitos (lado derecho)
+    // Últimos 6, bajo la parte derecha de las barras
     for (let i = 7; i <= 12; i++) {
-      digitPositions.push({
+      digitPos.push({
         digit: ean13[i],
-        x: BAR_LEFT_MARGIN + (50 + (i - 7) * 7) * moduleWidth,
+        x: quietZone + (50 + (i-7)*7) * moduleWidth + moduleWidth * 3.5,
         anchor: 'middle'
       });
     }
-    // Render
-    return digitPositions.map((d, ix) => (
+    return digitPos.map((d, ix) => (
       <text
         key={ix}
         x={d.x}
-        y={config.height - 16}
+        y={config.height - 8}
         fontFamily="'Courier New', monospace"
         fontSize={config.codeFont}
         fill="#222"
+        fontWeight={ix === 0 ? "bold" : "normal"}
         textAnchor={d.anchor}
-        fontWeight="bold"
         alignmentBaseline="middle"
         letterSpacing={0}
-      >{d.digit}</text>
+      >
+        {d.digit}
+      </text>
     ));
   };
 
   return (
-    <div className={`flex flex-col items-center bg-white p-2 rounded border ${className}`}>
+    <div className={`flex flex-col items-center bg-white p-2 rounded border ${className}`} style={{maxWidth: config.width}}>
       <div className="mb-1">
         <Barcode className={`${config.iconSize} text-gray-400`} />
       </div>
-      {/* SVG — barras siempre con texto abajo, nunca encima */}
+      {/* SVG: más silencioso (zona blanca), barras más gruesas, texto bien separado */}
       <div className="bg-white border rounded shadow-sm px-2 py-2">
         <svg
           width={config.width}
@@ -167,13 +174,12 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
           viewBox={`0 0 ${config.width} ${config.height}`}
           className="block"
         >
-          {/* Fondo blanco */}
+          {/* Fondo blanco y zona tranquila explícita */}
           <rect width={config.width} height={config.height} fill="#fff"/>
-          {/* Barras EAN-13 matemáticamente correctas, gran margen abajo */}
+          {/* Barras */}
           {renderBars()}
-          {/* Texto EAN-13 partido en 1-6-6, alineación igual a referencia, SIEMPRE completamente debajo */}
+          {/* Texto tipo EAN, bajo la zona de barras, bien centrado */}
           {renderCodeText()}
-          {/* Texto 'EAN-13' indicativo, pequeño bajo el SVG */}
         </svg>
       </div>
       <div 
@@ -186,7 +192,7 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
         EAN-13
       </div>
       {isValidEAN13
-        ? <div className="text-xs text-green-600 font-medium mt-1">EAN-13 ✓</div>
+        ? <div className="text-xs text-green-600 font-medium mt-1">EAN-13 <b>✓</b></div>
         : <div className="text-xs text-orange-600 font-medium mt-1">Convertido a EAN-13</div>
       }
     </div>
