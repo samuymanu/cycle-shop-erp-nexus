@@ -36,22 +36,35 @@ const CATEGORY_COLORS: Record<string, string> = {
   default: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
-// Función para extraer ID del producto desde EAN-13
+// Función para extraer ID del producto desde EAN-13 generado por nuestro backend
 const extractProductIdFromEAN13 = (ean13: string): number | null => {
+  console.log(`🔍 Intentando extraer ID del producto desde EAN-13: "${ean13}"`);
+  
   if (!ean13 || ean13.length !== 13 || !/^\d{13}$/.test(ean13)) {
+    console.log(`❌ EAN-13 inválido: longitud ${ean13?.length || 0}, formato incorrecto`);
     return null;
   }
   
-  // Los códigos EAN-13 generados tienen el formato: 1PPPPPPPPPPPC
-  // donde P es el ID del producto (10 dígitos) y C es el dígito de verificación
-  if (ean13.startsWith('1')) {
-    const productIdStr = ean13.slice(1, 11); // Extraer los 10 dígitos del ID
+  // Nuestros códigos EAN-13 tienen el formato: 789TTTIIIIIIC
+  // donde 789 = prefijo Venezuela, TTT = timestamp (3 dígitos), IIIIII = productId (6 dígitos), C = check digit
+  if (ean13.startsWith('789')) {
+    console.log(`✅ EAN-13 con prefijo venezolano detectado: ${ean13}`);
+    
+    // Extraer los últimos 6 dígitos antes del dígito de verificación como ID del producto
+    const productIdStr = ean13.slice(6, 12); // Posiciones 6-11 (6 dígitos)
     const productId = parseInt(productIdStr, 10);
     
-    // Validar que sea un ID razonable (mayor a 0, menor a 1 millón)
-    if (productId > 0 && productId < 1000000) {
+    console.log(`🔢 ID extraído: "${productIdStr}" -> ${productId}`);
+    
+    // Validar que sea un ID razonable (mayor a 0)
+    if (productId > 0) {
+      console.log(`✅ ID válido extraído: ${productId}`);
       return productId;
+    } else {
+      console.log(`❌ ID inválido: ${productId} (debe ser > 0)`);
     }
+  } else {
+    console.log(`❌ EAN-13 no tiene prefijo 789: ${ean13.slice(0, 3)}`);
   }
   
   return null;
@@ -92,6 +105,7 @@ const POS = () => {
         return product;
       }
       console.log(`❌ No se encontró producto con ID ${productIdFromEAN13} extraído del EAN-13`);
+      console.log(`📋 IDs disponibles:`, products.map(p => p.id).slice(0, 10));
     }
 
     // 2. Buscar por SKU exacto (sin importar mayúsculas/minúsculas)
