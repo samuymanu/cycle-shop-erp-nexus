@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,14 +66,61 @@ const POS = () => {
   const createSaleMutation = useCreateSale();
   const updateClientMutation = useUpdateClient();
 
+  // Función mejorada para buscar productos por código
+  const findProductByCode = (barcode: string) => {
+    console.log(`🔍 Buscando producto con código: "${barcode}"`);
+    
+    // Buscar por SKU exacto (sin importar mayúsculas/minúsculas)
+    let product = products.find(
+      (p) => p.sku && p.sku.toLowerCase() === barcode.toLowerCase()
+    );
+    
+    if (product) {
+      console.log(`✅ Producto encontrado por SKU: ${product.name}`);
+      return product;
+    }
+
+    // Si no encuentra por SKU exacto, buscar por SKU que contenga el código
+    product = products.find(
+      (p) => p.sku && p.sku.toLowerCase().includes(barcode.toLowerCase())
+    );
+    
+    if (product) {
+      console.log(`✅ Producto encontrado por SKU parcial: ${product.name}`);
+      return product;
+    }
+
+    // Como último recurso, buscar en nombre si el código tiene más de 3 caracteres
+    if (barcode.length > 3) {
+      product = products.find(
+        (p) => p.name.toLowerCase().includes(barcode.toLowerCase())
+      );
+      
+      if (product) {
+        console.log(`✅ Producto encontrado por nombre: ${product.name}`);
+        return product;
+      }
+    }
+
+    console.log(`❌ No se encontró producto con código: "${barcode}"`);
+    return null;
+  };
+
   // Integrar scaner en POS: cuando escaneas, busca el producto y lo agrega al carrito
   useBarcodeScanner((barcode) => {
-    // Se busca por SKU exacto
-    const product = products.find(
-      (p) => p.sku && p.sku.trim().toUpperCase() === barcode.trim().toUpperCase()
-    );
+    const product = findProductByCode(barcode);
     if (product) {
       addToCart(product);
+      toast({
+        title: "¡Escaneado!",
+        description: `${product.name} agregado al carrito`,
+      });
+    } else {
+      toast({
+        title: "Código no encontrado",
+        description: `No se encontró un producto con el código "${barcode}"`,
+        variant: "destructive",
+      });
     }
   });
 
@@ -168,10 +214,7 @@ const POS = () => {
       }]);
     }
 
-    toast({
-      title: "Producto agregado",
-      description: `${product.name} agregado al carrito`,
-    });
+    console.log(`🛒 Producto agregado al carrito: ${product.name}`);
   };
 
   const addProductFromSearch = (product: any) => {
