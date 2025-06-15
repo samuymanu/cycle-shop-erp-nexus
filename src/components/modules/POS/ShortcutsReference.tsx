@@ -134,21 +134,21 @@ const ShortcutsReference: React.FC<ShortcutsReferenceProps> = ({
 
   return (
     <Card className="bikeERP-card">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Atajos de Teclado</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xs font-medium">Atajos de Teclado</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1 p-3">
         <TooltipProvider>
           {shortcuts.map((shortcut, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <div className="flex gap-1 min-w-[60px]">
+            <div key={index} className="flex items-center gap-1.5">
+              <div className="flex gap-0.5 min-w-[50px]">
                 {shortcut.keys.map((key, keyIndex) => (
                   <React.Fragment key={keyIndex}>
-                    <Badge variant="secondary" className="text-xs px-1 py-0">
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
                       {key}
                     </Badge>
                     {keyIndex < shortcut.keys.length - 1 && (
-                      <span className="text-xs text-muted-foreground">+</span>
+                      <span className="text-[10px] text-muted-foreground">+</span>
                     )}
                   </React.Fragment>
                 ))}
@@ -159,7 +159,7 @@ const ShortcutsReference: React.FC<ShortcutsReferenceProps> = ({
                   <Button
                     variant={getButtonVariant(shortcut.variant)}
                     size="sm"
-                    className="flex-1 justify-start gap-2 h-8 text-xs"
+                    className="flex-1 justify-start gap-1.5 h-6 text-[10px] px-2"
                     onClick={shortcut.action}
                     disabled={shortcut.disabled}
                   >
