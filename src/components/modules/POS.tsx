@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Bike, Wrench, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
@@ -6,11 +6,13 @@ import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useCreateSale } from '@/hooks/useSalesData';
 import { useUpdateClient, useClientsData } from '@/hooks/useClientsData';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { usePOSShortcuts } from '@/hooks/usePOSShortcuts';
 import { toast } from '@/hooks/use-toast';
 import { PaymentInfo } from '@/types/payment';
 import ProductSearch from './POS/ProductSearch';
 import POSStats from './POS/POSStats';
 import PaymentSection from './POS/PaymentSection';
+import ShortcutsReference from './POS/ShortcutsReference';
 import Cart from './Cart';
 
 interface CartItem {
@@ -163,12 +165,74 @@ const POS = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isSearchActive, setIsSearchActive] = useState(false);
+  
+  // Referencias para enfocar elementos
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const paymentSectionRef = useRef<HTMLDivElement>(null);
 
   const { data: products = [], isLoading } = useInventoryData();
   const { data: categories = [], isLoading: categoriesLoading } = useCategoriesData();
   const { data: clients = [] } = useClientsData();
   const createSaleMutation = useCreateSale();
   const updateClientMutation = useUpdateClient();
+
+  // Configurar atajos de teclado
+  usePOSShortcuts({
+    onProcessSale: () => {
+      if (canProcessSale()) {
+        processSale();
+      } else {
+        toast({
+          title: "No se puede procesar",
+          description: "Complete el carrito y los pagos antes de procesar la venta",
+          variant: "destructive",
+        });
+      }
+    },
+    onClearCart: () => {
+      if (cart.length > 0) {
+        setCart([]);
+        setPayments([]);
+        toast({
+          title: "Carrito limpiado",
+          description: "Todos los items han sido removidos del carrito",
+        });
+      }
+    },
+    onSearchFocus: () => {
+      searchInputRef.current?.focus();
+    },
+    onPaymentFocus: () => {
+      if (cart.length > 0) {
+        paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    },
+    onCategoryAll: () => setSelectedCategory('all'),
+    onCategoryBikes: () => {
+      const bikeCategory = categories.find(cat => 
+        cat.name.toLowerCase().includes('bici')
+      );
+      if (bikeCategory) setSelectedCategory(bikeCategory.name);
+    },
+    onCategoryMotos: () => {
+      const motoCategory = categories.find(cat => 
+        cat.name.toLowerCase().includes('moto')
+      );
+      if (motoCategory) setSelectedCategory(motoCategory.name);
+    },
+    onCategoryAccessories: () => {
+      const accessoryCategory = categories.find(cat => 
+        cat.name.toLowerCase().includes('accesor')
+      );
+      if (accessoryCategory) setSelectedCategory(accessoryCategory.name);
+    },
+    onCategoryParts: () => {
+      const partsCategory = categories.find(cat => 
+        cat.name.toLowerCase().includes('repuest')
+      );
+      if (partsCategory) setSelectedCategory(partsCategory.name);
+    },
+  });
 
   // Integrar scanner optimizado
   useBarcodeScanner((barcode) => {
@@ -447,7 +511,7 @@ const POS = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Products Section */}
         <div className="lg:col-span-2 space-y-4">
           <ProductSearch
@@ -464,6 +528,7 @@ const POS = () => {
             onSearchKeyDown={handleSearchKeyDown}
             onProductSelect={addProductFromSearch}
             formatCurrency={formatCurrency}
+            ref={searchInputRef}
           />
           
           <POSStats
@@ -479,25 +544,90 @@ const POS = () => {
           />
         </div>
 
-        {/* Cart and Payment Section */}
-        <div className="space-y-4">
-          <Cart
-            cart={cart}
-            removeFromCart={removeFromCart}
-            updateQuantity={updateQuantity}
-            formatCurrency={formatCurrency}
-            calculateTotal={calculateTotal}
-          />
+        {/* Cart, Payment and Shortcuts Section */}
+        <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Cart and Payment */}
+          <div className="space-y-4">
+            <Cart
+              cart={cart}
+              removeFromCart={removeFromCart}
+              updateQuantity={updateQuantity}
+              formatCurrency={formatCurrency}
+              calculateTotal={calculateTotal}
+            />
 
-          <PaymentSection
-            cart={cart}
-            calculateTotal={calculateTotal}
-            payments={payments}
-            onPaymentsUpdate={setPayments}
-            canProcessSale={canProcessSale}
-            processSale={processSale}
-            isProcessing={createSaleMutation.isPending}
-          />
+            <div ref={paymentSectionRef}>
+              <PaymentSection
+                cart={cart}
+                calculateTotal={calculateTotal}
+                payments={payments}
+                onPaymentsUpdate={setPayments}
+                canProcessSale={canProcessSale}
+                processSale={processSale}
+                isProcessing={createSaleMutation.isPending}
+              />
+            </div>
+          </div>
+
+          {/* Shortcuts Reference */}
+          <div>
+            <ShortcutsReference
+              onProcessSale={() => {
+                if (canProcessSale()) {
+                  processSale();
+                } else {
+                  toast({
+                    title: "No se puede procesar",
+                    description: "Complete el carrito y los pagos antes de procesar la venta",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              onClearCart={() => {
+                if (cart.length > 0) {
+                  setCart([]);
+                  setPayments([]);
+                  toast({
+                    title: "Carrito limpiado",
+                    description: "Todos los items han sido removidos del carrito",
+                  });
+                }
+              }}
+              onSearchFocus={() => searchInputRef.current?.focus()}
+              onPaymentFocus={() => {
+                if (cart.length > 0) {
+                  paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              onCategoryAll={() => setSelectedCategory('all')}
+              onCategoryBikes={() => {
+                const bikeCategory = categories.find(cat => 
+                  cat.name.toLowerCase().includes('bici')
+                );
+                if (bikeCategory) setSelectedCategory(bikeCategory.name);
+              }}
+              onCategoryMotos={() => {
+                const motoCategory = categories.find(cat => 
+                  cat.name.toLowerCase().includes('moto')
+                );
+                if (motoCategory) setSelectedCategory(motoCategory.name);
+              }}
+              onCategoryAccessories={() => {
+                const accessoryCategory = categories.find(cat => 
+                  cat.name.toLowerCase().includes('accesor')
+                );
+                if (accessoryCategory) setSelectedCategory(accessoryCategory.name);
+              }}
+              onCategoryParts={() => {
+                const partsCategory = categories.find(cat => 
+                  cat.name.toLowerCase().includes('repuest')
+                );
+                if (partsCategory) setSelectedCategory(partsCategory.name);
+              }}
+              canProcessSale={canProcessSale()}
+              hasItems={cart.length > 0}
+            />
+          </div>
         </div>
       </div>
     </div>
