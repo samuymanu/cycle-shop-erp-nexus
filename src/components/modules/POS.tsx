@@ -36,64 +36,88 @@ const CATEGORY_COLORS: Record<string, string> = {
   default: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
-// Función mejorada para encontrar productos por cualquier código
-const findProductByCode = (barcode: string, products: any[]) => {
-  console.log(`🔍 Buscando producto con código: "${barcode}"`);
+// Función mejorada para extraer el SKU original de un código EAN-13
+const extractOriginalSKU = (ean13: string) => {
+  // Si tiene 13 dígitos y empieza con 789 (prefix Venezuela)
+  if (ean13.length === 13 && ean13.startsWith('789')) {
+    // Formato: 789 + 3 timestamp + 6 productId + 1 checkDigit
+    // Extraer los últimos 6 dígitos antes del check digit
+    const productIdSection = ean13.slice(6, 12); // Posiciones 6-11
+    // Remover ceros a la izquierda para obtener el SKU original
+    return productIdSection.replace(/^0+/, '') || '0';
+  }
+  
+  // Si tiene 13 dígitos pero no es nuestro formato, intentar extraer los últimos dígitos
+  if (ean13.length === 13) {
+    // Intentar extraer diferentes longitudes desde el final
+    for (let len = 8; len >= 4; len--) {
+      const extracted = ean13.slice(-(len + 1), -1); // Excluir check digit
+      const cleaned = extracted.replace(/^0+/, '') || '0';
+      if (cleaned.length >= 4) return cleaned;
+    }
+  }
+  
+  return ean13;
+};
+
+// Función optimizada para encontrar productos
+const findProductByCode = (searchCode: string, products: any[]) => {
+  console.log(`🔍 Buscando producto con código: "${searchCode}"`);
   console.log(`📦 Total productos disponibles: ${products.length}`);
   
-  if (!barcode || !products.length) {
+  if (!searchCode || !products.length) {
     console.log(`❌ No hay código válido o productos cargados`);
     return null;
   }
 
-  // Si el código es exactamente igual a un SKU
-  let product = products.find(p => p.sku === barcode);
+  const normalizedSearch = searchCode.trim();
+
+  // 1. Búsqueda exacta por SKU
+  let product = products.find(p => p.sku === normalizedSearch);
   if (product) {
     console.log(`✅ Producto encontrado por SKU exacto: ${product.name} (SKU: ${product.sku})`);
     return product;
   }
 
-  // Si el código coincide completamente con el SKU numérico (nunca recortar un SKU al inicio)
-  product = products.find(p => barcode === p.sku.replace(/^0+/, ''));
-  if (product) {
-    console.log(`✅ Producto encontrado por SKU normalizado (sin ceros): ${product.name} (SKU: ${product.sku})`);
-    return product;
+  // 2. Si el código de búsqueda es EAN-13, extraer el SKU original
+  if (normalizedSearch.length === 13 && /^\d{13}$/.test(normalizedSearch)) {
+    const extractedSKU = extractOriginalSKU(normalizedSearch);
+    console.log(`🔧 EAN-13 detectado: ${normalizedSearch}, SKU extraído: ${extractedSKU}`);
+    
+    product = products.find(p => p.sku === extractedSKU);
+    if (product) {
+      console.log(`✅ Producto encontrado por SKU extraído de EAN-13: ${product.name} (SKU: ${product.sku})`);
+      return product;
+    }
+    
+    // También buscar por coincidencia parcial del SKU extraído
+    product = products.find(p => 
+      p.sku.includes(extractedSKU) || extractedSKU.includes(p.sku)
+    );
+    if (product) {
+      console.log(`✅ Producto encontrado por coincidencia parcial con SKU extraído: ${product.name} (SKU: ${product.sku})`);
+      return product;
+    }
   }
 
-  // Si el EAN-13 termina exactamente con el SKU (y el SKU < 13 chars, normal en inventarios con SKUs simples)
-  product = products.find(p =>
-    barcode.length === 13 && p.sku.length < 13 && barcode.endsWith(p.sku.replace(/^0+/, ''))
-  );
-  if (product) {
-    console.log(`✅ Producto encontrado porque el EAN-13 termina con su SKU: ${product.name} (SKU: ${product.sku})`);
-    return product;
+  // 3. Si el SKU del producto es largo y el código de búsqueda es corto
+  if (normalizedSearch.length < 13) {
+    product = products.find(p => {
+      if (p.sku.length === 13) {
+        const extractedFromProduct = extractOriginalSKU(p.sku);
+        return extractedFromProduct === normalizedSearch;
+      }
+      return false;
+    });
+    if (product) {
+      console.log(`✅ Producto encontrado: código corto coincide con SKU largo: ${product.name} (SKU: ${product.sku})`);
+      return product;
+    }
   }
 
-  // Si el SKU es el final del barcode (caso inverso: buscador con EAN-13, retorna SKU reducido sin ceros)
-  product = products.find(p =>
-    p.sku.length === 13 &&
-    p.sku.endsWith(barcode.replace(/^0+/, '')) &&
-    barcode.length < 13
-  );
-  if (product) {
-    console.log(`✅ Producto encontrado porque su SKU EAN-13 termina con el código escaneado: ${product.name} (SKU: ${product.sku})`);
-    return product;
-  }
-
-  // Búsqueda por coincidencia parcial
-  product = products.find(
-    p =>
-      p.sku.toLowerCase().includes(barcode.toLowerCase()) ||
-      barcode.toLowerCase().includes(p.sku.toLowerCase())
-  );
-  if (product) {
-    console.log(`✅ Producto encontrado por coincidencia parcial de SKU: ${product.name} (SKU: ${product.sku})`);
-    return product;
-  }
-
-  // Búsqueda por ID si es numérico exacto
-  if (/^\d+$/.test(barcode)) {
-    const id = parseInt(barcode, 10);
+  // 4. Búsqueda por ID si es numérico
+  if (/^\d+$/.test(normalizedSearch)) {
+    const id = parseInt(normalizedSearch, 10);
     product = products.find(p => p.id === id);
     if (product) {
       console.log(`✅ Producto encontrado por ID: ${product.name} (ID: ${product.id})`);
@@ -101,17 +125,29 @@ const findProductByCode = (barcode: string, products: any[]) => {
     }
   }
 
-  // Búsqueda por nombre si el código tiene más de 3 caracteres
-  if (barcode.length > 3) {
-    product = products.find(p => p.name.toLowerCase().includes(barcode.toLowerCase()));
+  // 5. Búsqueda por coincidencia parcial en SKU
+  product = products.find(p => 
+    p.sku.toLowerCase().includes(normalizedSearch.toLowerCase()) ||
+    normalizedSearch.toLowerCase().includes(p.sku.toLowerCase())
+  );
+  if (product) {
+    console.log(`✅ Producto encontrado por coincidencia parcial de SKU: ${product.name} (SKU: ${product.sku})`);
+    return product;
+  }
+
+  // 6. Búsqueda por nombre (solo si el código tiene más de 3 caracteres)
+  if (normalizedSearch.length > 3) {
+    product = products.find(p => 
+      p.name.toLowerCase().includes(normalizedSearch.toLowerCase())
+    );
     if (product) {
       console.log(`✅ Producto encontrado por nombre: ${product.name}`);
       return product;
     }
   }
 
-  console.log(`❌ No se encontró producto con código: "${barcode}"`);
-  console.log(`🔍 Primeros 5 productos disponibles:`, products.slice(0, 5).map(p => ({ 
+  console.log(`❌ No se encontró producto con código: "${normalizedSearch}"`);
+  console.log(`🔍 Primeros 3 productos para referencia:`, products.slice(0, 3).map(p => ({ 
     id: p.id, 
     name: p.name, 
     sku: p.sku 
@@ -134,20 +170,20 @@ const POS = () => {
   const createSaleMutation = useCreateSale();
   const updateClientMutation = useUpdateClient();
 
-  // Integrar scaner en POS: cuando escaneas, busca el producto y lo agrega al carrito
+  // Integrar scanner optimizado
   useBarcodeScanner((barcode) => {
-    console.log(`🎯 Código escaneado recibido: "${barcode}"`);
+    console.log(`🎯 Código escaneado recibido en POS: "${barcode}"`);
     const product = findProductByCode(barcode, products);
     if (product) {
       addToCart(product);
       toast({
-        title: "¡Escaneado!",
+        title: "¡Producto encontrado!",
         description: `${product.name} agregado al carrito`,
       });
     } else {
       toast({
-        title: "Código no encontrado",
-        description: `No se encontró un producto con el código "${barcode}"`,
+        title: "Producto no encontrado",
+        description: `No se encontró un producto con el código "${barcode}". Verifica el código o agrega el producto manualmente.`,
         variant: "destructive",
       });
     }
@@ -324,13 +360,10 @@ const POS = () => {
 
     try {
       const total = calculateTotal();
-      const subtotal = total * 0.84; // Asumiendo 16% de IVA
+      const subtotal = total * 0.84;
       const tax = total - subtotal;
 
-      // Identificar si hay pago a crédito
       const creditPayment = payments.find((p) => p.method === "credit");
-
-      // Se asume que el cliente seleccionado tiene id 1
       const clientId = 1;
       const client = clients.find(c => c.id === clientId);
 
@@ -353,7 +386,6 @@ const POS = () => {
 
       await createSaleMutation.mutateAsync(saleData);
 
-      // Si hay pago a crédito, actualizar el balance del cliente
       if (creditPayment && client) {
         const creditAmount = creditPayment.amount || 0;
         const newBalance = (client.balance || 0) + creditAmount;
@@ -376,7 +408,6 @@ const POS = () => {
         description: `Venta procesada por ${formatCurrency(total)} con ${payments.length} método(s) de pago`,
       });
 
-      // Clear cart and payments
       setCart([]);
       setPayments([]);
     } catch (error) {

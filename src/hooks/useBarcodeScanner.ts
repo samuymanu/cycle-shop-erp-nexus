@@ -1,8 +1,9 @@
+
 import { useEffect } from "react";
 
 /**
- * Hook para capturar entradas rápidas de un lector de código de barras.
- * Optimizado para códigos EAN-13 y otros formatos estándar.
+ * Hook optimizado para capturar entradas de lectores de códigos de barras.
+ * Mejorado para manejar códigos EAN-13 y otros formatos estándar.
  */
 export function useBarcodeScanner(onScan: (barcode: string) => void) {
   useEffect(() => {
@@ -12,36 +13,40 @@ export function useBarcodeScanner(onScan: (barcode: string) => void) {
     const onKeyDown = (e: KeyboardEvent) => {
       const now = Date.now();
       
-      // Aumentar el umbral para el reset a 300ms (mejor reconocimiento de escáner rápido)
-      if (now - lastTime > 300) buffer = "";
+      // Reset del buffer si pasa mucho tiempo entre teclas (200ms para scanners rápidos)
+      if (now - lastTime > 200) {
+        buffer = "";
+      }
 
       lastTime = now;
 
       if (!e.key) return;
 
-      // Permitir números, letras y caracteres comunes
-      if (
-        e.key.length === 1 &&
-        (/[a-zA-Z0-9\-_.]/.test(e.key))
-      ) {
+      // Capturar números, letras y algunos caracteres especiales comunes en códigos
+      if (e.key.length === 1 && /[a-zA-Z0-9\-_.]/.test(e.key)) {
         buffer += e.key;
-        //console.log(`📱 Escáner: Buffer actual: "${buffer}"`);
+        console.log(`📱 Escáner: Buffer: "${buffer}" (${buffer.length} chars)`);
       } else if (e.key === "Enter") {
+        // Validar longitud mínima para evitar falsos positivos
         if (buffer && buffer.length >= 4) {
-          console.log(`📱 Escáner: Código detectado: "${buffer}" (longitud: ${buffer.length})`);
-          onScan(buffer);
+          console.log(`📱 ✅ Código detectado: "${buffer}" (${buffer.length} chars)`);
+          onScan(buffer.trim());
         } else {
-          //console.log(`📱 Escáner: Código muy corto o vacío (${buffer ? buffer.length : 0} chars): "${buffer}"`);
+          console.log(`📱 ❌ Código muy corto descartado: "${buffer}" (${buffer.length} chars)`);
         }
+        buffer = "";
+      } else if (e.key === "Escape" || e.key === "Tab") {
+        // Limpiar buffer en escape o tab
+        console.log(`📱 🔄 Buffer limpiado por ${e.key}`);
         buffer = "";
       }
     };
 
-    //console.log("📱 Escáner de códigos activado - Optimizado para EAN-13");
+    console.log("📱 ✅ Escáner de códigos activado - Optimizado para EAN-13");
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
-      //console.log("📱 Escáner de códigos desactivado");
+      console.log("📱 ❌ Escáner de códigos desactivado");
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [onScan]);
