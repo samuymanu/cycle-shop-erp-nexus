@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,11 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { PaymentMethod, PaymentMethodLabels } from '@/types/erp';
-import { PaymentInfo, CashPaymentInfo, CreditPaymentInfo, ZellePaymentInfo, TransferPaymentInfo } from '@/types/payment';
+import { PaymentInfo, CreditPaymentInfo, ZellePaymentInfo, TransferPaymentInfo, USDTPaymentInfo } from '@/types/payment';
 import { Plus, X, CreditCard } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-import CashPaymentForm from './CashPaymentForm';
 import CreditPaymentForm from './CreditPaymentForm';
 import ZellePaymentForm from './ZellePaymentForm';
 import TransferPaymentForm from './TransferPaymentForm';
@@ -21,13 +19,21 @@ interface PaymentMethodSelectorProps {
   onPaymentsUpdate: (payments: PaymentInfo[]) => void;
 }
 
+// Solo métodos de pago especiales
+const SPECIAL_PAYMENT_METHODS = {
+  [PaymentMethod.TRANSFER]: PaymentMethodLabels[PaymentMethod.TRANSFER],
+  [PaymentMethod.CREDIT]: PaymentMethodLabels[PaymentMethod.CREDIT],
+  [PaymentMethod.ZELLE]: PaymentMethodLabels[PaymentMethod.ZELLE],
+  [PaymentMethod.USDT]: PaymentMethodLabels[PaymentMethod.USDT],
+};
+
 const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   totalAmount,
   payments,
   onPaymentsUpdate
 }) => {
   const [showAddPayment, setShowAddPayment] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(PaymentMethod.CASH_VES);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(PaymentMethod.TRANSFER);
   const [currentPaymentInfo, setCurrentPaymentInfo] = useState<Partial<PaymentInfo>>({});
 
   const getTotalPaid = () => {
@@ -53,15 +59,6 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     const remaining = getRemainingAmount();
     
     switch (selectedMethod) {
-      case PaymentMethod.CASH_VES:
-      case PaymentMethod.CASH_USD:
-        return (
-          <CashPaymentForm
-            paymentInfo={currentPaymentInfo as Partial<CashPaymentInfo>}
-            onUpdate={(info) => setCurrentPaymentInfo(info)}
-            totalAmount={remaining}
-          />
-        );
       case PaymentMethod.CREDIT:
         return (
           <CreditPaymentForm
@@ -129,115 +126,96 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   const isComplete = getRemainingAmount() <= 0;
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Métodos de Pago</h3>
-        {!isComplete && (
-          <Button
-            onClick={() => setShowAddPayment(true)}
-            size="sm"
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Agregar Pago
-          </Button>
-        )}
-      </div>
-
-      {/* Resumen de Pagos */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="text-center p-3 bg-blue-50 rounded-lg">
-          <div className="text-sm text-blue-600">Total a Pagar</div>
-          <div className="text-xl font-bold">{formatCurrency(totalAmount)}</div>
+    <Card className="bikeERP-card">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-sm font-medium">Pagos Especiales</CardTitle>
+          {!isComplete && (
+            <Button
+              onClick={() => setShowAddPayment(true)}
+              size="sm"
+              variant="outline"
+              className="gap-2 h-7 text-xs"
+            >
+              <Plus className="h-3 w-3" />
+              Agregar
+            </Button>
+          )}
         </div>
-        <div className="text-center p-3 bg-green-50 rounded-lg">
-          <div className="text-sm text-green-600">Pendiente</div>
-          <div className={`text-xl font-bold ${isComplete ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(getRemainingAmount())}
-          </div>
-        </div>
-      </div>
-
-      {/* Lista de Pagos */}
-      {payments.length > 0 && (
-        <div className="space-y-2">
-          <h4 className="font-medium">Pagos Registrados</h4>
-          {payments.map((payment, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center gap-3">
-                <CreditCard className="h-4 w-4" />
-                <div>
-                  <div className="font-medium">{PaymentMethodLabels[payment.method]}</div>
-                  <div className="text-sm text-gray-600">
-                    {formatCurrency(payment.amount, payment.currency)}
+      </CardHeader>
+      <CardContent className="p-3">
+        {/* Lista de Pagos Especiales */}
+        {payments.filter(p => [PaymentMethod.TRANSFER, PaymentMethod.CREDIT, PaymentMethod.ZELLE, PaymentMethod.USDT].includes(p.method)).length > 0 && (
+          <div className="space-y-2">
+            {payments
+              .map((payment, index) => ({ payment, originalIndex: index }))
+              .filter(({ payment }) => [PaymentMethod.TRANSFER, PaymentMethod.CREDIT, PaymentMethod.ZELLE, PaymentMethod.USDT].includes(payment.method))
+              .map(({ payment, originalIndex }) => (
+                <div key={originalIndex} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-3 w-3" />
+                    <div>
+                      <div className="text-xs font-medium">{PaymentMethodLabels[payment.method]}</div>
+                      <div className="text-[10px] text-gray-600">
+                        {formatCurrency(payment.amount, payment.currency)}
+                      </div>
+                    </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removePayment(originalIndex)}
+                    className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
+              ))}
+          </div>
+        )}
+
+        {/* Dialog para Agregar Pago Especial */}
+        <Dialog open={showAddPayment} onOpenChange={setShowAddPayment}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Agregar Pago Especial</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Método de Pago</label>
+                <Select value={selectedMethod} onValueChange={(value) => {
+                  setSelectedMethod(value as PaymentMethod);
+                  setCurrentPaymentInfo({ method: value as PaymentMethod });
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SPECIAL_PAYMENT_METHODS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => removePayment(index)}
-                className="text-red-600 hover:text-red-700"
-              >
-                <X className="h-4 w-4" />
+
+              {renderPaymentForm()}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddPayment(false)}>
+                Cancelar
               </Button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Estado */}
-      {isComplete && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-green-100 text-green-800">
-              ✓ Pago Completo
-            </Badge>
-          </div>
-        </div>
-      )}
-
-      {/* Dialog para Agregar Pago */}
-      <Dialog open={showAddPayment} onOpenChange={setShowAddPayment}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Agregar Método de Pago</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Método de Pago</label>
-              <Select value={selectedMethod} onValueChange={(value) => {
-                setSelectedMethod(value as PaymentMethod);
-                setCurrentPaymentInfo({ method: value as PaymentMethod });
-              }}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PaymentMethodLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {renderPaymentForm()}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddPayment(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={addPayment}>
-              Agregar Pago
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+              <Button onClick={addPayment}>
+                Agregar Pago
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
   );
 };
 
