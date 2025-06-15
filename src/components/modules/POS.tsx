@@ -305,7 +305,7 @@ const POS = () => {
   const addToCart = (product: any) => {
     if (product.currentStock === 0) {
       toast({
-        title: "Sin stock",
+        title: "❌ Sin stock",
         description: `${product.name} no tiene stock disponible`,
         variant: "destructive",
       });
@@ -317,29 +317,65 @@ const POS = () => {
     if (existingItem) {
       if (existingItem.quantity >= product.currentStock) {
         toast({
-          title: "Stock insuficiente",
-          description: `Solo hay ${product.currentStock} unidades disponibles`,
+          title: "⚠️ Stock insuficiente",
+          description: `Solo hay ${product.currentStock} unidades disponibles de ${product.name}`,
           variant: "destructive",
         });
         return;
       }
 
+      const newQuantity = existingItem.quantity + 1;
       setCart(cart.map(item =>
         item.id === product.id.toString()
-          ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
+          ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
           : item
       ));
+
+      toast({
+        title: "✅ Cantidad actualizada",
+        description: (
+          <div className="space-y-1">
+            <div className="font-medium">{product.name}</div>
+            <div className="text-sm text-gray-600">
+              Cantidad: {newQuantity} • Precio: {formatCurrency(product.salePrice)}
+            </div>
+            <div className="text-sm font-medium">
+              Subtotal: {formatCurrency(newQuantity * product.salePrice)}
+            </div>
+          </div>
+        ),
+      });
     } else {
-      setCart([...cart, {
+      const newItem = {
         id: product.id.toString(),
         name: product.name,
         price: product.salePrice,
         quantity: 1,
         subtotal: product.salePrice,
-      }]);
+      };
+
+      setCart([...cart, newItem]);
+
+      toast({
+        title: "✅ Producto agregado",
+        description: (
+          <div className="space-y-1">
+            <div className="font-medium">{product.name}</div>
+            <div className="text-sm text-gray-600">
+              SKU: {product.sku} • Stock: {product.currentStock}
+            </div>
+            <div className="text-sm text-gray-600">
+              Cantidad: 1 • Precio: {formatCurrency(product.salePrice)}
+            </div>
+            <div className="text-sm font-medium">
+              Subtotal: {formatCurrency(product.salePrice)}
+            </div>
+          </div>
+        ),
+      });
     }
 
-    console.log(`🛒 Producto agregado al carrito: ${product.name}`);
+    console.log(`🛒 Producto agregado al carrito: ${product.name} (Cantidad: ${existingItem ? existingItem.quantity + 1 : 1})`);
   };
 
   const addProductFromSearch = (product: any) => {
