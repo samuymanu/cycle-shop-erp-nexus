@@ -32,6 +32,9 @@ const FIRST_DIGIT_PATTERNS = [
   "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"
 ];
 
+const MIN_QUIET_ZONE_MODULES = 14;
+const MIN_MODULE_WIDTH = 2;
+
 const generateEAN13BinaryPattern = (code: string) => {
   // Convertir a EAN-13 válido
   let ean13 = code.padStart(13, '0').substring(0, 13);
@@ -86,10 +89,16 @@ const generateBarcodeCanvas = (barcode: string, width: number = 400, height: num
 
   const { pattern, ean13 } = generateEAN13BinaryPattern(barcode);
 
-  // Ajustes: más ancho de módulo, barra alta, NO etiquetas EAN-13
-  const moduleWidth = Math.floor((width - 32) / pattern.length); // 16px de zona tranquila
+  // Quiet zone y módulo ≥ 2px, igual a visualización SVG
+  const moduleWidth = Math.max(
+    Math.floor((width - 2 * MIN_QUIET_ZONE_MODULES) / pattern.length),
+    MIN_MODULE_WIDTH
+  );
   const barcodeWidth = moduleWidth * pattern.length;
-  const quietZone = (width - barcodeWidth) / 2;
+  const quietZone = Math.max(
+    (width - barcodeWidth) / 2,
+    MIN_QUIET_ZONE_MODULES * MIN_MODULE_WIDTH
+  );
   const barHeight = height - 38;
   const startY = 8;
 
@@ -106,15 +115,15 @@ const generateBarcodeCanvas = (barcode: string, width: number = 400, height: num
       ctx.fillRect(
         x,
         startY,
-        moduleWidth + 0.3, // evita defectos del escáner
-        isGuardBar ? barHeight + 11 : barHeight
+        moduleWidth,
+        isGuardBar ? barHeight + 18 : barHeight
       );
     }
   }
 
-  // Texto del código debajo, claro, sin la etiqueta 'EAN-13'
+  // Texto del código, bien separado y centrado
   ctx.fillStyle = "#000000";
-  ctx.font = "bold 18px 'Courier New', monospace";
+  ctx.font = "bold 20px 'Courier New', monospace";
   ctx.textAlign = "center";
   ctx.fillText(ean13, width / 2, height - 11);
 
