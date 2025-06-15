@@ -503,16 +503,19 @@ const POS = () => {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Punto de Venta</h1>
-          <p className="text-slate-600">Sistema POS - Vendedor: {user?.name}</p>
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+      {/* Header compacto */}
+      <div className="p-4 bg-white border-b border-gray-200 shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Punto de Venta</h1>
+            <p className="text-sm text-slate-600">Sistema POS - Vendedor: {user?.name}</p>
+          </div>
         </div>
       </div>
 
-      {/* Shortcuts Reference moved to top with full width */}
-      <div className="w-full">
+      {/* Shortcuts Reference compacto */}
+      <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 shrink-0">
         <ShortcutsReference
           onProcessSale={() => {
             if (canProcessSale()) {
@@ -571,59 +574,66 @@ const POS = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Products Section */}
-        <div className="lg:col-span-2 space-y-4">
-          <ProductSearch
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            categories={categories}
-            filteredProducts={filteredProducts}
-            highlightedIndex={highlightedIndex}
-            setHighlightedIndex={setHighlightedIndex}
-            isSearchActive={isSearchActive}
-            setIsSearchActive={setIsSearchActive}
-            onSearchKeyDown={handleSearchKeyDown}
-            onProductSelect={addProductFromSearch}
-            formatCurrency={formatCurrency}
-            ref={searchInputRef}
-          />
-          
-          <POSStats
-            categoryStats={categoryStats}
-            getCategoryKey={getCategoryKey}
-            CATEGORY_COLORS={CATEGORY_COLORS}
-            CATEGORY_ICONS={CATEGORY_ICONS}
-            products={products}
-            filteredProducts={filteredProducts}
-            getCategoryOfProduct={getCategoryOfProduct}
-            addToCart={addToCart}
-            formatCurrency={formatCurrency}
-          />
-        </div>
-
-        {/* Cart and Payment Section */}
-        <div className="space-y-4">
-          <Cart
-            cart={cart}
-            removeFromCart={removeFromCart}
-            updateQuantity={updateQuantity}
-            formatCurrency={formatCurrency}
-            calculateTotal={calculateTotal}
-          />
-
-          <div ref={paymentSectionRef}>
-            <PaymentSection
-              cart={cart}
-              calculateTotal={calculateTotal}
-              payments={payments}
-              onPaymentsUpdate={setPayments}
-              canProcessSale={canProcessSale}
-              processSale={processSale}
-              isProcessing={createSaleMutation.isPending}
+      {/* Layout principal con distribución horizontal optimizada */}
+      <div className="flex-1 p-4 overflow-hidden">
+        <div className="grid grid-cols-12 gap-4 h-full">
+          {/* Sección de productos - más ancha */}
+          <div className="col-span-7 flex flex-col space-y-3 overflow-hidden">
+            <ProductSearch
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              categories={categories}
+              filteredProducts={filteredProducts}
+              highlightedIndex={highlightedIndex}
+              setHighlightedIndex={setHighlightedIndex}
+              isSearchActive={isSearchActive}
+              setIsSearchActive={setIsSearchActive}
+              onSearchKeyDown={handleSearchKeyDown}
+              onProductSelect={addProductFromSearch}
+              formatCurrency={formatCurrency}
+              ref={searchInputRef}
             />
+            
+            <div className="flex-1 overflow-hidden">
+              <POSStats
+                categoryStats={categoryStats}
+                getCategoryKey={getCategoryKey}
+                CATEGORY_COLORS={CATEGORY_COLORS}
+                CATEGORY_ICONS={CATEGORY_ICONS}
+                products={products}
+                filteredProducts={filteredProducts}
+                getCategoryOfProduct={getCategoryOfProduct}
+                addToCart={addToCart}
+                formatCurrency={formatCurrency}
+              />
+            </div>
+          </div>
+
+          {/* Sección de carrito y pagos - más estrecha pero visible */}
+          <div className="col-span-5 flex flex-col space-y-3 overflow-hidden">
+            <div className="flex-1 overflow-y-auto">
+              <Cart
+                cart={cart}
+                removeFromCart={removeFromCart}
+                updateQuantity={updateQuantity}
+                formatCurrency={formatCurrency}
+                calculateTotal={calculateTotal}
+              />
+            </div>
+
+            <div ref={paymentSectionRef} className="shrink-0">
+              <PaymentSection
+                cart={cart}
+                calculateTotal={calculateTotal}
+                payments={payments}
+                onPaymentsUpdate={setPayments}
+                canProcessSale={canProcessSale}
+                processSale={processSale}
+                isProcessing={createSaleMutation.isPending}
+              />
+            </div>
           </div>
         </div>
       </div>

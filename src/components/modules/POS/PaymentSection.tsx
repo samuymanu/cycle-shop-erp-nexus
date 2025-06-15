@@ -57,27 +57,26 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   if (cart.length === 0) return null;
 
   return (
-    <div className="space-y-4">
-      {/* Resumen de Totales */}
+    <div className="space-y-3">
+      {/* Resumen compacto de totales y botón de procesar */}
       <Card className="bikeERP-card">
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <div className="text-sm text-blue-600">Total a Pagar</div>
-              <div className="text-xl font-bold">{formatCurrency(calculateTotal())}</div>
+        <CardContent className="p-3">
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="text-center p-2 bg-blue-50 rounded">
+              <div className="text-xs text-blue-600">Total</div>
+              <div className="text-lg font-bold">{formatCurrency(calculateTotal())}</div>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-sm text-green-600">Pendiente</div>
-              <div className={`text-xl font-bold ${isComplete ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="text-center p-2 bg-green-50 rounded">
+              <div className="text-xs text-green-600">Pendiente</div>
+              <div className={`text-lg font-bold ${isComplete ? 'text-green-600' : 'text-red-600'}`}>
                 {formatCurrency(getRemainingAmount())}
               </div>
             </div>
           </div>
 
-          {/* Estado */}
           {isComplete && (
-            <div className="mb-4">
-              <Badge variant="outline" className="bg-green-100 text-green-800">
+            <div className="mb-2">
+              <Badge variant="outline" className="bg-green-100 text-green-800 text-xs">
                 ✓ Pago Completo
               </Badge>
             </div>
@@ -85,8 +84,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
 
           <Button
             onClick={processSale}
-            className="w-full bikeERP-button-success text-white"
-            size="lg"
+            className="w-full bikeERP-button-success text-white h-10"
             disabled={isProcessing || !canProcessSale()}
           >
             {isProcessing ? 'Procesando...' :
@@ -102,21 +100,21 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
         onPaymentsUpdate={onPaymentsUpdate}
       />
 
-      {/* Lista de Pagos Registrados */}
+      {/* Lista compacta de Pagos Registrados */}
       {payments.length > 0 && (
         <Card className="bikeERP-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pagos Registrados</CardTitle>
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs font-medium">Pagos Registrados</CardTitle>
           </CardHeader>
-          <CardContent className="p-3">
-            <div className="space-y-2">
+          <CardContent className="p-2">
+            <div className="space-y-1">
               {payments.map((payment, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="h-4 w-4" />
+                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-3 w-3" />
                     <div>
-                      <div className="font-medium text-sm">{PaymentMethodLabels[payment.method]}</div>
-                      <div className="text-xs text-gray-600">
+                      <div className="font-medium">{PaymentMethodLabels[payment.method]}</div>
+                      <div className="text-gray-600">
                         {formatCurrency(payment.amount, payment.currency)}
                       </div>
                     </div>
@@ -125,9 +123,9 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => removePayment(index)}
-                    className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
+                    className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3 w-3" />
                   </Button>
                 </div>
               ))}

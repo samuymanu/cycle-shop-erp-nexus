@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -116,153 +115,133 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
 
   return (
     <Card className="bikeERP-card">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-gray-800">Pagos Rápidos</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-semibold text-gray-800">Pagos Rápidos</CardTitle>
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Pendiente por pagar:</span>
-          <span className="text-lg font-bold text-red-600">{formatCurrency(remaining)}</span>
+          <span className="text-xs text-gray-600">Pendiente:</span>
+          <span className="text-sm font-bold text-red-600">{formatCurrency(remaining)}</span>
         </div>
       </CardHeader>
-      <CardContent className="p-4 space-y-6">
-        {/* Sección USD - Mejorada */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-blue-100">
-            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
-              <DollarSign className="h-4 w-4 text-blue-600" />
+      <CardContent className="p-3 space-y-4">
+        {/* Sección USD - Compacta */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 pb-1 border-b border-blue-100">
+            <div className="flex items-center justify-center w-6 h-6 bg-blue-100 rounded-full">
+              <DollarSign className="h-3 w-3 text-blue-600" />
             </div>
-            <h3 className="text-base font-semibold text-blue-700">Dólares Americanos (USD)</h3>
+            <h3 className="text-sm font-semibold text-blue-700">USD</h3>
           </div>
           
-          {/* Botón completar en USD - Más prominente */}
+          {/* Botón completar en USD - Compacto */}
           <Button
             onClick={() => completePaymentWith(PaymentMethod.CASH_USD, 'USD')}
-            className="w-full h-14 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg transform transition-all duration-200 hover:scale-[1.02]"
-            size="lg"
+            className="w-full h-10 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm"
           >
             <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-3">
-                <Banknote className="h-5 w-5" />
-                <span className="font-semibold">Completar Pago en USD</span>
+              <div className="flex items-center gap-2">
+                <Banknote className="h-4 w-4" />
+                <span>Completar USD</span>
               </div>
-              <div className="text-right">
-                <div className="text-lg font-bold">{formatCurrency(remaining / 36, 'USD')}</div>
-                <div className="text-xs opacity-90">Efectivo USD</div>
-              </div>
+              <span className="font-bold">{formatCurrency(remaining / 36, 'USD')}</span>
             </div>
           </Button>
 
-          {/* Campo personalizado USD - Mejorado */}
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <label className="block text-sm font-medium text-blue-700 mb-2">
-              Monto personalizado en USD
-            </label>
-            <div className="flex gap-3">
+          {/* Campo personalizado USD - Compacto */}
+          <div className="bg-blue-50 p-2 rounded">
+            <div className="flex gap-2">
               <div className="relative flex-1">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <DollarSign className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
                 <Input
                   type="number"
                   placeholder="0.00"
                   value={customAmountUSD}
                   onChange={(e) => setCustomAmountUSD(e.target.value)}
-                  className="pl-10 h-11 text-base font-medium border-blue-200 focus:border-blue-400"
+                  className="pl-7 h-8 text-sm border-blue-200 focus:border-blue-400"
                   step="0.01"
                 />
               </div>
               <Button
                 onClick={() => addCustomPayment(PaymentMethod.CASH_USD, 'USD')}
-                className="h-11 px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white text-xs"
                 disabled={!customAmountUSD || parseFloat(customAmountUSD) <= 0}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Separador más elegante */}
+        {/* Separador */}
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200"></div>
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-500 font-medium">o pagar en bolívares</span>
+          <div className="relative flex justify-center text-xs">
+            <span className="px-2 bg-white text-gray-500">o en bolívares</span>
           </div>
         </div>
 
-        {/* Sección VES - Mejorada */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-green-100">
-            <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
-              <Coins className="h-4 w-4 text-green-600" />
+        {/* Sección VES - Compacta */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 pb-1 border-b border-green-100">
+            <div className="flex items-center justify-center w-6 h-6 bg-green-100 rounded-full">
+              <Coins className="h-3 w-3 text-green-600" />
             </div>
-            <h3 className="text-base font-semibold text-green-700">Bolívares Soberanos (Bs.S)</h3>
+            <h3 className="text-sm font-semibold text-green-700">Bs.S</h3>
           </div>
           
-          {/* Botones VES - Grid mejorado */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Botones VES - Grid compacto */}
+          <div className="grid grid-cols-2 gap-2">
             <Button
               onClick={() => completePaymentWith(PaymentMethod.CASH_VES, 'VES')}
-              className="h-16 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md transform transition-all duration-200 hover:scale-[1.02]"
-              size="lg"
+              className="h-12 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-xs"
             >
-              <div className="flex flex-col items-center gap-1">
-                <Coins className="h-5 w-5" />
-                <span className="font-semibold text-sm">Efectivo Bs.S</span>
-                <span className="text-xs opacity-90">Completar</span>
+              <div className="flex flex-col items-center">
+                <Coins className="h-4 w-4" />
+                <span className="font-semibold">Efectivo</span>
               </div>
             </Button>
             <Button
               onClick={() => completePaymentWith(PaymentMethod.CARD, 'VES')}
-              className="h-16 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md transform transition-all duration-200 hover:scale-[1.02]"
-              size="lg"
+              className="h-12 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-xs"
             >
-              <div className="flex flex-col items-center gap-1">
-                <CreditCard className="h-5 w-5" />
-                <span className="font-semibold text-sm">Tarjeta</span>
-                <span className="text-xs opacity-90">Completar</span>
+              <div className="flex flex-col items-center">
+                <CreditCard className="h-4 w-4" />
+                <span className="font-semibold">Tarjeta</span>
               </div>
             </Button>
           </div>
 
-          {/* Campo personalizado VES - Mejorado */}
-          <div className="bg-green-50 p-4 rounded-lg">
-            <label className="block text-sm font-medium text-green-700 mb-2">
-              Monto personalizado en Bs.S
-            </label>
-            <div className="flex gap-3">
+          {/* Campo personalizado VES - Compacto */}
+          <div className="bg-green-50 p-2 rounded">
+            <div className="flex gap-2">
               <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-medium">Bs.S</span>
+                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs">Bs.S</span>
                 <Input
                   type="number"
                   placeholder="0"
                   value={customAmountVES}
                   onChange={(e) => setCustomAmountVES(e.target.value)}
-                  className="pl-12 h-11 text-base font-medium border-green-200 focus:border-green-400"
+                  className="pl-10 h-8 text-sm border-green-200 focus:border-green-400"
                   step="1"
                 />
               </div>
               <Button
                 onClick={() => addCustomPayment(PaymentMethod.CASH_VES, 'VES')}
-                className="h-11 px-6 bg-green-600 hover:bg-green-700 text-white font-medium"
+                className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white text-xs"
                 disabled={!customAmountVES || parseFloat(customAmountVES) <= 0}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Información adicional - Mejorada */}
-        <div className="bg-gray-50 rounded-lg p-3 border-l-4 border-blue-400">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            <span className="font-medium">Tasa de cambio:</span>
-            <span className="font-bold text-blue-600">1 USD = 36 Bs.S</span>
-          </div>
-          <div className="text-xs text-gray-500 mt-1 ml-4">
-            Puede combinar múltiples métodos de pago para completar la transacción
+        {/* Información adicional - Compacta */}
+        <div className="bg-gray-50 rounded p-2 border-l-2 border-blue-400">
+          <div className="text-xs text-gray-600">
+            <span className="font-medium">Tasa:</span>
+            <span className="font-bold text-blue-600 ml-1">1 USD = 36 Bs.S</span>
           </div>
         </div>
       </CardContent>
