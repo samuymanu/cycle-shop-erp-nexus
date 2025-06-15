@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Search, 
   CreditCard, 
@@ -124,56 +123,41 @@ const ShortcutsReference: React.FC<ShortcutsReferenceProps> = ({
     },
   ];
 
-  const getButtonVariant = (variant?: string) => {
-    switch (variant) {
-      case 'success': return 'default';
-      case 'destructive': return 'destructive';
-      default: return 'outline';
-    }
-  };
-
   return (
     <Card className="bikeERP-card">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-medium">Atajos de Teclado</CardTitle>
+        <CardTitle className="text-sm font-medium">Atajos de Teclado</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1 p-3">
-        <TooltipProvider>
+      <CardContent className="p-3">
+        <div className="grid grid-cols-2 gap-1 text-[10px]">
           {shortcuts.map((shortcut, index) => (
-            <div key={index} className="flex items-center gap-1.5">
-              <div className="flex gap-0.5 min-w-[50px]">
+            <div key={index} className="flex items-center gap-1">
+              <div className="flex gap-0.5 min-w-[40px]">
                 {shortcut.keys.map((key, keyIndex) => (
                   <React.Fragment key={keyIndex}>
-                    <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">
+                    <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3 leading-none">
                       {key}
                     </Badge>
                     {keyIndex < shortcut.keys.length - 1 && (
-                      <span className="text-[10px] text-muted-foreground">+</span>
+                      <span className="text-[9px] text-muted-foreground">+</span>
                     )}
                   </React.Fragment>
                 ))}
               </div>
               
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={getButtonVariant(shortcut.variant)}
-                    size="sm"
-                    className="flex-1 justify-start gap-1.5 h-6 text-[10px] px-2"
-                    onClick={shortcut.action}
-                    disabled={shortcut.disabled}
-                  >
-                    {shortcut.icon}
-                    {shortcut.label}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{shortcut.description}</p>
-                </TooltipContent>
-              </Tooltip>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 justify-start gap-1 h-5 text-[9px] px-1 py-0 min-w-0 hover:bg-muted/50"
+                onClick={shortcut.action}
+                disabled={shortcut.disabled}
+              >
+                {shortcut.icon}
+                <span className="truncate">{shortcut.label}</span>
+              </Button>
             </div>
           ))}
-        </TooltipProvider>
+        </div>
       </CardContent>
     </Card>
   );

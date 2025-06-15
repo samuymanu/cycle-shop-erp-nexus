@@ -511,7 +511,67 @@ const POS = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {/* Shortcuts Reference moved to top */}
+      <div className="max-w-sm">
+        <ShortcutsReference
+          onProcessSale={() => {
+            if (canProcessSale()) {
+              processSale();
+            } else {
+              toast({
+                title: "No se puede procesar",
+                description: "Complete el carrito y los pagos antes de procesar la venta",
+                variant: "destructive",
+              });
+            }
+          }}
+          onClearCart={() => {
+            if (cart.length > 0) {
+              setCart([]);
+              setPayments([]);
+              toast({
+                title: "Carrito limpiado",
+                description: "Todos los items han sido removidos del carrito",
+              });
+            }
+          }}
+          onSearchFocus={() => searchInputRef.current?.focus()}
+          onPaymentFocus={() => {
+            if (cart.length > 0) {
+              paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+          onCategoryAll={() => setSelectedCategory('all')}
+          onCategoryBikes={() => {
+            const bikeCategory = categories.find(cat => 
+              cat.name.toLowerCase().includes('bici')
+            );
+            if (bikeCategory) setSelectedCategory(bikeCategory.name);
+          }}
+          onCategoryMotos={() => {
+            const motoCategory = categories.find(cat => 
+              cat.name.toLowerCase().includes('moto')
+            );
+            if (motoCategory) setSelectedCategory(motoCategory.name);
+          }}
+          onCategoryAccessories={() => {
+            const accessoryCategory = categories.find(cat => 
+              cat.name.toLowerCase().includes('accesor')
+            );
+            if (accessoryCategory) setSelectedCategory(accessoryCategory.name);
+          }}
+          onCategoryParts={() => {
+            const partsCategory = categories.find(cat => 
+              cat.name.toLowerCase().includes('repuest')
+            );
+            if (partsCategory) setSelectedCategory(partsCategory.name);
+          }}
+          canProcessSale={canProcessSale()}
+          hasItems={cart.length > 0}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Products Section */}
         <div className="lg:col-span-2 space-y-4">
           <ProductSearch
@@ -544,88 +604,25 @@ const POS = () => {
           />
         </div>
 
-        {/* Cart, Payment and Shortcuts Section */}
-        <div className="lg:col-span-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Cart and Payment */}
-          <div className="space-y-4">
-            <Cart
+        {/* Cart and Payment Section */}
+        <div className="space-y-4">
+          <Cart
+            cart={cart}
+            removeFromCart={removeFromCart}
+            updateQuantity={updateQuantity}
+            formatCurrency={formatCurrency}
+            calculateTotal={calculateTotal}
+          />
+
+          <div ref={paymentSectionRef}>
+            <PaymentSection
               cart={cart}
-              removeFromCart={removeFromCart}
-              updateQuantity={updateQuantity}
-              formatCurrency={formatCurrency}
               calculateTotal={calculateTotal}
-            />
-
-            <div ref={paymentSectionRef}>
-              <PaymentSection
-                cart={cart}
-                calculateTotal={calculateTotal}
-                payments={payments}
-                onPaymentsUpdate={setPayments}
-                canProcessSale={canProcessSale}
-                processSale={processSale}
-                isProcessing={createSaleMutation.isPending}
-              />
-            </div>
-          </div>
-
-          {/* Shortcuts Reference */}
-          <div>
-            <ShortcutsReference
-              onProcessSale={() => {
-                if (canProcessSale()) {
-                  processSale();
-                } else {
-                  toast({
-                    title: "No se puede procesar",
-                    description: "Complete el carrito y los pagos antes de procesar la venta",
-                    variant: "destructive",
-                  });
-                }
-              }}
-              onClearCart={() => {
-                if (cart.length > 0) {
-                  setCart([]);
-                  setPayments([]);
-                  toast({
-                    title: "Carrito limpiado",
-                    description: "Todos los items han sido removidos del carrito",
-                  });
-                }
-              }}
-              onSearchFocus={() => searchInputRef.current?.focus()}
-              onPaymentFocus={() => {
-                if (cart.length > 0) {
-                  paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
-              onCategoryAll={() => setSelectedCategory('all')}
-              onCategoryBikes={() => {
-                const bikeCategory = categories.find(cat => 
-                  cat.name.toLowerCase().includes('bici')
-                );
-                if (bikeCategory) setSelectedCategory(bikeCategory.name);
-              }}
-              onCategoryMotos={() => {
-                const motoCategory = categories.find(cat => 
-                  cat.name.toLowerCase().includes('moto')
-                );
-                if (motoCategory) setSelectedCategory(motoCategory.name);
-              }}
-              onCategoryAccessories={() => {
-                const accessoryCategory = categories.find(cat => 
-                  cat.name.toLowerCase().includes('accesor')
-                );
-                if (accessoryCategory) setSelectedCategory(accessoryCategory.name);
-              }}
-              onCategoryParts={() => {
-                const partsCategory = categories.find(cat => 
-                  cat.name.toLowerCase().includes('repuest')
-                );
-                if (partsCategory) setSelectedCategory(partsCategory.name);
-              }}
-              canProcessSale={canProcessSale()}
-              hasItems={cart.length > 0}
+              payments={payments}
+              onPaymentsUpdate={setPayments}
+              canProcessSale={canProcessSale}
+              processSale={processSale}
+              isProcessing={createSaleMutation.isPending}
             />
           </div>
         </div>
