@@ -41,7 +41,10 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
     <Card className="bikeERP-card">
       <CardHeader>
         <CardTitle className="text-slate-900">Productos</CardTitle>
-        <CardDescription className="text-slate-600">Busca y agrega productos al carrito. Usa ↑ ↓ y Enter para más rapidez.</CardDescription>
+        <CardDescription className="text-slate-600">
+          Busca y agrega productos al carrito. Usa ↑ ↓ y Enter para más rapidez. 
+          También puedes escanear códigos de barras directamente.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -49,7 +52,7 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Buscar por nombre, marca o SKU..."
+                placeholder="Buscar por nombre, marca, SKU o código de barras..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -90,7 +93,13 @@ const ProductSearch: React.FC<ProductSearchProps> = ({
                       ))}
                     </ul>
                   ) : (
-                    <div className="p-4 text-center text-slate-500">No se encontraron productos.</div>
+                    <div className="p-4 text-center text-slate-500">
+                      No se encontraron productos con "{searchTerm}".
+                      <br />
+                      <span className="text-xs text-slate-400">
+                        Intenta con el SKU original del producto o escanea el código.
+                      </span>
+                    </div>
                   )}
                 </div>
               )}

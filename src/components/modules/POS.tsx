@@ -36,37 +36,100 @@ const CATEGORY_COLORS: Record<string, string> = {
   default: "bg-gray-100 text-gray-800 border-gray-200",
 };
 
-// Función para extraer ID del producto desde EAN-13 generado por nuestro backend
-const extractProductIdFromEAN13 = (ean13: string): number | null => {
-  console.log(`🔍 Intentando extraer ID del producto desde EAN-13: "${ean13}"`);
+// Función mejorada para encontrar productos por cualquier código
+const findProductByCode = (barcode: string, products: any[]) => {
+  console.log(`🔍 Buscando producto con código: "${barcode}"`);
+  console.log(`📦 Total productos disponibles: ${products.length}`);
   
-  if (!ean13 || ean13.length !== 13 || !/^\d{13}$/.test(ean13)) {
-    console.log(`❌ EAN-13 inválido: longitud ${ean13?.length || 0}, formato incorrecto`);
+  if (!barcode || !products.length) {
+    console.log(`❌ No hay código válido o productos cargados`);
     return null;
   }
-  
-  // Nuestros códigos EAN-13 tienen el formato: 789TTTIIIIIIC
-  // donde 789 = prefijo Venezuela, TTT = timestamp (3 dígitos), IIIIII = productId (6 dígitos), C = check digit
-  if (ean13.startsWith('789')) {
-    console.log(`✅ EAN-13 con prefijo venezolano detectado: ${ean13}`);
-    
-    // Extraer los últimos 6 dígitos antes del dígito de verificación como ID del producto
-    const productIdStr = ean13.slice(6, 12); // Posiciones 6-11 (6 dígitos)
-    const productId = parseInt(productIdStr, 10);
-    
-    console.log(`🔢 ID extraído: "${productIdStr}" -> ${productId}`);
-    
-    // Validar que sea un ID razonable (mayor a 0)
-    if (productId > 0) {
-      console.log(`✅ ID válido extraído: ${productId}`);
-      return productId;
-    } else {
-      console.log(`❌ ID inválido: ${productId} (debe ser > 0)`);
-    }
-  } else {
-    console.log(`❌ EAN-13 no tiene prefijo 789: ${ean13.slice(0, 3)}`);
+
+  // 1. Búsqueda directa por SKU exacto
+  let product = products.find(p => p.sku === barcode);
+  if (product) {
+    console.log(`✅ Producto encontrado por SKU exacto: ${product.name} (SKU: ${product.sku})`);
+    return product;
   }
-  
+
+  // 2. Si el código tiene 13 dígitos (posible EAN-13), intentar extraer el SKU original
+  if (barcode.length === 13 && /^\d{13}$/.test(barcode)) {
+    console.log(`🔢 Código EAN-13 detectado: ${barcode}`);
+    
+    // Intentar diferentes formas de extraer el SKU del EAN-13
+    const extractionMethods = [
+      // Método 1: Quitar ceros del inicio y dígito de verificación del final
+      () => {
+        const withoutLeadingZeros = barcode.replace(/^0+/, '');
+        return withoutLeadingZeros.slice(0, -1); // Quitar último dígito (verificación)
+      },
+      // Método 2: Para códigos 789TTTIIIIIIC, extraer los 6 dígitos del producto
+      () => {
+        if (barcode.startsWith('789')) {
+          return barcode.slice(6, 12).replace(/^0+/, ''); // Quitar ceros del inicio
+        }
+        return null;
+      },
+      // Método 3: Extraer números del centro (para códigos con padding)
+      () => {
+        const middle = barcode.slice(3, 11); // Tomar 8 dígitos del centro
+        return middle.replace(/^0+/, ''); // Quitar ceros del inicio
+      }
+    ];
+
+    for (const method of extractionMethods) {
+      const extractedSku = method();
+      if (extractedSku && extractedSku.length > 0) {
+        console.log(`🎯 Intentando SKU extraído: "${extractedSku}"`);
+        
+        // Buscar por SKU extraído
+        product = products.find(p => p.sku === extractedSku);
+        if (product) {
+          console.log(`✅ Producto encontrado con SKU extraído: ${product.name} (SKU: ${product.sku})`);
+          return product;
+        }
+      }
+    }
+  }
+
+  // 3. Búsqueda por SKU que contenga el código (parcial)
+  product = products.find(p => 
+    p.sku.toLowerCase().includes(barcode.toLowerCase()) ||
+    barcode.toLowerCase().includes(p.sku.toLowerCase())
+  );
+  if (product) {
+    console.log(`✅ Producto encontrado por SKU parcial: ${product.name} (SKU: ${product.sku})`);
+    return product;
+  }
+
+  // 4. Búsqueda por ID si es numérico
+  if (/^\d+$/.test(barcode)) {
+    const id = parseInt(barcode, 10);
+    product = products.find(p => p.id === id);
+    if (product) {
+      console.log(`✅ Producto encontrado por ID: ${product.name} (ID: ${product.id})`);
+      return product;
+    }
+  }
+
+  // 5. Como último recurso, buscar en nombre si el código tiene más de 3 caracteres
+  if (barcode.length > 3) {
+    product = products.find(p => 
+      p.name.toLowerCase().includes(barcode.toLowerCase())
+    );
+    if (product) {
+      console.log(`✅ Producto encontrado por nombre: ${product.name}`);
+      return product;
+    }
+  }
+
+  console.log(`❌ No se encontró producto con código: "${barcode}"`);
+  console.log(`🔍 Primeros 5 productos disponibles:`, products.slice(0, 5).map(p => ({ 
+    id: p.id, 
+    name: p.name, 
+    sku: p.sku 
+  })));
   return null;
 };
 
@@ -85,70 +148,10 @@ const POS = () => {
   const createSaleMutation = useCreateSale();
   const updateClientMutation = useUpdateClient();
 
-  // Función mejorada para buscar productos por código
-  const findProductByCode = (barcode: string) => {
-    console.log(`🔍 Buscando producto con código: "${barcode}"`);
-    console.log(`📦 Total productos disponibles: ${products.length}`);
-    
-    if (!barcode || !products.length) {
-      console.log(`❌ No hay código válido o productos cargados`);
-      return null;
-    }
-
-    // 1. Primero intentar extraer ID del producto desde EAN-13
-    const productIdFromEAN13 = extractProductIdFromEAN13(barcode);
-    if (productIdFromEAN13) {
-      console.log(`🔢 ID extraído del EAN-13: ${productIdFromEAN13}`);
-      const product = products.find(p => p.id === productIdFromEAN13);
-      if (product) {
-        console.log(`✅ Producto encontrado por ID desde EAN-13: ${product.name} (ID: ${product.id})`);
-        return product;
-      }
-      console.log(`❌ No se encontró producto con ID ${productIdFromEAN13} extraído del EAN-13`);
-      console.log(`📋 IDs disponibles:`, products.map(p => p.id).slice(0, 10));
-    }
-
-    // 2. Buscar por SKU exacto (sin importar mayúsculas/minúsculas)
-    let product = products.find(
-      (p) => p.sku && p.sku.toString().toLowerCase() === barcode.toLowerCase()
-    );
-    
-    if (product) {
-      console.log(`✅ Producto encontrado por SKU exacto: ${product.name} (SKU: ${product.sku})`);
-      return product;
-    }
-
-    // 3. Si no encuentra por SKU exacto, buscar por SKU que contenga el código
-    product = products.find(
-      (p) => p.sku && p.sku.toString().toLowerCase().includes(barcode.toLowerCase())
-    );
-    
-    if (product) {
-      console.log(`✅ Producto encontrado por SKU parcial: ${product.name} (SKU: ${product.sku})`);
-      return product;
-    }
-
-    // 4. Como último recurso, buscar en nombre si el código tiene más de 3 caracteres
-    if (barcode.length > 3) {
-      product = products.find(
-        (p) => p.name.toLowerCase().includes(barcode.toLowerCase())
-      );
-      
-      if (product) {
-        console.log(`✅ Producto encontrado por nombre: ${product.name}`);
-        return product;
-      }
-    }
-
-    console.log(`❌ No se encontró producto con código: "${barcode}"`);
-    console.log(`🔍 Códigos disponibles:`, products.map(p => ({ id: p.id, name: p.name, sku: p.sku })).slice(0, 5));
-    return null;
-  };
-
   // Integrar scaner en POS: cuando escaneas, busca el producto y lo agrega al carrito
   useBarcodeScanner((barcode) => {
     console.log(`🎯 Código escaneado recibido: "${barcode}"`);
-    const product = findProductByCode(barcode);
+    const product = findProductByCode(barcode, products);
     if (product) {
       addToCart(product);
       toast({
