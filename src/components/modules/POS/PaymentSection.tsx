@@ -95,14 +95,14 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
         </CardContent>
       </Card>
 
-      {/* Métodos de Pago Rápidos */}
+      {/* Métodos de Pago Rápidos - Solo si hay monto pendiente */}
       <QuickPaymentMethods
         totalAmount={calculateTotal()}
         payments={payments}
         onPaymentsUpdate={onPaymentsUpdate}
       />
 
-      {/* Lista de Todos los Pagos */}
+      {/* Lista de Pagos Registrados */}
       {payments.length > 0 && (
         <Card className="bikeERP-card">
           <CardHeader className="pb-2">
@@ -136,12 +136,14 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
         </Card>
       )}
 
-      {/* Pagos Especiales */}
-      <PaymentMethodSelector
-        totalAmount={calculateTotal()}
-        payments={payments}
-        onPaymentsUpdate={onPaymentsUpdate}
-      />
+      {/* Pagos Especiales - Solo si no está completo el pago */}
+      {!isComplete && (
+        <PaymentMethodSelector
+          totalAmount={calculateTotal()}
+          payments={payments}
+          onPaymentsUpdate={onPaymentsUpdate}
+        />
+      )}
     </div>
   );
 };
