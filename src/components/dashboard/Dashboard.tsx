@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -289,7 +288,7 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {stats?.topSellingProducts.map((item, index) => (
+                  {(stats?.topSellingProducts ?? []).map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
