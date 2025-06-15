@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Bike, Wrench, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -55,24 +54,30 @@ const POS = () => {
   // Función mejorada para buscar productos por código
   const findProductByCode = (barcode: string) => {
     console.log(`🔍 Buscando producto con código: "${barcode}"`);
+    console.log(`📦 Total productos disponibles: ${products.length}`);
     
+    if (!barcode || !products.length) {
+      console.log(`❌ No hay código válido o productos cargados`);
+      return null;
+    }
+
     // Buscar por SKU exacto (sin importar mayúsculas/minúsculas)
     let product = products.find(
-      (p) => p.sku && p.sku.toLowerCase() === barcode.toLowerCase()
+      (p) => p.sku && p.sku.toString().toLowerCase() === barcode.toLowerCase()
     );
     
     if (product) {
-      console.log(`✅ Producto encontrado por SKU: ${product.name}`);
+      console.log(`✅ Producto encontrado por SKU exacto: ${product.name} (SKU: ${product.sku})`);
       return product;
     }
 
     // Si no encuentra por SKU exacto, buscar por SKU que contenga el código
     product = products.find(
-      (p) => p.sku && p.sku.toLowerCase().includes(barcode.toLowerCase())
+      (p) => p.sku && p.sku.toString().toLowerCase().includes(barcode.toLowerCase())
     );
     
     if (product) {
-      console.log(`✅ Producto encontrado por SKU parcial: ${product.name}`);
+      console.log(`✅ Producto encontrado por SKU parcial: ${product.name} (SKU: ${product.sku})`);
       return product;
     }
 
@@ -89,11 +94,13 @@ const POS = () => {
     }
 
     console.log(`❌ No se encontró producto con código: "${barcode}"`);
+    console.log(`🔍 Códigos disponibles:`, products.map(p => ({ id: p.id, name: p.name, sku: p.sku })).slice(0, 5));
     return null;
   };
 
   // Integrar scaner en POS: cuando escaneas, busca el producto y lo agrega al carrito
   useBarcodeScanner((barcode) => {
+    console.log(`🎯 Código escaneado recibido: "${barcode}"`);
     const product = findProductByCode(barcode);
     if (product) {
       addToCart(product);

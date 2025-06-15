@@ -18,6 +18,9 @@ export function useBarcodeScanner(onScan: (barcode: string) => void) {
 
       lastTime = now;
 
+      // Verificar que e.key existe y no es undefined
+      if (!e.key) return;
+
       // Permitir números, letras y algunos caracteres especiales comunes en códigos de barras
       if (
         e.key.length === 1 &&
@@ -26,12 +29,12 @@ export function useBarcodeScanner(onScan: (barcode: string) => void) {
         buffer += e.key;
         console.log(`📱 Escáner: Buffer actual: "${buffer}"`);
       } else if (e.key === "Enter") {
-        // Para códigos EAN-13 esperamos al menos 8 caracteres, pero aceptamos desde 4 para otros formatos
-        if (buffer.length >= 4) {
+        // Para códigos EAN-13 esperamos al menos 4 caracteres
+        if (buffer && buffer.length >= 4) {
           console.log(`📱 Escáner: Código detectado: "${buffer}" (longitud: ${buffer.length})`);
           onScan(buffer);
         } else {
-          console.log(`📱 Escáner: Código muy corto (${buffer.length} chars): "${buffer}"`);
+          console.log(`📱 Escáner: Código muy corto o vacío (${buffer ? buffer.length : 0} chars): "${buffer}"`);
         }
         buffer = "";
       }
