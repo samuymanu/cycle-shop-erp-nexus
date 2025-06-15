@@ -46,64 +46,52 @@ const findProductByCode = (barcode: string, products: any[]) => {
     return null;
   }
 
-  // 1. Búsqueda directa por SKU exacto
+  // Si el código es exactamente igual a un SKU
   let product = products.find(p => p.sku === barcode);
   if (product) {
     console.log(`✅ Producto encontrado por SKU exacto: ${product.name} (SKU: ${product.sku})`);
     return product;
   }
 
-  // 2. Si el código tiene 13 dígitos (posible EAN-13), intentar extraer el SKU original
-  if (barcode.length === 13 && /^\d{13}$/.test(barcode)) {
-    console.log(`🔢 Código EAN-13 detectado: ${barcode}`);
-    
-    // Intentar diferentes formas de extraer el SKU del EAN-13
-    const extractionMethods = [
-      // Método 1: Quitar ceros del inicio y dígito de verificación del final
-      () => {
-        const withoutLeadingZeros = barcode.replace(/^0+/, '');
-        return withoutLeadingZeros.slice(0, -1); // Quitar último dígito (verificación)
-      },
-      // Método 2: Para códigos 789TTTIIIIIIC, extraer los 6 dígitos del producto
-      () => {
-        if (barcode.startsWith('789')) {
-          return barcode.slice(6, 12).replace(/^0+/, ''); // Quitar ceros del inicio
-        }
-        return null;
-      },
-      // Método 3: Extraer números del centro (para códigos con padding)
-      () => {
-        const middle = barcode.slice(3, 11); // Tomar 8 dígitos del centro
-        return middle.replace(/^0+/, ''); // Quitar ceros del inicio
-      }
-    ];
-
-    for (const method of extractionMethods) {
-      const extractedSku = method();
-      if (extractedSku && extractedSku.length > 0) {
-        console.log(`🎯 Intentando SKU extraído: "${extractedSku}"`);
-        
-        // Buscar por SKU extraído
-        product = products.find(p => p.sku === extractedSku);
-        if (product) {
-          console.log(`✅ Producto encontrado con SKU extraído: ${product.name} (SKU: ${product.sku})`);
-          return product;
-        }
-      }
-    }
-  }
-
-  // 3. Búsqueda por SKU que contenga el código (parcial)
-  product = products.find(p => 
-    p.sku.toLowerCase().includes(barcode.toLowerCase()) ||
-    barcode.toLowerCase().includes(p.sku.toLowerCase())
-  );
+  // Si el código coincide completamente con el SKU numérico (nunca recortar un SKU al inicio)
+  product = products.find(p => barcode === p.sku.replace(/^0+/, ''));
   if (product) {
-    console.log(`✅ Producto encontrado por SKU parcial: ${product.name} (SKU: ${product.sku})`);
+    console.log(`✅ Producto encontrado por SKU normalizado (sin ceros): ${product.name} (SKU: ${product.sku})`);
     return product;
   }
 
-  // 4. Búsqueda por ID si es numérico
+  // Si el EAN-13 termina exactamente con el SKU (y el SKU < 13 chars, normal en inventarios con SKUs simples)
+  product = products.find(p =>
+    barcode.length === 13 && p.sku.length < 13 && barcode.endsWith(p.sku.replace(/^0+/, ''))
+  );
+  if (product) {
+    console.log(`✅ Producto encontrado porque el EAN-13 termina con su SKU: ${product.name} (SKU: ${product.sku})`);
+    return product;
+  }
+
+  // Si el SKU es el final del barcode (caso inverso: buscador con EAN-13, retorna SKU reducido sin ceros)
+  product = products.find(p =>
+    p.sku.length === 13 &&
+    p.sku.endsWith(barcode.replace(/^0+/, '')) &&
+    barcode.length < 13
+  );
+  if (product) {
+    console.log(`✅ Producto encontrado porque su SKU EAN-13 termina con el código escaneado: ${product.name} (SKU: ${product.sku})`);
+    return product;
+  }
+
+  // Búsqueda por coincidencia parcial
+  product = products.find(
+    p =>
+      p.sku.toLowerCase().includes(barcode.toLowerCase()) ||
+      barcode.toLowerCase().includes(p.sku.toLowerCase())
+  );
+  if (product) {
+    console.log(`✅ Producto encontrado por coincidencia parcial de SKU: ${product.name} (SKU: ${product.sku})`);
+    return product;
+  }
+
+  // Búsqueda por ID si es numérico exacto
   if (/^\d+$/.test(barcode)) {
     const id = parseInt(barcode, 10);
     product = products.find(p => p.id === id);
@@ -113,11 +101,9 @@ const findProductByCode = (barcode: string, products: any[]) => {
     }
   }
 
-  // 5. Como último recurso, buscar en nombre si el código tiene más de 3 caracteres
+  // Búsqueda por nombre si el código tiene más de 3 caracteres
   if (barcode.length > 3) {
-    product = products.find(p => 
-      p.name.toLowerCase().includes(barcode.toLowerCase())
-    );
+    product = products.find(p => p.name.toLowerCase().includes(barcode.toLowerCase()));
     if (product) {
       console.log(`✅ Producto encontrado por nombre: ${product.name}`);
       return product;
