@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,8 @@ const POS = () => {
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [isSearchActive, setIsSearchActive] = useState(false);
 
   const { data: products = [], isLoading } = useInventoryData();
   const { data: categories = [], isLoading: categoriesLoading } = useCategoriesData();
@@ -169,6 +172,34 @@ const POS = () => {
       title: "Producto agregado",
       description: `${product.name} agregado al carrito`,
     });
+  };
+
+  const addProductFromSearch = (product: any) => {
+    addToCart(product);
+    setSearchTerm('');
+    setHighlightedIndex(-1);
+    setIsSearchActive(false);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const resultsCount = filteredProducts.slice(0, 10).length;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev < resultsCount - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightedIndex > -1 && filteredProducts[highlightedIndex]) {
+        addProductFromSearch(filteredProducts[highlightedIndex]);
+      } else if (filteredProducts.length > 0) {
+        addProductFromSearch(filteredProducts[0]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchActive(false);
+      setHighlightedIndex(-1);
+    }
   };
 
   const removeFromCart = (itemId: string) => {
@@ -327,7 +358,7 @@ const POS = () => {
           <Card className="bikeERP-card">
             <CardHeader>
               <CardTitle className="text-slate-900">Productos</CardTitle>
-              <CardDescription className="text-slate-600">Buscar y agregar productos al carrito</CardDescription>
+              <CardDescription className="text-slate-600">Busca y agrega productos al carrito. Usa ↑ ↓ y Enter para más rapidez.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -335,11 +366,51 @@ const POS = () => {
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
-                      placeholder="Buscar productos..."
+                      placeholder="Buscar por nombre, marca o SKU..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setHighlightedIndex(-1);
+                        if (e.target.value) {
+                          setIsSearchActive(true);
+                        } else {
+                          setIsSearchActive(false);
+                        }
+                      }}
+                      onKeyDown={handleSearchKeyDown}
+                      onFocus={() => { if(searchTerm) setIsSearchActive(true); }}
+                      onBlur={() => setTimeout(() => setIsSearchActive(false), 200)}
                       className="pl-10 bikeERP-input"
                     />
+                    {isSearchActive && searchTerm && (
+                      <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                        {filteredProducts.length > 0 ? (
+                          <ul>
+                            {filteredProducts.slice(0, 10).map((product, index) => (
+                              <li
+                                key={product.id}
+                                className={`p-3 cursor-pointer hover:bg-slate-100 ${index === highlightedIndex ? 'bg-slate-100' : ''}`}
+                                onMouseEnter={() => setHighlightedIndex(index)}
+                                onClick={() => addProductFromSearch(product)}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium text-slate-800">{product.name}</p>
+                                    <p className="text-sm text-slate-500">{product.brand} - {formatCurrency(product.salePrice)}</p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm text-slate-600">Stock: {product.currentStock}</p>
+                                    <Badge variant="outline" className="text-xs font-mono">{product.sku}</Badge>
+                                  </div>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="p-4 text-center text-slate-500">No se encontraron productos.</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {/* Select dinámico de categorías */}
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
