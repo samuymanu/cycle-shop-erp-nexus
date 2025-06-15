@@ -1,23 +1,18 @@
+
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Bike, Wrench, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
 import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useCreateSale } from '@/hooks/useSalesData';
-import { toast } from '@/hooks/use-toast';
-import { Bike, Wrench, Package, Search } from 'lucide-react';
-import { PaymentInfo } from '@/types/payment';
-import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector';
-import ProductList from './ProductList';
-import CategoryStats from './CategoryStats';
-import Cart from './Cart';
 import { useUpdateClient, useClientsData } from '@/hooks/useClientsData';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { toast } from '@/hooks/use-toast';
+import { PaymentInfo } from '@/types/payment';
+import ProductSearch from './POS/ProductSearch';
+import POSStats from './POS/POSStats';
+import PaymentSection from './POS/PaymentSection';
+import Cart from './Cart';
 
 interface CartItem {
   id: string;
@@ -27,20 +22,11 @@ interface CartItem {
   subtotal: number;
 }
 
-const CATEGORY_ICONS: Record<
-  string,
-  React.ReactNode
-> = {
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   bicicletas: <Bike className="h-4 w-4" />,
   motocicletas: <Wrench className="h-4 w-4" />,
-  accesorios: (
-    // Se puede personalizar más adelante
-    <Package className="h-4 w-4" />
-  ),
-  repuestos: (
-    // Se puede personalizar más adelante
-    <Wrench className="h-4 w-4" />
-  ),
+  accesorios: <Package className="h-4 w-4" />,
+  repuestos: <Wrench className="h-4 w-4" />,
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -135,9 +121,7 @@ const POS = () => {
   };
 
   // Mapear un nombre técnico de categoría a un identificador estandarizado (para asignar color/icono)
-  // Ejemplo: "bicicletas", "transmision", etc.
   const getCategoryKey = (categoryName: string) => {
-    // Solo para icono y color. Devuelve 'bicicletas', 'motocicletas', etc, si lo conoce; si no, 'default'
     if (!categoryName) return 'default';
     const normalized = categoryName.toLowerCase();
     if (normalized.includes('bici')) return 'bicicletas';
@@ -165,9 +149,7 @@ const POS = () => {
 
   // Estadísticas por categoría
   const categoryStats = useMemo(() => {
-    // Solo categorías activas
     return categories.map((cat) => {
-      // Cuenta productos en esta categoría
       const count = products.filter((p) => p.category === cat.name).length;
       return {
         ...cat,
@@ -176,7 +158,7 @@ const POS = () => {
     });
   }, [categories, products]);
 
-  // --- Funciones de carrito y pago, igual ---
+  // Funciones de carrito y pago
   const addToCart = (product: any) => {
     if (product.currentStock === 0) {
       toast({
@@ -302,7 +284,7 @@ const POS = () => {
       const subtotal = total * 0.84; // Asumiendo 16% de IVA
       const tax = total - subtotal;
 
-      // --- Identificar si hay pago a crédito ---
+      // Identificar si hay pago a crédito
       const creditPayment = payments.find((p) => p.method === "credit");
 
       // Se asume que el cliente seleccionado tiene id 1
@@ -328,17 +310,13 @@ const POS = () => {
 
       await createSaleMutation.mutateAsync(saleData);
 
-      // --- Si hay pago a crédito, actualizar el balance del cliente ---
+      // Si hay pago a crédito, actualizar el balance del cliente
       if (creditPayment && client) {
-        // El monto exacto del crédito para sumar al balance
         const creditAmount = creditPayment.amount || 0;
-        // Incrementar balance, asumiendo saldo positivo es deuda
         const newBalance = (client.balance || 0) + creditAmount;
 
-        // Actualiza el cliente con el nuevo balance
         await updateClientMutation.mutateAsync({
           id: client.id,
-          // Mantener la información existente del cliente 
           name: client.name,
           documentType: client.documentType,
           documentNumber: client.documentNumber,
@@ -398,104 +376,33 @@ const POS = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Products Section */}
         <div className="lg:col-span-2 space-y-4">
-          <Card className="bikeERP-card">
-            <CardHeader>
-              <CardTitle className="text-slate-900">Productos</CardTitle>
-              <CardDescription className="text-slate-600">Busca y agrega productos al carrito. Usa ↑ ↓ y Enter para más rapidez.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Buscar por nombre, marca o SKU..."
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setHighlightedIndex(-1);
-                        if (e.target.value) {
-                          setIsSearchActive(true);
-                        } else {
-                          setIsSearchActive(false);
-                        }
-                      }}
-                      onKeyDown={handleSearchKeyDown}
-                      onFocus={() => { if(searchTerm) setIsSearchActive(true); }}
-                      onBlur={() => setTimeout(() => setIsSearchActive(false), 200)}
-                      className="pl-10 bikeERP-input"
-                    />
-                    {isSearchActive && searchTerm && (
-                      <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                        {filteredProducts.length > 0 ? (
-                          <ul>
-                            {filteredProducts.slice(0, 10).map((product, index) => (
-                              <li
-                                key={product.id}
-                                className={`p-3 cursor-pointer hover:bg-slate-100 ${index === highlightedIndex ? 'bg-slate-100' : ''}`}
-                                onMouseEnter={() => setHighlightedIndex(index)}
-                                onClick={() => addProductFromSearch(product)}
-                              >
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium text-slate-800">{product.name}</p>
-                                    <p className="text-sm text-slate-500">{product.brand} - {formatCurrency(product.salePrice)}</p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-sm text-slate-600">Stock: {product.currentStock}</p>
-                                    <Badge variant="outline" className="text-xs font-mono">{product.sku}</Badge>
-                                  </div>
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div className="p-4 text-center text-slate-500">No se encontraron productos.</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {/* Select dinámico de categorías */}
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Categoría">
-                        {selectedCategory === 'all'
-                          ? 'Todas las categorías'
-                          : categories.find(cat => cat.name === selectedCategory)?.displayName}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="z-[100] bg-white">
-                      <SelectItem value="all">Todas las categorías</SelectItem>
-                      {categories.map(cat => (
-                        <SelectItem key={cat.id} value={cat.name}>
-                          {cat.displayName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Estadísticas de cada categoría */}
-                <CategoryStats
-                  categoryStats={categoryStats}
-                  getCategoryKey={getCategoryKey}
-                  CATEGORY_COLORS={CATEGORY_COLORS}
-                  CATEGORY_ICONS={CATEGORY_ICONS}
-                />
-                {/* Lista de productos */}
-                <ProductList
-                  products={products}
-                  filteredProducts={filteredProducts}
-                  getCategoryOfProduct={getCategoryOfProduct}
-                  getCategoryKey={getCategoryKey}
-                  CATEGORY_COLORS={CATEGORY_COLORS}
-                  CATEGORY_ICONS={CATEGORY_ICONS}
-                  addToCart={addToCart}
-                  formatCurrency={formatCurrency}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <ProductSearch
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            categories={categories}
+            filteredProducts={filteredProducts}
+            highlightedIndex={highlightedIndex}
+            setHighlightedIndex={setHighlightedIndex}
+            isSearchActive={isSearchActive}
+            setIsSearchActive={setIsSearchActive}
+            onSearchKeyDown={handleSearchKeyDown}
+            onProductSelect={addProductFromSearch}
+            formatCurrency={formatCurrency}
+          />
+          
+          <POSStats
+            categoryStats={categoryStats}
+            getCategoryKey={getCategoryKey}
+            CATEGORY_COLORS={CATEGORY_COLORS}
+            CATEGORY_ICONS={CATEGORY_ICONS}
+            products={products}
+            filteredProducts={filteredProducts}
+            getCategoryOfProduct={getCategoryOfProduct}
+            addToCart={addToCart}
+            formatCurrency={formatCurrency}
+          />
         </div>
 
         {/* Cart and Payment Section */}
@@ -508,30 +415,15 @@ const POS = () => {
             calculateTotal={calculateTotal}
           />
 
-          {/* Payment Methods */}
-          {cart.length > 0 && (
-            <Card className="bikeERP-card">
-              <CardContent className="p-4">
-                <PaymentMethodSelector
-                  totalAmount={calculateTotal()}
-                  payments={payments}
-                  onPaymentsUpdate={setPayments}
-                />
-
-                <div className="mt-4">
-                  <Button
-                    onClick={processSale}
-                    className="w-full bikeERP-button-success text-white"
-                    size="lg"
-                    disabled={createSaleMutation.isPending || !canProcessSale()}
-                  >
-                    {createSaleMutation.isPending ? 'Procesando...' :
-                      !canProcessSale() ? 'Complete el pago' : 'Procesar Venta'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <PaymentSection
+            cart={cart}
+            calculateTotal={calculateTotal}
+            payments={payments}
+            onPaymentsUpdate={setPayments}
+            canProcessSale={canProcessSale}
+            processSale={processSale}
+            isProcessing={createSaleMutation.isPending}
+          />
         </div>
       </div>
     </div>
