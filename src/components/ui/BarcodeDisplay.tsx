@@ -3,7 +3,8 @@ import React from "react";
 import { Barcode } from "lucide-react";
 
 /**
- * Representa visualmente un código de barras EAN-13 con patrón matemáticamente correcto
+ * Representa visualmente un código de barras EAN-13 con patrón matemáticamente correcto.
+ * Mejorado: barras más altas y gruesas, texto EAN-13 siempre debajo de las barras, nunca montado.
  */
 interface BarcodeDisplayProps {
   value: string;
@@ -12,207 +13,155 @@ interface BarcodeDisplayProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-// Patrones L (izquierda - números pares)
+// Patrones EAN-13 (idénticos)
 const L_PATTERNS = [
-  "0001101", // 0
-  "0011001", // 1
-  "0010011", // 2
-  "0111101", // 3
-  "0100011", // 4
-  "0110001", // 5
-  "0101111", // 6
-  "0111011", // 7
-  "0110111", // 8
-  "0001011"  // 9
+  "0001101", "0011001", "0010011", "0111101", "0100011",
+  "0110001", "0101111", "0111011", "0110111", "0001011"
 ];
-
-// Patrones G (izquierda - números impares)
 const G_PATTERNS = [
-  "0100111", // 0
-  "0110011", // 1
-  "0011011", // 2
-  "0100001", // 3
-  "0011101", // 4
-  "0111001", // 5
-  "0000101", // 6
-  "0010001", // 7
-  "0001001", // 8
-  "0010111"  // 9
+  "0100111", "0110011", "0011011", "0100001", "0011101",
+  "0111001", "0000101", "0010001", "0001001", "0010111"
 ];
-
-// Patrones R (derecha)
 const R_PATTERNS = [
-  "1110010", // 0
-  "1100110", // 1
-  "1101100", // 2
-  "1000010", // 3
-  "1011100", // 4
-  "1001110", // 5
-  "1010000", // 6
-  "1000100", // 7
-  "1001000", // 8
-  "1110100"  // 9
+  "1110010", "1100110", "1101100", "1000010", "1011100",
+  "1001110", "1010000", "1000100", "1001000", "1110100"
 ];
-
-// Patrones de grupo para el primer dígito
 const FIRST_DIGIT_PATTERNS = [
-  "LLLLLL", // 0
-  "LLGLGG", // 1
-  "LLGGLG", // 2
-  "LLGGGL", // 3
-  "LGLLGG", // 4
-  "LGGLLG", // 5
-  "LGGGLL", // 6
-  "LGLGLG", // 7
-  "LGLGGL", // 8
-  "LGGLGL"  // 9
+  "LLLLLL", "LLGLGG", "LLGGLG", "LLGGGL", "LGLLGG",
+  "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"
 ];
 
-const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({ 
-  value, 
-  label, 
+const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
+  value,
+  label,
   className = "",
-  size = 'medium'
+  size = "medium"
 }) => {
-  // Configuraciones de tamaño
+  // Configuración de tamaño y estilos mejorados
   const sizeConfig = {
-    small: { width: 160, height: 50, fontSize: '9px', iconSize: 'h-4 w-4' },
-    medium: { width: 240, height: 80, fontSize: '11px', iconSize: 'h-6 w-6' },
-    large: { width: 320, height: 100, fontSize: '13px', iconSize: 'h-8 w-8' }
+    small:   { width: 180, height: 72, fontSize: '10px', iconSize: 'h-4 w-4', codeFont: '11px', labelFont: '9px' },
+    medium:  { width: 260, height: 108, fontSize: '13px', iconSize: 'h-6 w-6', codeFont: '14px', labelFont: '11px' },
+    large:   { width: 340, height: 134, fontSize: '16px', iconSize: 'h-8 w-8', codeFont: '16px', labelFont: '13px' },
   };
-
   const config = sizeConfig[size];
 
-  // Generar patrón EAN-13 matemáticamente correcto
+  // --- Generar patrón EAN-13 corregido
   const generateEAN13Pattern = (code: string) => {
-    // Asegurar que el código tenga 13 dígitos
     let ean13 = code.padStart(13, '0').substring(0, 13);
-    
-    // Si no es un EAN-13 válido, crear uno basado en el código original
+
     if (!/^\d{13}$/.test(ean13)) {
-      // Convertir caracteres no numéricos a números
-      const numericCode = code.replace(/\D/g, '').padStart(12, '0').substring(0, 12);
-      
-      // Calcular dígito de verificación
+      const numericCode = code.replace(/\D/g, '').padStart(12, '0').substring(0,12);
       let sum = 0;
       for (let i = 0; i < 12; i++) {
         const digit = parseInt(numericCode[i]);
-        if (i % 2 === 0) {
-          sum += digit;
-        } else {
-          sum += digit * 3;
-        }
+        sum += i % 2 === 0 ? digit : digit * 3;
       }
       const checkDigit = (10 - (sum % 10)) % 10;
       ean13 = numericCode + checkDigit;
     }
-
     const digits = ean13.split('').map(d => parseInt(d));
-    const firstDigit = digits[0];
-    const leftGroup = digits.slice(1, 7);
-    const rightGroup = digits.slice(7, 13);
-    
-    const pattern = FIRST_DIGIT_PATTERNS[firstDigit];
-    let binaryString = '';
-    
-    // Patrón de inicio
-    binaryString += '101';
-    
-    // Grupo izquierdo (6 dígitos)
+    const pattern = FIRST_DIGIT_PATTERNS[digits[0]];
+    let binaryString = "101";
     for (let i = 0; i < 6; i++) {
-      const digit = leftGroup[i];
-      if (pattern[i] === 'L') {
-        binaryString += L_PATTERNS[digit];
-      } else {
-        binaryString += G_PATTERNS[digit];
-      }
+      binaryString += (pattern[i] === 'L' ? L_PATTERNS[digits[i+1]] : G_PATTERNS[digits[i+1]]);
     }
-    
-    // Separador central
-    binaryString += '01010';
-    
-    // Grupo derecho (6 dígitos)
+    binaryString += "01010";
     for (let i = 0; i < 6; i++) {
-      const digit = rightGroup[i];
-      binaryString += R_PATTERNS[digit];
+      binaryString += R_PATTERNS[digits[i+7]];
     }
-    
-    // Patrón de fin
-    binaryString += '101';
-    
+    binaryString += "101";
     return { pattern: binaryString, ean13 };
   };
 
   const { pattern, ean13 } = generateEAN13Pattern(value);
-  
-  // Renderizar barras basadas en el patrón binario
+  const isValidEAN13 = /^\d{13}$/.test(ean13);
+
+  // Mejor: altura de barras = 76% del alto, texto siempre debajo
+  const BAR_TOP_MARGIN = 10;
+  const BAR_BOTTOM_MARGIN = 30;
+  const barHeight = config.height - BAR_TOP_MARGIN - BAR_BOTTOM_MARGIN;
+  let moduleWidth = config.width / pattern.length;
+  // Asegurar módulo mínimo >= 2px para mejor legibilidad (en impresiones o pantallas)
+  moduleWidth = Math.max(moduleWidth, 2);
+
+  // Renderizar barras EAN-13 altas y claras
   const renderBars = () => {
     const bars = [];
-    const moduleWidth = config.width / pattern.length;
-    const barHeight = config.height - 35;
-    
     for (let i = 0; i < pattern.length; i++) {
       if (pattern[i] === '1') {
         bars.push(
           <rect
             key={i}
             x={i * moduleWidth}
-            y={8}
-            width={moduleWidth}
+            y={BAR_TOP_MARGIN}
+            width={moduleWidth + 0.5}
             height={barHeight}
-            fill="#000000"
+            fill="#111"
           />
         );
       }
     }
-    
     return bars;
   };
 
-  const isValidEAN13 = /^\d{13}$/.test(ean13);
+  // El texto del código EAN-13 va centrado debajo de las barras, nunca montado
+  // Si hay label, va más abajo, ambos centrados
 
   return (
     <div className={`flex flex-col items-center bg-white p-2 rounded border ${className}`}>
+      {/* Icono */}
       <div className="mb-1">
         <Barcode className={`${config.iconSize} text-gray-400`} />
       </div>
-      
-      {/* Código de barras SVG con patrón EAN-13 real */}
-      <div className="bg-white border rounded p-2 shadow-sm">
-        <svg 
-          width={config.width} 
-          height={config.height} 
+      {/* Código de barras — SVG mejorado */}
+      <div className="bg-white border rounded shadow-sm px-2 py-2">
+        <svg
+          width={config.width}
+          height={config.height}
           viewBox={`0 0 ${config.width} ${config.height}`}
           className="block"
         >
           {/* Fondo blanco */}
-          <rect width={config.width} height={config.height} fill="white"/>
-          
-          {/* Barras EAN-13 matemáticamente correctas */}
+          <rect width={config.width} height={config.height} fill="#fff"/>
+          {/* Barras EAN-13 mejoradas */}
           {renderBars()}
+          {/* Texto EAN-13 centrado abajo (SIEMPRE debajo, nunca montado) */}
+          <text
+            x={config.width/2}
+            y={config.height - 15}
+            fontFamily="'Courier New', monospace"
+            fontSize={config.codeFont}
+            fill="#222"
+            textAnchor="middle"
+            fontWeight="bold"
+            alignmentBaseline="middle"
+            letterSpacing={2}
+          >
+            {ean13}
+          </text>
+          {/* Texto 'EAN-13' indicativo (arriba del número, pero DEBAJO de barras) */}
+          <text
+            x={config.width/2}
+            y={config.height - 27}
+            fontFamily="Arial, sans-serif"
+            fontSize={config.labelFont}
+            fill="#556"
+            textAnchor="middle"
+            fontWeight="bold"
+          >
+            EAN-13
+          </text>
         </svg>
       </div>
-
-      {/* Texto del código con formato EAN-13 */}
-      <div 
-        className="font-mono font-bold text-black mt-1 tracking-wider"
-        style={{ fontSize: config.fontSize }}
-      >
+      {/* Indicadores visuales */}
+      <div className="font-mono font-bold text-black mt-1 tracking-wider"
+           style={{ fontSize: config.fontSize }}>
         {isValidEAN13 ? ean13 : value}
       </div>
-      
-      {/* Indicador EAN-13 */}
-      {isValidEAN13 && (
-        <div className="text-xs text-green-600 font-medium mt-1">
-          EAN-13 ✓
-        </div>
-      )}
-      
-      {!isValidEAN13 && (
-        <div className="text-xs text-orange-600 font-medium mt-1">
-          Convertido a EAN-13
-        </div>
-      )}
+      {isValidEAN13
+        ? <div className="text-xs text-green-600 font-medium mt-1">EAN-13 ✓</div>
+        : <div className="text-xs text-orange-600 font-medium mt-1">Convertido a EAN-13</div>
+      }
     </div>
   );
 };
