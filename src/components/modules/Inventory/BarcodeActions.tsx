@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Printer, ScanBarcode, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ interface BarcodeActionsProps {
   onSkuRegenerated?: () => void;
 }
 
-// Mismos patrones EAN-13 que en BarcodeDisplay
+// Patrones EAN-13 EXACTOS según estándar internacional
 const L_PATTERNS = [
   "0001101", "0011001", "0010011", "0111101", "0100011",
   "0110001", "0101111", "0111011", "0110111", "0001011"
@@ -32,64 +33,74 @@ const FIRST_DIGIT_PATTERNS = [
   "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"
 ];
 
-const MIN_QUIET_ZONE_MODULES = 14;
-const MIN_MODULE_WIDTH = 2;
-
-const generateEAN13BinaryPattern = (code: string) => {
-  // Convertir a EAN-13 válido
-  let ean13 = code.padStart(13, '0').substring(0, 13);
-  
-  if (!/^\d{13}$/.test(ean13)) {
-    const numericCode = code.replace(/\D/g, '').padStart(12, '0').substring(0, 12);
-    let sum = 0;
-    for (let i = 0; i < 12; i++) {
-      const digit = parseInt(numericCode[i]);
-      sum += i % 2 === 0 ? digit : digit * 3;
-    }
-    const checkDigit = (10 - (sum % 10)) % 10;
-    ean13 = numericCode + checkDigit;
+// Función para calcular dígito de verificación EAN-13
+const calculateCheckDigit = (code: string) => {
+  const digits = code.slice(0, 12).split('').map(Number);
+  let sum = 0;
+  for (let i = 0; i < 12; i++) {
+    sum += digits[i] * (i % 2 === 0 ? 1 : 3);
   }
+  return (10 - (sum % 10)) % 10;
+};
 
-  const digits = ean13.split('').map(d => parseInt(d));
+// Generar código EAN-13 válido
+const generateValidEAN13 = (input: string) => {
+  // Limpiar entrada - solo números
+  let cleaned = input.replace(/\D/g, '');
+  
+  if (cleaned.length >= 13) {
+    // Ya tiene 13 dígitos, verificar si es válido
+    const provided = cleaned.slice(0, 13);
+    const calculated = calculateCheckDigit(provided);
+    const lastDigit = parseInt(provided[12]);
+    
+    if (calculated === lastDigit) {
+      return provided; // EAN-13 válido
+    }
+  }
+  
+  // Generar EAN-13 válido
+  const base12 = cleaned.padStart(12, '0').slice(0, 12);
+  const checkDigit = calculateCheckDigit(base12);
+  return base12 + checkDigit;
+};
+
+// Generar patrón binario EAN-13
+const generateEAN13Pattern = (ean13: string) => {
+  const digits = ean13.split('').map(Number);
   const firstDigit = digits[0];
   const leftGroup = digits.slice(1, 7);
   const rightGroup = digits.slice(7, 13);
-  const pattern = FIRST_DIGIT_PATTERNS[firstDigit];
+  const patternSequence = FIRST_DIGIT_PATTERNS[firstDigit];
   
-  let binaryString = '101'; // Inicio
+  let pattern = '101'; // Start guard
   
-  // Grupo izquierdo
+  // Left group
   for (let i = 0; i < 6; i++) {
-    const digit = leftGroup[i];
-    binaryString += pattern[i] === 'L' ? L_PATTERNS[digit] : G_PATTERNS[digit];
+    if (patternSequence[i] === 'L') {
+      pattern += L_PATTERNS[leftGroup[i]];
+    } else {
+      pattern += G_PATTERNS[leftGroup[i]];
+    }
   }
   
-  binaryString += '01010'; // Centro
+  pattern += '01010'; // Center guard
   
-  // Grupo derecho
+  // Right group
   for (let i = 0; i < 6; i++) {
-    binaryString += R_PATTERNS[rightGroup[i]];
+    pattern += R_PATTERNS[rightGroup[i]];
   }
   
-  binaryString += '101'; // Fin
+  pattern += '101'; // End guard
   
-  return { pattern: binaryString, ean13 };
+  return pattern;
 };
 
-const CANVAS_MARGIN_TOP = 14;
-const CANVAS_TEXT_AREA = 36; // área inferior para texto
-const DEFAULT_WIDTH = 400;
-const DEFAULT_HEIGHT = 120;
-const ENHANCED_HEIGHT = 136; // antes 120, ahora 136 para dejar margen de texto
-
-const generateBarcodeCanvas = (
-  barcode: string, 
-  width: number = DEFAULT_WIDTH, 
-  height: number = ENHANCED_HEIGHT
-) => {
-  // A escala, dejamos área reservada debajo SOLO para texto
-  const BARCODE_BAR_HEIGHT = height - CANVAS_TEXT_AREA - CANVAS_MARGIN_TOP;
-
+// Generar imagen de alta calidad para descarga
+const generateHighQualityCanvas = (barcode: string, width: number = 800, height: number = 300) => {
+  const ean13 = generateValidEAN13(barcode);
+  const pattern = generateEAN13Pattern(ean13);
+  
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -100,62 +111,79 @@ const generateBarcodeCanvas = (
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, width, height);
 
-  const { pattern, ean13 } = generateEAN13BinaryPattern(barcode);
-
-  // Quiet zone y módulo ≥ 2px, igual a visualización SVG
-  const moduleWidth = Math.max(
-    Math.floor((width - 2 * MIN_QUIET_ZONE_MODULES) / pattern.length),
-    MIN_MODULE_WIDTH
-  );
-  const barcodeWidth = moduleWidth * pattern.length;
-  const quietZone = Math.max(
-    (width - barcodeWidth) / 2,
-    MIN_QUIET_ZONE_MODULES * MIN_MODULE_WIDTH
-  );
-
-  // Dibujar barras, SOLO arriba, respetando área CANVAS_TEXT_AREA abajo para el texto
-  ctx.fillStyle = "#222";
+  // Configuración de calidad máxima
+  ctx.imageSmoothingEnabled = false;
+  
+  // Quiet zones: mínimo 11 módulos a cada lado según estándar
+  const minQuietZone = 11;
+  const moduleWidth = Math.floor((width - (2 * minQuietZone * 3)) / pattern.length);
+  const actualModuleWidth = Math.max(moduleWidth, 2); // Mínimo 2px por módulo
+  
+  const barcodeWidth = pattern.length * actualModuleWidth;
+  const quietZoneWidth = Math.max((width - barcodeWidth) / 2, minQuietZone * actualModuleWidth);
+  
+  // Área para barras (85% de la altura)
+  const barAreaHeight = Math.floor(height * 0.75);
+  const barStartY = Math.floor(height * 0.08);
+  const textAreaY = barStartY + barAreaHeight + 20;
+  
+  // Dibujar barras con precisión
+  ctx.fillStyle = "#000000";
   for (let i = 0; i < pattern.length; i++) {
     if (pattern[i] === '1') {
-      let isGuardBar = (
-        i < 3 ||
-        (i >= 45 && i < 50) ||
-        i >= (pattern.length - 3)
+      const x = Math.floor(quietZoneWidth + (i * actualModuleWidth));
+      
+      // Guard bars más altos
+      const isGuardBar = (
+        i < 3 || 
+        (i >= 45 && i < 50) || 
+        i >= pattern.length - 3
       );
-      const x = Math.round(quietZone + i * moduleWidth);
-      ctx.fillRect(
-        x,
-        CANVAS_MARGIN_TOP,
-        moduleWidth,
-        isGuardBar ? (BARCODE_BAR_HEIGHT + 12) : BARCODE_BAR_HEIGHT // guard bar puede ser un poco más alto, pero nunca baja al área de texto
-      );
+      
+      const barHeight = isGuardBar ? barAreaHeight + 10 : barAreaHeight;
+      const barY = isGuardBar ? barStartY - 5 : barStartY;
+      
+      ctx.fillRect(x, barY, actualModuleWidth, barHeight);
     }
   }
-
-  // Texto del código: zona 100% separada abajo (centrado y bien visible)
+  
+  // Texto del código - centrado y legible
   ctx.fillStyle = "#000000";
-  ctx.font = "bold 22px 'Courier New', monospace";
+  ctx.font = `bold ${Math.floor(height * 0.08)}px 'Courier New', monospace`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-
-  // Posicionar el texto al centro vertical del área reservada para texto (abajo)
-  const TEXT_Y =
-    height - (CANVAS_TEXT_AREA / 2);
-
-  ctx.fillText(ean13, width / 2, TEXT_Y);
-
+  
+  // Dividir el texto en grupos para mejor legibilidad
+  const firstDigit = ean13[0];
+  const leftPart = ean13.slice(1, 7);
+  const rightPart = ean13.slice(7, 13);
+  
+  const centerX = width / 2;
+  ctx.fillText(`${firstDigit} ${leftPart} ${rightPart}`, centerX, textAreaY);
+  
+  console.log(`🏷️ Código EAN-13 generado: ${ean13} (patrón: ${pattern.length} bits)`);
+  
   return canvas;
 };
 
 const handleDownload = (barcode: string) => {
-  const canvas = generateBarcodeCanvas(barcode, 400, 120);
+  const canvas = generateHighQualityCanvas(barcode, 800, 300);
+  const ean13 = generateValidEAN13(barcode);
   
   canvas.toBlob((blob) => {
-    if (!blob) return;
+    if (!blob) {
+      toast({
+        title: "Error",
+        description: "No se pudo generar la imagen",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${barcode}_EAN13.png`;
+    link.download = `EAN13_${ean13}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -163,66 +191,80 @@ const handleDownload = (barcode: string) => {
     
     toast({
       title: "Código descargado",
-      description: `Código de barras EAN-13 guardado como ${barcode}_EAN13.png`,
+      description: `Imagen de alta calidad guardada: EAN13_${ean13}.png`,
     });
   }, 'image/png', 1.0);
 };
 
 const handlePrint = (barcode: string) => {
-  const canvas = generateBarcodeCanvas(barcode, 600, 180);
+  const canvas = generateHighQualityCanvas(barcode, 600, 250);
+  const ean13 = generateValidEAN13(barcode);
   const dataURL = canvas.toDataURL('image/png', 1.0);
   
-  const win = window.open("", "_blank", "width=800,height=400");
+  const win = window.open("", "_blank", "width=800,height=600");
   if (win) {
     win.document.write(`
       <html>
       <head>
-        <title>Código de Barras EAN-13 - ${barcode}</title>
+        <title>Código EAN-13: ${ean13}</title>
         <style>
           body { 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center; 
-            height: 95vh; 
+            min-height: 90vh; 
             margin: 0; 
             font-family: 'Courier New', monospace;
             background: white;
           }
           .barcode-container {
             text-align: center;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            padding: 30px;
+            border: 2px solid #333;
+            border-radius: 10px;
             background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
           }
           .barcode-image {
-            margin: 10px 0;
-            border: 1px solid #eee;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            max-width: 100%;
           }
           .code-text { 
-            font-size: 18px; 
+            font-size: 24px; 
             font-weight: bold;
-            letter-spacing: 2px;
-            margin: 10px 0;
+            letter-spacing: 3px;
+            margin: 15px 0;
+            color: #333;
           }
           .ean-label {
-            font-size: 14px;
+            font-size: 16px;
             color: #666;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+          }
+          @media print {
+            body { margin: 0; }
+            .barcode-container { 
+              border: 1px solid #000; 
+              box-shadow: none;
+            }
           }
         </style>
       </head>
       <body>
         <div class="barcode-container">
           <div class="ean-label">Código de Barras EAN-13</div>
-          <img src="${dataURL}" alt="Código de barras ${barcode}" class="barcode-image"/>
-          <div class="code-text">${barcode}</div>
+          <img src="${dataURL}" alt="EAN-13: ${ean13}" class="barcode-image"/>
+          <div class="code-text">${ean13}</div>
         </div>
         <script>
           window.onload = function() {
-            window.print();
-            setTimeout(() => window.close(), 1000);
+            setTimeout(() => {
+              window.print();
+              setTimeout(() => window.close(), 1000);
+            }, 500);
           };
         </script>
       </body>
@@ -254,7 +296,8 @@ const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value, productId, onSku
     }
   };
 
-  const isValidEAN13 = value.length === 13 && /^\d{13}$/.test(value);
+  const ean13 = generateValidEAN13(value);
+  const isOriginalValid = value.length === 13 && /^\d{13}$/.test(value) && calculateCheckDigit(value) === parseInt(value[12]);
   const isShortSKU = value.length < 13;
 
   return (
@@ -266,7 +309,7 @@ const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value, productId, onSku
       <div className="flex items-center gap-1">
         <button
           onClick={() => handleDownload(value)}
-          title="Descargar código EAN-13"
+          title="Descargar código EAN-13 (alta calidad)"
           className="p-1 hover:bg-blue-50 rounded transition-colors border border-blue-200"
           type="button"
         >
@@ -295,12 +338,12 @@ const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value, productId, onSku
         )}
       </div>
       
-      {/* Indicador de validez más pequeño */}
+      {/* Indicador de validez más preciso */}
       <div className="text-xs text-center">
-        {isValidEAN13 ? (
-          <span className="text-green-600 font-medium">✓ EAN-13</span>
+        {isOriginalValid ? (
+          <span className="text-green-600 font-medium">✓ EAN-13 Válido</span>
         ) : (
-          <span className="text-orange-600 font-medium">⚠ No estándar</span>
+          <span className="text-blue-600 font-medium">→ {ean13}</span>
         )}
       </div>
     </div>
