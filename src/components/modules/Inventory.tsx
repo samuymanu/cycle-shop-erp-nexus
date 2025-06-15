@@ -25,6 +25,11 @@ const Inventory = () => {
   const { data: inventory = [], isLoading, error, refetch } = useInventoryData();
   const { data: categories = [] } = useCategoriesData();
 
+  // --- Always call hooks before any returns
+  useBarcodeScanner((barcode) => {
+    setSearchTerm(barcode);
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -46,10 +51,6 @@ const Inventory = () => {
       </div>
     );
   }
-
-  useBarcodeScanner((barcode) => {
-    setSearchTerm(barcode);
-  });
 
   const filteredInventory = inventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
