@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 /**
  * Hook para capturar entradas rápidas de un lector de código de barras.
- * Llama a `onScan` con el código escaneado.
+ * Optimizado para códigos EAN-13 y otros formatos estándar.
  */
 export function useBarcodeScanner(onScan: (barcode: string) => void) {
   useEffect(() => {
@@ -12,12 +12,13 @@ export function useBarcodeScanner(onScan: (barcode: string) => void) {
 
     const onKeyDown = (e: KeyboardEvent) => {
       const now = Date.now();
-      // Si pasa más de 150ms, se resetea el buffer (tiempo más flexible)
-      if (now - lastTime > 150) buffer = "";
+      
+      // Si pasa más de 200ms, se resetea el buffer (ajustado para códigos más largos)
+      if (now - lastTime > 200) buffer = "";
 
       lastTime = now;
 
-      // Solo números/alfanuméricos y enter - más permisivo
+      // Permitir números, letras y algunos caracteres especiales comunes en códigos de barras
       if (
         e.key.length === 1 &&
         (/[a-zA-Z0-9\-_.]/.test(e.key))
@@ -25,8 +26,9 @@ export function useBarcodeScanner(onScan: (barcode: string) => void) {
         buffer += e.key;
         console.log(`📱 Escáner: Buffer actual: "${buffer}"`);
       } else if (e.key === "Enter") {
-        if (buffer.length >= 2) { // Reducido de 4 a 2 para ser más flexible
-          console.log(`📱 Escáner: Código detectado: "${buffer}"`);
+        // Para códigos EAN-13 esperamos al menos 8 caracteres, pero aceptamos desde 4 para otros formatos
+        if (buffer.length >= 4) {
+          console.log(`📱 Escáner: Código detectado: "${buffer}" (longitud: ${buffer.length})`);
           onScan(buffer);
         } else {
           console.log(`📱 Escáner: Código muy corto (${buffer.length} chars): "${buffer}"`);
@@ -35,7 +37,7 @@ export function useBarcodeScanner(onScan: (barcode: string) => void) {
       }
     };
 
-    console.log("📱 Escáner de códigos activado");
+    console.log("📱 Escáner de códigos activado - Optimizado para EAN-13");
     window.addEventListener("keydown", onKeyDown);
 
     return () => {

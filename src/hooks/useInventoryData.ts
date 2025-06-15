@@ -23,7 +23,7 @@ const fetchProducts = async (): Promise<Product[]> => {
   return await apiRequest(API_CONFIG.endpoints.products);
 };
 
-const createProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: number }> => {
+const createProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: number; sku: string; message: string }> => {
   return await apiRequest(API_CONFIG.endpoints.products, {
     method: 'POST',
     body: JSON.stringify(productData),
@@ -40,6 +40,12 @@ const updateProduct = async ({ id, ...productData }: Partial<Product> & { id: nu
 const deleteProduct = async (id: number): Promise<{ changes: number }> => {
   return await apiRequest(`${API_CONFIG.endpoints.products}/${id}`, {
     method: 'DELETE',
+  });
+};
+
+const regenerateSKU = async (id: number): Promise<{ id: number; sku: string; message: string }> => {
+  return await apiRequest(`${API_CONFIG.endpoints.products}/${id}/regenerate-sku`, {
+    method: 'POST',
   });
 };
 
@@ -79,6 +85,17 @@ export function useDeleteProduct() {
   
   return useMutation({
     mutationFn: deleteProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+  });
+}
+
+export function useRegenerateSKU() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: regenerateSKU,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },

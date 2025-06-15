@@ -1,10 +1,15 @@
 
 import React from "react";
-import { Printer, ScanBarcode } from "lucide-react";
+import { Printer, ScanBarcode, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRegenerateSKU } from "@/hooks/useInventoryData";
+import { toast } from "@/hooks/use-toast";
 import BarcodeDisplay from "@/components/ui/BarcodeDisplay";
 
 interface BarcodeActionsProps {
   value: string;
+  productId?: number;
+  onSkuRegenerated?: () => void;
 }
 
 const handleDownload = (barcode: string) => {
@@ -69,7 +74,30 @@ const handlePrint = (barcode: string) => {
   }
 };
 
-const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value }) => {
+const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value, productId, onSkuRegenerated }) => {
+  const regenerateSKUMutation = useRegenerateSKU();
+
+  const handleRegenerateSKU = async () => {
+    if (!productId) return;
+    
+    try {
+      const result = await regenerateSKUMutation.mutateAsync(productId);
+      toast({
+        title: "SKU Regenerado",
+        description: result.message,
+      });
+      onSkuRegenerated?.();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudo regenerar el SKU",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isShortSKU = value.length < 8;
+
   return (
     <div className="flex items-center gap-2 pt-1">
       <button
@@ -88,6 +116,17 @@ const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value }) => {
       >
         <Printer className="w-4 h-4 text-green-600" />
       </button>
+      {productId && isShortSKU && (
+        <button
+          onClick={handleRegenerateSKU}
+          title="Generar SKU estándar EAN-13"
+          className="p-1 hover:bg-orange-50 rounded transition-colors"
+          type="button"
+          disabled={regenerateSKUMutation.isPending}
+        >
+          <RefreshCw className={`w-4 h-4 text-orange-600 ${regenerateSKUMutation.isPending ? 'animate-spin' : ''}`} />
+        </button>
+      )}
     </div>
   );
 };
