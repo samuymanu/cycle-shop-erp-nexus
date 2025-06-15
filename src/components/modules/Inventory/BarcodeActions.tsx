@@ -76,7 +76,20 @@ const generateEAN13BinaryPattern = (code: string) => {
   return { pattern: binaryString, ean13 };
 };
 
-const generateBarcodeCanvas = (barcode: string, width: number = 400, height: number = 120) => {
+const CANVAS_MARGIN_TOP = 14;
+const CANVAS_TEXT_AREA = 36; // área inferior para texto
+const DEFAULT_WIDTH = 400;
+const DEFAULT_HEIGHT = 120;
+const ENHANCED_HEIGHT = 136; // antes 120, ahora 136 para dejar margen de texto
+
+const generateBarcodeCanvas = (
+  barcode: string, 
+  width: number = DEFAULT_WIDTH, 
+  height: number = ENHANCED_HEIGHT
+) => {
+  // A escala, dejamos área reservada debajo SOLO para texto
+  const BARCODE_BAR_HEIGHT = height - CANVAS_TEXT_AREA - CANVAS_MARGIN_TOP;
+
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -99,11 +112,9 @@ const generateBarcodeCanvas = (barcode: string, width: number = 400, height: num
     (width - barcodeWidth) / 2,
     MIN_QUIET_ZONE_MODULES * MIN_MODULE_WIDTH
   );
-  const barHeight = height - 38;
-  const startY = 8;
 
+  // Dibujar barras, SOLO arriba, respetando área CANVAS_TEXT_AREA abajo para el texto
   ctx.fillStyle = "#222";
-
   for (let i = 0; i < pattern.length; i++) {
     if (pattern[i] === '1') {
       let isGuardBar = (
@@ -114,18 +125,24 @@ const generateBarcodeCanvas = (barcode: string, width: number = 400, height: num
       const x = Math.round(quietZone + i * moduleWidth);
       ctx.fillRect(
         x,
-        startY,
+        CANVAS_MARGIN_TOP,
         moduleWidth,
-        isGuardBar ? barHeight + 18 : barHeight
+        isGuardBar ? (BARCODE_BAR_HEIGHT + 12) : BARCODE_BAR_HEIGHT // guard bar puede ser un poco más alto, pero nunca baja al área de texto
       );
     }
   }
 
-  // Texto del código, bien separado y centrado
+  // Texto del código: zona 100% separada abajo (centrado y bien visible)
   ctx.fillStyle = "#000000";
-  ctx.font = "bold 20px 'Courier New', monospace";
+  ctx.font = "bold 22px 'Courier New', monospace";
   ctx.textAlign = "center";
-  ctx.fillText(ean13, width / 2, height - 11);
+  ctx.textBaseline = "middle";
+
+  // Posicionar el texto al centro vertical del área reservada para texto (abajo)
+  const TEXT_Y =
+    height - (CANVAS_TEXT_AREA / 2);
+
+  ctx.fillText(ean13, width / 2, TEXT_Y);
 
   return canvas;
 };
