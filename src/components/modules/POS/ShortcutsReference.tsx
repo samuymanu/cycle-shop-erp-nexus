@@ -129,10 +129,10 @@ const ShortcutsReference: React.FC<ShortcutsReferenceProps> = ({
         <CardTitle className="text-sm font-medium">Atajos de Teclado</CardTitle>
       </CardHeader>
       <CardContent className="p-3">
-        <div className="grid grid-cols-2 gap-1 text-[10px]">
+        <div className="flex flex-wrap gap-2 text-[10px]">
           {shortcuts.map((shortcut, index) => (
-            <div key={index} className="flex items-center gap-1">
-              <div className="flex gap-0.5 min-w-[40px]">
+            <div key={index} className="flex items-center gap-1 border rounded px-2 py-1 bg-muted/20">
+              <div className="flex gap-0.5">
                 {shortcut.keys.map((key, keyIndex) => (
                   <React.Fragment key={keyIndex}>
                     <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3 leading-none">
@@ -148,12 +148,12 @@ const ShortcutsReference: React.FC<ShortcutsReferenceProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex-1 justify-start gap-1 h-5 text-[9px] px-1 py-0 min-w-0 hover:bg-muted/50"
+                className="flex items-center gap-1 h-4 text-[9px] px-1 py-0 hover:bg-muted/50"
                 onClick={shortcut.action}
                 disabled={shortcut.disabled}
               >
                 {shortcut.icon}
-                <span className="truncate">{shortcut.label}</span>
+                <span className="whitespace-nowrap">{shortcut.label}</span>
               </Button>
             </div>
           ))}

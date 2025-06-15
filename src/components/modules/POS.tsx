@@ -511,8 +511,8 @@ const POS = () => {
         </div>
       </div>
 
-      {/* Shortcuts Reference moved to top */}
-      <div className="max-w-sm">
+      {/* Shortcuts Reference moved to top with full width */}
+      <div className="w-full">
         <ShortcutsReference
           onProcessSale={() => {
             if (canProcessSale()) {
