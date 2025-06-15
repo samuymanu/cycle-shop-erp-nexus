@@ -12,6 +12,68 @@ interface BarcodeActionsProps {
   onSkuRegenerated?: () => void;
 }
 
+// Mismos patrones EAN-13 que en BarcodeDisplay
+const L_PATTERNS = [
+  "0001101", "0011001", "0010011", "0111101", "0100011",
+  "0110001", "0101111", "0111011", "0110111", "0001011"
+];
+
+const G_PATTERNS = [
+  "0100111", "0110011", "0011011", "0100001", "0011101",
+  "0111001", "0000101", "0010001", "0001001", "0010111"
+];
+
+const R_PATTERNS = [
+  "1110010", "1100110", "1101100", "1000010", "1011100",
+  "1001110", "1010000", "1000100", "1001000", "1110100"
+];
+
+const FIRST_DIGIT_PATTERNS = [
+  "LLLLLL", "LLGLGG", "LLGGLG", "LLGGGL", "LGLLGG",
+  "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"
+];
+
+const generateEAN13BinaryPattern = (code: string) => {
+  // Convertir a EAN-13 válido
+  let ean13 = code.padStart(13, '0').substring(0, 13);
+  
+  if (!/^\d{13}$/.test(ean13)) {
+    const numericCode = code.replace(/\D/g, '').padStart(12, '0').substring(0, 12);
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      const digit = parseInt(numericCode[i]);
+      sum += i % 2 === 0 ? digit : digit * 3;
+    }
+    const checkDigit = (10 - (sum % 10)) % 10;
+    ean13 = numericCode + checkDigit;
+  }
+
+  const digits = ean13.split('').map(d => parseInt(d));
+  const firstDigit = digits[0];
+  const leftGroup = digits.slice(1, 7);
+  const rightGroup = digits.slice(7, 13);
+  const pattern = FIRST_DIGIT_PATTERNS[firstDigit];
+  
+  let binaryString = '101'; // Inicio
+  
+  // Grupo izquierdo
+  for (let i = 0; i < 6; i++) {
+    const digit = leftGroup[i];
+    binaryString += pattern[i] === 'L' ? L_PATTERNS[digit] : G_PATTERNS[digit];
+  }
+  
+  binaryString += '01010'; // Centro
+  
+  // Grupo derecho
+  for (let i = 0; i < 6; i++) {
+    binaryString += R_PATTERNS[rightGroup[i]];
+  }
+  
+  binaryString += '101'; // Fin
+  
+  return { pattern: binaryString, ean13 };
+};
+
 const generateBarcodeCanvas = (barcode: string, width: number = 400, height: number = 120) => {
   const canvas = document.createElement("canvas");
   canvas.width = width;
@@ -20,48 +82,32 @@ const generateBarcodeCanvas = (barcode: string, width: number = 400, height: num
   
   if (!ctx) return canvas;
 
-  // Fondo blanco nítido
+  // Fondo blanco puro
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, width, height);
 
+  const { pattern, ean13 } = generateEAN13BinaryPattern(barcode);
+  
   // Configuración para barras nítidas
-  const barWidth = width / 95; // 95 módulos estándar EAN-13
+  const moduleWidth = width / pattern.length;
   const barHeight = height - 40;
   const startY = 10;
 
   ctx.fillStyle = "#000000";
 
-  // Patrón de inicio
-  ctx.fillRect(0, startY, barWidth, barHeight);
-  ctx.fillRect(barWidth * 2, startY, barWidth, barHeight);
-
-  // Generar barras basadas en dígitos
-  for (let i = 0; i < barcode.length && i < 13; i++) {
-    const digit = parseInt(barcode[i]) || 0;
-    const x = barWidth * (4 + i * 6.5);
-    
-    // Patrón de barras basado en el dígito
-    for (let j = 0; j < 4; j++) {
-      if ((digit + i + j) % 3 === 0) {
-        ctx.fillRect(x + j * barWidth, startY, barWidth, barHeight);
-      }
+  // Dibujar barras según el patrón binario EAN-13
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === '1') {
+      const x = i * moduleWidth;
+      ctx.fillRect(Math.round(x), startY, Math.ceil(moduleWidth), barHeight);
     }
   }
-
-  // Separador central
-  const centerX = width / 2 - barWidth;
-  ctx.fillRect(centerX, startY, barWidth, barHeight);
-  ctx.fillRect(centerX + barWidth * 2, startY, barWidth, barHeight);
-
-  // Patrón de fin
-  ctx.fillRect(width - barWidth * 3, startY, barWidth, barHeight);
-  ctx.fillRect(width - barWidth, startY, barWidth, barHeight);
 
   // Texto del código nítido
   ctx.fillStyle = "#000000";
   ctx.font = "bold 16px 'Courier New', monospace";
   ctx.textAlign = "center";
-  ctx.fillText(barcode, width / 2, height - 8);
+  ctx.fillText(ean13, width / 2, height - 8);
 
   // Texto EAN-13
   ctx.font = "12px Arial, sans-serif";
@@ -181,49 +227,49 @@ const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value, productId, onSku
   const isShortSKU = value.length < 13;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2">
       {/* Visualización del código */}
-      <BarcodeDisplay value={value} size="medium" />
+      <BarcodeDisplay value={value} size="small" />
       
       {/* Acciones */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <button
           onClick={() => handleDownload(value)}
           title="Descargar código EAN-13"
-          className="p-2 hover:bg-blue-50 rounded transition-colors border border-blue-200"
+          className="p-1 hover:bg-blue-50 rounded transition-colors border border-blue-200"
           type="button"
         >
-          <ScanBarcode className="w-4 h-4 text-blue-600" />
+          <ScanBarcode className="w-3 h-3 text-blue-600" />
         </button>
         
         <button
           onClick={() => handlePrint(value)}
           title="Imprimir código EAN-13"
-          className="p-2 hover:bg-green-50 rounded transition-colors border border-green-200"
+          className="p-1 hover:bg-green-50 rounded transition-colors border border-green-200"
           type="button"
         >
-          <Printer className="w-4 h-4 text-green-600" />
+          <Printer className="w-3 h-3 text-green-600" />
         </button>
         
         {productId && isShortSKU && (
           <button
             onClick={handleRegenerateSKU}
             title="Generar código EAN-13 estándar"
-            className="p-2 hover:bg-orange-50 rounded transition-colors border border-orange-200"
+            className="p-1 hover:bg-orange-50 rounded transition-colors border border-orange-200"
             type="button"
             disabled={regenerateSKUMutation.isPending}
           >
-            <RefreshCw className={`w-4 h-4 text-orange-600 ${regenerateSKUMutation.isPending ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 text-orange-600 ${regenerateSKUMutation.isPending ? 'animate-spin' : ''}`} />
           </button>
         )}
       </div>
       
-      {/* Indicador de validez */}
+      {/* Indicador de validez más pequeño */}
       <div className="text-xs text-center">
         {isValidEAN13 ? (
-          <span className="text-green-600 font-medium">✓ EAN-13 Válido</span>
+          <span className="text-green-600 font-medium">✓ EAN-13</span>
         ) : (
-          <span className="text-orange-600 font-medium">⚠ Formato no estándar</span>
+          <span className="text-orange-600 font-medium">⚠ No estándar</span>
         )}
       </div>
     </div>
