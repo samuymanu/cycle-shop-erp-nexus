@@ -9,7 +9,6 @@ interface BarcodeDisplayProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-// Patrones estándar EAN-13
 const L_PATTERNS = [
   "0001101", "0011001", "0010011", "0111101", "0100011",
   "0110001", "0101111", "0111011", "0110111", "0001011"
@@ -27,7 +26,6 @@ const FIRST_DIGIT_PATTERNS = [
   "LGGLLG", "LGGGLL", "LGLGLG", "LGLGGL", "LGGLGL"
 ];
 
-// QUIET ZONE estándar (mínimo 10 módulos EAN; usamos 14 para mayor seguridad)
 const MIN_QUIET_ZONE_MODULES = 14;
 
 const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
@@ -35,16 +33,17 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
   className = "",
   size = "medium"
 }) => {
-  // Config según tamaño de visualización
+  // Configuraciones de tamaño
   const sizeConfig = {
-    small:   { width: 178, height: 78, fontSize: '10px', iconSize: 'h-4 w-4', codeFont: '13px' },
-    medium:  { width: 250, height: 120, fontSize: '14px', iconSize: 'h-6 w-6', codeFont: '18px' },
-    large:   { width: 328, height: 154, fontSize: '18px', iconSize: 'h-8 w-8', codeFont: '25px' },
+    small:   { width: 178, height: 90, fontSize: '12px', iconSize: 'h-4 w-4', codeFont: '13px', marginBelowBars: 26 },
+    medium:  { width: 250, height: 150, fontSize: '16px', iconSize: 'h-6 w-6', codeFont: '18px', marginBelowBars: 34 },
+    large:   { width: 328, height: 200, fontSize: '21px', iconSize: 'h-8 w-8', codeFont: '25px', marginBelowBars: 42 },
   };
   const config = sizeConfig[size];
-  const TOP_MARGIN = 8;
-  const TEXT_GAP = 32; // espacio mínimo al texto debajo
-  const BARCODE_HEIGHT = config.height - TOP_MARGIN - TEXT_GAP;
+  const TOP_MARGIN = 13; // margen arriba del código
+  const BAR_AREA_HEIGHT = config.height - config.marginBelowBars - TOP_MARGIN;
+  const DIGITS_AREA_HEIGHT = config.marginBelowBars; // solo reservado para número
+  const FULL_HEIGHT = config.height;
 
   // Genera EAN-13 válido y el patrón binario correspondiente
   const generateEAN13Pattern = (code: string) => {
@@ -74,13 +73,11 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
     return { binary, ean13, digits };
   };
 
-  // Patrón y valor corregido
   const { binary: pattern, ean13 } = generateEAN13Pattern(value);
   const isValidEAN13 = /^\d{13}$/.test(ean13);
 
-  // Calcular módulo: máximo tamaño, pero sin bajar de 2px
+  // Cálculo del módulo y quiet zone
   const minModuleWidth = 2;
-  // Quiet zone siempre ≥ 14 módulos (muy seguro), espacio calculado sobre width
   const moduleWidth = Math.max(
     Math.floor((config.width - 2 * MIN_QUIET_ZONE_MODULES) / pattern.length),
     minModuleWidth
@@ -91,7 +88,7 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
     minModuleWidth * MIN_QUIET_ZONE_MODULES
   );
 
-  // Renderizado de las barras, con altura correcta para guardas
+  // Render de las barras, solo en el área superior
   const renderBars = () => {
     const bars = [];
     for (let i = 0; i < pattern.length; i++) {
@@ -107,55 +104,13 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
             x={quietZone + i * moduleWidth}
             y={TOP_MARGIN}
             width={moduleWidth}
-            height={isGuardBar ? BARCODE_HEIGHT + 18 : BARCODE_HEIGHT}
+            height={isGuardBar ? BAR_AREA_HEIGHT + 10 : BAR_AREA_HEIGHT}
             fill="#111"
           />
         );
       }
     }
     return bars;
-  };
-
-  // Render de texto: dígito 1 a la izq fuera; 6 centro-izq; 6 centro-der
-  const renderCodeText = () => {
-    const positions = [];
-    // Primero a la izquierda fuera de barras
-    positions.push({
-      val: ean13[0],
-      x: quietZone - moduleWidth * 2,
-      anchor: "middle"
-    });
-    // 6 bajo barras izquierda
-    for (let i = 1; i <= 6; i++) {
-      positions.push({
-        val: ean13[i],
-        x: quietZone + (3 + (i-1)*7)*moduleWidth + (moduleWidth * 3.5),
-        anchor: "middle"
-      });
-    }
-    // 6 bajo barras derecha
-    for (let i = 7; i <= 12; i++) {
-      positions.push({
-        val: ean13[i],
-        x: quietZone + (50 + (i-7)*7)*moduleWidth + (moduleWidth * 3.5),
-        anchor: "middle"
-      });
-    }
-    return positions.map((d, ix) => (
-      <text
-        key={ix}
-        x={d.x}
-        y={config.height - 8}
-        fontFamily="'Courier New', monospace"
-        fontSize={config.codeFont}
-        fill="#222"
-        fontWeight={ix === 0 ? "bold" : "normal"}
-        textAnchor={d.anchor}
-        alignmentBaseline="middle"
-      >
-        {d.val}
-      </text>
-    ));
   };
 
   return (
@@ -166,20 +121,32 @@ const BarcodeDisplay: React.FC<BarcodeDisplayProps> = ({
       <div className="bg-white border rounded shadow-sm px-2 py-2">
         <svg
           width={config.width}
-          height={config.height}
-          viewBox={`0 0 ${config.width} ${config.height}`}
+          height={FULL_HEIGHT}
+          viewBox={`0 0 ${config.width} ${FULL_HEIGHT}`}
           className="block"
         >
-          {/* Quiet zone + barras */}
-          <rect width={config.width} height={config.height} fill="#fff"/>
+          {/* Quiet zone + barras (solo arriba, sin texto abajo) */}
+          <rect width={config.width} height={FULL_HEIGHT} fill="#fff"/>
+          {/* BARRAS SOLO EN LA ZONA SUPERIOR */}
           {renderBars()}
-          {renderCodeText()}
+          {/* TEXTO - completamente separado y centrado abajo del todo */}
+          <text
+            x={config.width / 2}
+            y={FULL_HEIGHT - (DIGITS_AREA_HEIGHT / 2)}
+            fontFamily="'Courier New', monospace"
+            fontSize={config.codeFont}
+            fill="#151515"
+            fontWeight="bold"
+            textAnchor="middle"
+            alignmentBaseline="middle"
+            letterSpacing="6px"
+            style={{ userSelect: "all" }}
+          >
+            {ean13}
+          </text>
         </svg>
       </div>
-      <div
-        className="font-mono font-bold text-black mt-1 tracking-wider"
-        style={{ fontSize: config.fontSize }}
-      >
+      <div className="font-mono font-bold text-black mt-1 tracking-wider" style={{ fontSize: config.fontSize }}>
         {isValidEAN13 ? ean13 : value}
       </div>
       {isValidEAN13
