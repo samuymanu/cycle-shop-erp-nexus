@@ -23,7 +23,7 @@ export function useCreateClientFromPOS() {
         ...clientData,
         address: '',
         balance: 0,
-        isActive: true,
+        isActive: 1, // Changed from true to 1 to match the number type expected
       });
 
       toast({

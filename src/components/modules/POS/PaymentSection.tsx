@@ -106,17 +106,16 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
 
             {/* Pagos rápidos */}
             <QuickPaymentMethods
-              remainingAmount={remaining > 0 ? remaining : total}
-              onPaymentAdded={handlePaymentAdded}
+              totalAmount={remaining > 0 ? remaining : total}
+              payments={payments}
+              onPaymentsUpdate={onPaymentsUpdate}
             />
 
             {/* Selector de método de pago */}
             <PaymentMethodSelector
-              selectedMethod={selectedPaymentMethod}
-              onMethodChange={setSelectedPaymentMethod}
-              remainingAmount={remaining > 0 ? remaining : total}
-              onPaymentAdded={handlePaymentAdded}
-              onCreditPayment={handleCreditPayment}
+              totalAmount={remaining > 0 ? remaining : total}
+              payments={payments}
+              onPaymentsUpdate={onPaymentsUpdate}
             />
 
             {/* Lista de pagos realizados */}
@@ -146,7 +145,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
 
             {/* Botón de procesar venta */}
             <div className="pt-3 border-t">
-              {selectedPaymentMethod === 'credit' && onCreateClient && (
+              {onCreateClient && (
                 <Button
                   onClick={handleCreditPayment}
                   variant="outline"
