@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef } from 'react';
 import { Bike, Wrench, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -8,22 +7,20 @@ import { useCreateSale } from '@/hooks/useSalesData';
 import { useUpdateClient, useClientsData } from '@/hooks/useClientsData';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { usePOSShortcuts } from '@/hooks/usePOSShortcuts';
-import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { toast } from '@/hooks/use-toast';
 import { PaymentInfo } from '@/types/payment';
 import ProductSearch from './POS/ProductSearch';
 import POSStats from './POS/POSStats';
 import PaymentSection from './POS/PaymentSection';
 import ShortcutsReference from './POS/ShortcutsReference';
-import ProductList from './POS/ProductList';
-import CreateQuickClientDialog from '@/components/dialogs/CreateQuickClientDialog';
+import Cart from './Cart';
 
 interface CartItem {
   id: string;
   name: string;
-  priceUSD: number;
+  price: number;
   quantity: number;
-  subtotalUSD: number;
+  subtotal: number;
 }
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -162,14 +159,12 @@ const findProductByCode = (searchCode: string, products: any[]) => {
 
 const POS = () => {
   const { user } = useAuth();
-  const { convertUSDToVES, formatPriceWithBothRates } = useExchangeRates();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const [showCreateClientDialog, setShowCreateClientDialog] = useState(false);
   
   // Referencias para enfocar elementos
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -310,7 +305,7 @@ const POS = () => {
   const addToCart = (product: any) => {
     if (product.currentStock === 0) {
       toast({
-        title: "❌ Sin stock",
+        title: "Sin stock",
         description: `${product.name} no tiene stock disponible`,
         variant: "destructive",
       });
@@ -322,64 +317,29 @@ const POS = () => {
     if (existingItem) {
       if (existingItem.quantity >= product.currentStock) {
         toast({
-          title: "⚠️ Stock insuficiente",
-          description: `Solo hay ${product.currentStock} unidades disponibles de ${product.name}`,
+          title: "Stock insuficiente",
+          description: `Solo hay ${product.currentStock} unidades disponibles`,
           variant: "destructive",
         });
         return;
       }
 
-      const newQuantity = existingItem.quantity + 1;
       setCart(cart.map(item =>
         item.id === product.id.toString()
-          ? { ...item, quantity: newQuantity, subtotalUSD: newQuantity * product.salePrice }
+          ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
           : item
       ));
-
-      const priceInfo = formatPriceWithBothRates(product.salePrice);
-      toast({
-        title: "✅ Cantidad actualizada",
-        description: (
-          <div className="space-y-1">
-            <div className="font-medium">{product.name}</div>
-            <div className="text-sm text-gray-600">
-              Cantidad: {newQuantity} • Precio: {priceInfo.usd}
-            </div>
-            <div className="text-sm font-medium">
-              Subtotal: {formatPriceWithBothRates(newQuantity * product.salePrice).usd}
-            </div>
-          </div>
-        ),
-      });
     } else {
-      const newItem: CartItem = {
+      setCart([...cart, {
         id: product.id.toString(),
         name: product.name,
-        priceUSD: product.salePrice,
+        price: product.salePrice,
         quantity: 1,
-        subtotalUSD: product.salePrice,
-      };
-
-      setCart([...cart, newItem]);
-
-      const priceInfo = formatPriceWithBothRates(product.salePrice);
-      toast({
-        title: "✅ Producto agregado",
-        description: (
-          <div className="space-y-1">
-            <div className="font-medium">{product.name}</div>
-            <div className="text-sm text-gray-600">
-              SKU: {product.sku} • Stock: {product.currentStock}
-            </div>
-            <div className="text-sm text-gray-600">
-              {priceInfo.usd} • BCV: {priceInfo.bcv} • Paralelo: {priceInfo.parallel}
-            </div>
-          </div>
-        ),
-      });
+        subtotal: product.salePrice,
+      }]);
     }
 
-    console.log(`🛒 Producto agregado al carrito: ${product.name} (Cantidad: ${existingItem ? existingItem.quantity + 1 : 1})`);
+    console.log(`🛒 Producto agregado al carrito: ${product.name}`);
   };
 
   const addProductFromSearch = (product: any) => {
@@ -432,25 +392,24 @@ const POS = () => {
 
     setCart(cart.map(item =>
       item.id === itemId
-        ? { ...item, quantity: newQuantity, subtotalUSD: newQuantity * item.priceUSD }
+        ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
         : item
     ));
   };
 
-  const calculateTotalUSD = () => {
-    return cart.reduce((total, item) => total + item.subtotalUSD, 0);
+  const calculateTotal = () => {
+    return cart.reduce((total, item) => total + item.subtotal, 0);
   };
 
   const getTotalPaid = () => {
     return payments.reduce((sum, payment) => {
-      const amount = payment.currency === 'USD' ? convertUSDToVES(payment.amount, 'parallel') : payment.amount;
+      const amount = payment.currency === 'USD' ? payment.amount * 36 : payment.amount;
       return sum + amount;
     }, 0);
   };
 
   const canProcessSale = () => {
-    const totalVES = convertUSDToVES(calculateTotalUSD(), 'parallel');
-    return cart.length > 0 && getTotalPaid() >= totalVES;
+    return cart.length > 0 && getTotalPaid() >= calculateTotal();
   };
 
   const processSale = async () => {
@@ -464,10 +423,9 @@ const POS = () => {
     }
 
     try {
-      const totalUSD = calculateTotalUSD();
-      const totalVES = convertUSDToVES(totalUSD, 'parallel');
-      const subtotal = totalVES * 0.84;
-      const tax = totalVES - subtotal;
+      const total = calculateTotal();
+      const subtotal = total * 0.84;
+      const tax = total - subtotal;
 
       const creditPayment = payments.find((p) => p.method === "credit");
       const clientId = 1;
@@ -476,14 +434,14 @@ const POS = () => {
       const saleData = {
         clientId: clientId,
         saleDate: new Date().toISOString().split('T')[0],
-        total: totalVES,
+        total: total,
         userId: 1,
         payments: payments,
         items: cart.map(item => ({
           productId: item.id,
           quantity: item.quantity,
-          unitPrice: convertUSDToVES(item.priceUSD, 'parallel'),
-          subtotal: convertUSDToVES(item.subtotalUSD, 'parallel'),
+          unitPrice: item.price,
+          subtotal: item.subtotal,
         })),
         status: 'completed' as const,
         subtotal: subtotal,
@@ -509,10 +467,9 @@ const POS = () => {
         });
       }
 
-      const totalPrices = formatPriceWithBothRates(totalUSD);
       toast({
         title: "Venta Completada",
-        description: `Venta procesada por ${totalPrices.usd} con ${payments.length} método(s) de pago`,
+        description: `Venta procesada por ${formatCurrency(total)} con ${payments.length} método(s) de pago`,
       });
 
       setCart([]);
@@ -534,14 +491,6 @@ const POS = () => {
     }).format(amount);
   };
 
-  const handleClientCreated = (newClient: any) => {
-    console.log('🆕 Cliente creado desde POS:', newClient);
-    toast({
-      title: "Cliente agregado",
-      description: `${newClient.name} está disponible para pagos a crédito`,
-    });
-  };
-
   if (isLoading || categoriesLoading) {
     return (
       <div className="p-6 space-y-6 bg-slate-50 min-h-screen flex items-center justify-center">
@@ -554,19 +503,16 @@ const POS = () => {
   }
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
-      {/* Header compacto */}
-      <div className="p-4 bg-white border-b border-gray-200 shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Punto de Venta</h1>
-            <p className="text-sm text-slate-600">Sistema POS - Vendedor: {user?.name}</p>
-          </div>
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Punto de Venta</h1>
+          <p className="text-slate-600">Sistema POS - Vendedor: {user?.name}</p>
         </div>
       </div>
 
-      {/* Shortcuts Reference compacto */}
-      <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 shrink-0">
+      {/* Shortcuts Reference moved to top with full width */}
+      <div className="w-full">
         <ShortcutsReference
           onProcessSale={() => {
             if (canProcessSale()) {
@@ -625,76 +571,62 @@ const POS = () => {
         />
       </div>
 
-      {/* Layout principal con distribución horizontal optimizada */}
-      <div className="flex-1 p-4 overflow-hidden">
-        <div className="grid grid-cols-12 gap-4 h-full">
-          {/* Sección de productos - más ancha */}
-          <div className="col-span-7 flex flex-col space-y-3 overflow-hidden">
-            <ProductSearch
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              categories={categories}
-              filteredProducts={filteredProducts}
-              highlightedIndex={highlightedIndex}
-              setHighlightedIndex={setHighlightedIndex}
-              isSearchActive={isSearchActive}
-              setIsSearchActive={setIsSearchActive}
-              onSearchKeyDown={handleSearchKeyDown}
-              onProductSelect={addProductFromSearch}
-              formatCurrency={formatCurrency}
-              ref={searchInputRef}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Products Section */}
+        <div className="lg:col-span-2 space-y-4">
+          <ProductSearch
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            categories={categories}
+            filteredProducts={filteredProducts}
+            highlightedIndex={highlightedIndex}
+            setHighlightedIndex={setHighlightedIndex}
+            isSearchActive={isSearchActive}
+            setIsSearchActive={setIsSearchActive}
+            onSearchKeyDown={handleSearchKeyDown}
+            onProductSelect={addProductFromSearch}
+            formatCurrency={formatCurrency}
+            ref={searchInputRef}
+          />
+          
+          <POSStats
+            categoryStats={categoryStats}
+            getCategoryKey={getCategoryKey}
+            CATEGORY_COLORS={CATEGORY_COLORS}
+            CATEGORY_ICONS={CATEGORY_ICONS}
+            products={products}
+            filteredProducts={filteredProducts}
+            getCategoryOfProduct={getCategoryOfProduct}
+            addToCart={addToCart}
+            formatCurrency={formatCurrency}
+          />
+        </div>
+
+        {/* Cart and Payment Section */}
+        <div className="space-y-4">
+          <Cart
+            cart={cart}
+            removeFromCart={removeFromCart}
+            updateQuantity={updateQuantity}
+            formatCurrency={formatCurrency}
+            calculateTotal={calculateTotal}
+          />
+
+          <div ref={paymentSectionRef}>
+            <PaymentSection
+              cart={cart}
+              calculateTotal={calculateTotal}
+              payments={payments}
+              onPaymentsUpdate={setPayments}
+              canProcessSale={canProcessSale}
+              processSale={processSale}
+              isProcessing={createSaleMutation.isPending}
             />
-            
-            <div className="flex-1 overflow-hidden">
-              <POSStats
-                categoryStats={categoryStats}
-                getCategoryKey={getCategoryKey}
-                CATEGORY_COLORS={CATEGORY_COLORS}
-                CATEGORY_ICONS={CATEGORY_ICONS}
-                products={products}
-                filteredProducts={filteredProducts}
-                getCategoryOfProduct={getCategoryOfProduct}
-                addToCart={addToCart}
-                formatCurrency={formatCurrency}
-              />
-            </div>
-          </div>
-
-          {/* Sección de carrito y pagos - más estrecha pero visible */}
-          <div className="col-span-5 flex flex-col space-y-3 overflow-hidden">
-            <div className="flex-1 overflow-y-auto">
-              <ProductList
-                cart={cart}
-                removeFromCart={removeFromCart}
-                updateQuantity={updateQuantity}
-                calculateTotalUSD={calculateTotalUSD}
-              />
-            </div>
-
-            <div ref={paymentSectionRef} className="shrink-0">
-              <PaymentSection
-                cart={cart}
-                calculateTotal={() => convertUSDToVES(calculateTotalUSD(), 'parallel')}
-                payments={payments}
-                onPaymentsUpdate={setPayments}
-                canProcessSale={canProcessSale}
-                processSale={processSale}
-                isProcessing={createSaleMutation.isPending}
-                onCreateClient={() => setShowCreateClientDialog(true)}
-              />
-            </div>
           </div>
         </div>
       </div>
-
-      {/* Dialog para crear cliente rápido */}
-      <CreateQuickClientDialog
-        open={showCreateClientDialog}
-        onOpenChange={setShowCreateClientDialog}
-        onClientCreated={handleClientCreated}
-      />
     </div>
   );
 };

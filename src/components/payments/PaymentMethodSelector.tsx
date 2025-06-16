@@ -1,109 +1,219 @@
-
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent } from '@/components/ui/card';
-import { Banknote, CreditCard, Smartphone, DollarSign, Users } from 'lucide-react';
-import { PaymentInfo } from '@/types/payment';
-import CashPaymentForm from './CashPaymentForm';
-import TransferPaymentForm from './TransferPaymentForm';
-import ZellePaymentForm from './ZellePaymentForm';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { PaymentMethod, PaymentMethodLabels } from '@/types/erp';
+import { PaymentInfo, CreditPaymentInfo, ZellePaymentInfo, TransferPaymentInfo, USDTPaymentInfo } from '@/types/payment';
+import { Plus, X, CreditCard } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+
 import CreditPaymentForm from './CreditPaymentForm';
+import ZellePaymentForm from './ZellePaymentForm';
+import TransferPaymentForm from './TransferPaymentForm';
 
 interface PaymentMethodSelectorProps {
   totalAmount: number;
   payments: PaymentInfo[];
   onPaymentsUpdate: (payments: PaymentInfo[]) => void;
-  onCreateClient?: () => void;
 }
+
+// Solo métodos de pago especiales
+const SPECIAL_PAYMENT_METHODS = {
+  [PaymentMethod.TRANSFER]: PaymentMethodLabels[PaymentMethod.TRANSFER],
+  [PaymentMethod.CREDIT]: PaymentMethodLabels[PaymentMethod.CREDIT],
+  [PaymentMethod.ZELLE]: PaymentMethodLabels[PaymentMethod.ZELLE],
+  [PaymentMethod.USDT]: PaymentMethodLabels[PaymentMethod.USDT],
+};
 
 const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   totalAmount,
   payments,
-  onPaymentsUpdate,
-  onCreateClient,
+  onPaymentsUpdate
 }) => {
-  const [activeTab, setActiveTab] = useState('cash');
+  const [showAddPayment, setShowAddPayment] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(PaymentMethod.TRANSFER);
+  const [currentPaymentInfo, setCurrentPaymentInfo] = useState<Partial<PaymentInfo>>({});
 
-  const handlePaymentAdded = (payment: PaymentInfo) => {
-    onPaymentsUpdate([...payments, payment]);
+  const getTotalPaid = () => {
+    return payments.reduce((sum, payment) => {
+      const amount = payment.currency === 'USD' ? payment.amount * 36 : payment.amount; // Conversión básica
+      return sum + amount;
+    }, 0);
   };
 
-  const remainingAmount = Math.max(0, totalAmount - payments.reduce((sum, p) => {
-    const amount = p.currency === 'USD' ? p.amount * 36 : p.amount;
-    return sum + amount;
-  }, 0));
+  const getRemainingAmount = () => {
+    return totalAmount - getTotalPaid();
+  };
 
-  const currentAmount = remainingAmount > 0 ? remainingAmount : totalAmount;
+  const formatCurrency = (amount: number, currency = 'VES') => {
+    return new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: currency === 'USD' ? 'USD' : 'VES',
+      minimumFractionDigits: currency === 'USD' ? 2 : 0,
+    }).format(amount);
+  };
+
+  const renderPaymentForm = () => {
+    const remaining = getRemainingAmount();
+    
+    switch (selectedMethod) {
+      case PaymentMethod.CREDIT:
+        return (
+          <CreditPaymentForm
+            paymentInfo={currentPaymentInfo as Partial<CreditPaymentInfo>}
+            onUpdate={(info) => setCurrentPaymentInfo(info)}
+            totalAmount={remaining}
+          />
+        );
+      case PaymentMethod.ZELLE:
+        return (
+          <ZellePaymentForm
+            paymentInfo={currentPaymentInfo as Partial<ZellePaymentInfo>}
+            onUpdate={(info) => setCurrentPaymentInfo(info)}
+            totalAmount={remaining}
+          />
+        );
+      case PaymentMethod.TRANSFER:
+        return (
+          <TransferPaymentForm
+            paymentInfo={currentPaymentInfo as Partial<TransferPaymentInfo>}
+            onUpdate={(info) => setCurrentPaymentInfo(info)}
+            totalAmount={remaining}
+          />
+        );
+      default:
+        return (
+          <div className="p-4 text-center text-gray-500">
+            Método de pago en desarrollo
+          </div>
+        );
+    }
+  };
+
+  const addPayment = () => {
+    if (!currentPaymentInfo.amount || currentPaymentInfo.amount <= 0) {
+      toast({
+        title: "Error",
+        description: "Debe especificar un monto válido",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newPayment: PaymentInfo = {
+      ...currentPaymentInfo,
+      method: selectedMethod,
+      currency: currentPaymentInfo.currency || 'VES',
+    } as PaymentInfo;
+
+    onPaymentsUpdate([...payments, newPayment]);
+    setCurrentPaymentInfo({});
+    setShowAddPayment(false);
+    
+    toast({
+      title: "Pago agregado",
+      description: `${PaymentMethodLabels[selectedMethod]} por ${formatCurrency(newPayment.amount, newPayment.currency)}`,
+    });
+  };
+
+  const removePayment = (index: number) => {
+    const newPayments = payments.filter((_, i) => i !== index);
+    onPaymentsUpdate(newPayments);
+  };
+
+  const isComplete = getRemainingAmount() <= 0;
 
   return (
-    <Card className="w-full">
-      <CardContent className="p-0">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 rounded-none">
-            <TabsTrigger value="cash" className="gap-2">
-              <Banknote className="h-4 w-4" />
-              Efectivo
-            </TabsTrigger>
-            <TabsTrigger value="transfer" className="gap-2">
-              <CreditCard className="h-4 w-4" />
-              Transferencia
-            </TabsTrigger>
-            <TabsTrigger value="zelle" className="gap-2">
-              <DollarSign className="h-4 w-4" />
-              Zelle
-            </TabsTrigger>
-            <TabsTrigger value="credit" className="gap-2">
-              <Users className="h-4 w-4" />
-              Crédito
-            </TabsTrigger>
-          </TabsList>
-
-          <div className="p-4">
-            <TabsContent value="cash" className="mt-0">
-              <CashPaymentForm
-                paymentInfo={{}}
-                onUpdate={(info) => {
-                  if (info.amount) {
-                    handlePaymentAdded(info as PaymentInfo);
-                  }
-                }}
-                totalAmount={currentAmount}
-              />
-            </TabsContent>
-
-            <TabsContent value="transfer" className="mt-0">
-              <TransferPaymentForm
-                paymentInfo={{}}
-                onUpdate={(info) => {
-                  if (info.amount) {
-                    handlePaymentAdded(info as PaymentInfo);
-                  }
-                }}
-                totalAmount={currentAmount}
-              />
-            </TabsContent>
-
-            <TabsContent value="zelle" className="mt-0">
-              <ZellePaymentForm
-                paymentInfo={{}}
-                onUpdate={(info) => {
-                  if (info.amount) {
-                    handlePaymentAdded(info as PaymentInfo);
-                  }
-                }}
-                totalAmount={currentAmount}
-              />
-            </TabsContent>
-
-            <TabsContent value="credit" className="mt-0">
-              <CreditPaymentForm
-                totalAmount={currentAmount}
-                onPaymentAdded={handlePaymentAdded}
-                onCreateClient={onCreateClient}
-              />
-            </TabsContent>
+    <Card className="bikeERP-card">
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-sm font-medium">Pagos Especiales</CardTitle>
+          {!isComplete && (
+            <Button
+              onClick={() => setShowAddPayment(true)}
+              size="sm"
+              variant="outline"
+              className="gap-2 h-7 text-xs"
+            >
+              <Plus className="h-3 w-3" />
+              Agregar
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="p-3">
+        {/* Lista de Pagos Especiales */}
+        {payments.filter(p => [PaymentMethod.TRANSFER, PaymentMethod.CREDIT, PaymentMethod.ZELLE, PaymentMethod.USDT].includes(p.method)).length > 0 && (
+          <div className="space-y-2">
+            {payments
+              .map((payment, index) => ({ payment, originalIndex: index }))
+              .filter(({ payment }) => [PaymentMethod.TRANSFER, PaymentMethod.CREDIT, PaymentMethod.ZELLE, PaymentMethod.USDT].includes(payment.method))
+              .map(({ payment, originalIndex }) => (
+                <div key={originalIndex} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-3 w-3" />
+                    <div>
+                      <div className="text-xs font-medium">{PaymentMethodLabels[payment.method]}</div>
+                      <div className="text-[10px] text-gray-600">
+                        {formatCurrency(payment.amount, payment.currency)}
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removePayment(originalIndex)}
+                    className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
           </div>
-        </Tabs>
+        )}
+
+        {/* Dialog para Agregar Pago Especial */}
+        <Dialog open={showAddPayment} onOpenChange={setShowAddPayment}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Agregar Pago Especial</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Método de Pago</label>
+                <Select value={selectedMethod} onValueChange={(value) => {
+                  setSelectedMethod(value as PaymentMethod);
+                  setCurrentPaymentInfo({ method: value as PaymentMethod });
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SPECIAL_PAYMENT_METHODS).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {renderPaymentForm()}
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddPayment(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={addPayment}>
+                Agregar Pago
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

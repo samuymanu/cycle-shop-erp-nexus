@@ -1,152 +1,154 @@
 
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  Home,
-  ShoppingCart, 
-  Package, 
-  Wrench, 
-  Users, 
-  ShoppingBag, 
-  Calculator,
-  BarChart3, 
-  Settings,
-  Bike
-} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { 
+  Users, 
+  Database, 
+  Settings, 
+  Search,
+  Calendar,
+  LogOut,
+  User,
+  BarChart3,
+  ShoppingCart,
+  Wrench,
+  Home,
+  Package,
+  Calculator
+} from 'lucide-react';
 
-const Sidebar = () => {
-  const location = useLocation();
-  const { user, hasPermission } = useAuth();
+interface SidebarProps {
+  currentPage: string;
+  onPageChange: (page: string) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
+  const { user, logout, hasPermission } = useAuth();
 
   const menuItems = [
     {
-      icon: Home,
+      id: 'dashboard',
       label: 'Dashboard',
-      path: '/',
-      permission: null,
+      icon: Home,
+      requiresPermission: null,
     },
     {
-      icon: ShoppingCart,
+      id: 'pos',
       label: 'Punto de Venta',
-      path: '/pos',
-      permission: { module: 'sales', action: 'create' },
+      icon: ShoppingCart,
+      requiresPermission: { module: 'sales', action: 'create' },
     },
     {
-      icon: Package,
+      id: 'inventory',
       label: 'Inventario',
-      path: '/inventory',
-      permission: { module: 'inventory', action: 'read' },
+      icon: Package,
+      requiresPermission: { module: 'inventory', action: 'read' },
     },
     {
-      icon: Wrench,
+      id: 'workshop',
       label: 'Taller',
-      path: '/workshop',
-      permission: { module: 'workshop', action: 'read' },
-      highlight: true,
+      icon: Wrench,
+      requiresPermission: { module: 'workshop', action: 'read' },
     },
     {
-      icon: Users,
+      id: 'clients',
       label: 'Clientes',
-      path: '/clients',
-      permission: { module: 'clients', action: 'read' },
+      icon: Users,
+      requiresPermission: { module: 'clients', action: 'read' },
     },
     {
-      icon: ShoppingBag,
+      id: 'purchases',
       label: 'Compras',
-      path: '/purchases',
-      permission: { module: 'purchases', action: 'read' },
+      icon: Calendar,
+      requiresPermission: { module: 'purchases', action: 'read' },
     },
     {
-      icon: Calculator,
+      id: 'currency-calculator',
       label: 'Calculadora',
-      path: '/calculator',
-      permission: null,
+      icon: Calculator,
+      requiresPermission: null,
     },
     {
-      icon: BarChart3,
+      id: 'reports',
       label: 'Reportes',
-      path: '/reports',
-      permission: { module: 'reports', action: 'read' },
+      icon: BarChart3,
+      requiresPermission: { module: 'reports', action: 'read' },
     },
     {
-      icon: Settings,
+      id: 'settings',
       label: 'Configuración',
-      path: '/settings',
-      permission: { module: 'settings', action: 'read' },
+      icon: Settings,
+      requiresPermission: { module: 'settings', action: 'read' },
     },
   ];
 
-  const filteredMenuItems = menuItems.filter(item => {
-    if (!item.permission) return true;
-    return hasPermission(item.permission.module, item.permission.action);
+  const filteredItems = menuItems.filter(item => {
+    if (!item.requiresPermission) return true;
+    return hasPermission(item.requiresPermission.module, item.requiresPermission.action);
   });
 
-  const getUserRole = () => {
-    if (user?.role) {
-      if (typeof user.role === 'string') return user.role;
-      if (typeof user.role === 'object' && user.role.name) return user.role.name;
-    }
-    return 'Admin';
-  };
-
   return (
-    <div className="w-64 bg-slate-800 text-white h-screen flex flex-col">
+    <div className="flex flex-col h-full bg-sidebar shadow-lg">
       {/* Header */}
-      <div className="p-4 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-            <Bike className="h-5 w-5 text-white" />
+      <div className="p-6 border-b border-sidebar-border">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
+            <Database className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-bold text-lg">BikeERP</h1>
-            <p className="text-xs text-slate-400">Sistema de Gestión</p>
+            <h2 className="text-xl font-bold text-sidebar-foreground">BikeERP</h2>
+            <p className="text-sm text-sidebar-foreground/80">Sistema de Gestión</p>
           </div>
         </div>
-      </div>
-
-      {/* User Info */}
-      <div className="p-4 border-b border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-sm font-semibold">
-            {user?.name?.charAt(0) || 'U'}
+        <div className="flex items-center gap-3 p-3 bg-sidebar-accent rounded-lg shadow-sm">
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+            <User className="h-4 w-4 text-primary-foreground" />
           </div>
-          <div>
-            <p className="font-medium text-sm">{user?.name || 'Usuario'}</p>
-            <p className="text-xs text-slate-400">{getUserRole()}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
+            <p className="text-xs text-sidebar-foreground/80 truncate">{user?.role.displayName}</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-2">
-          {filteredMenuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-            
-            return (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? item.highlight
-                        ? 'bg-green-600 text-white'
-                        : 'bg-blue-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-700 hover:text-white'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      <nav className="flex-1 p-4 space-y-2">
+        {filteredItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentPage === item.id;
+          
+          return (
+            <button
+              key={item.id}
+              onClick={() => onPageChange(item.id)}
+              className={cn(
+                'bikeERP-sidebar-item w-full text-left',
+                isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-sidebar-border">
+        <Button
+          variant="ghost"
+          onClick={logout}
+          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md py-3"
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="font-medium">Cerrar Sesión</span>
+        </Button>
+      </div>
     </div>
   );
 };
 
 export default Sidebar;
+

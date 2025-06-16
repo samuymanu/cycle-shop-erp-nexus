@@ -1,31 +1,64 @@
 
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import { Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import Sidebar from './Sidebar';
+import Dashboard from '@/components/dashboard/Dashboard';
+import POS from '@/components/modules/POS';
+import Inventory from '@/components/modules/Inventory';
+import Workshop from '@/components/modules/Workshop';
+import Settings from '@/components/modules/Settings';
+import Clients from '@/components/modules/Clients';
+import Purchases from '@/components/modules/Purchases';
+import Reports from '@/components/modules/Reports';
+import CurrencyCalculator from '@/components/modules/CurrencyCalculator';
 
 const MainLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState('dashboard');
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <Dashboard onPageChange={setCurrentPage} />;
+      case 'pos':
+        return <POS />;
+      case 'inventory':
+        return <Inventory />;
+      case 'workshop':
+        return <Workshop />;
+      case 'clients':
+        return <Clients />;
+      case 'purchases':
+        return <Purchases />;
+      case 'currency-calculator':
+        return <CurrencyCalculator />;
+      case 'reports':
+        return <Reports />;
+      case 'settings':
+        return <Settings />;
+      default:
+        return <Dashboard onPageChange={setCurrentPage} />;
+    }
+  };
+
+  if (!user) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen flex w-full bg-gray-50">
-      <div className={`transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-0'}`}>
-        <Sidebar />
+    <div className="h-screen flex bg-gray-50">
+      {/* Sidebar */}
+      <div className="w-80 flex-shrink-0">
+        <Sidebar 
+          currentPage={currentPage} 
+          onPageChange={setCurrentPage}
+        />
       </div>
-      <main className="flex-1 overflow-hidden">
-        <div className="p-4 bg-white border-b border-gray-200">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-gray-100"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
-        <Outlet />
-      </main>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {renderCurrentPage()}
+      </div>
     </div>
   );
 };
