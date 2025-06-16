@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,11 +23,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-interface DashboardProps {
-  onPageChange: (page: string) => void;
-}
-
-const Dashboard = ({ onPageChange }: DashboardProps) => {
+const Dashboard = () => {
+  const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -43,11 +41,11 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
   };
 
   const handleNewSale = () => {
-    onPageChange('pos');
+    navigate('/pos');
   };
 
   const handleNewServiceOrder = () => {
-    onPageChange('workshop');
+    navigate('/workshop');
   };
 
   const handleAddProduct = () => {
