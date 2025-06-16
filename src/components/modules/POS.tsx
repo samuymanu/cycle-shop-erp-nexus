@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef } from 'react';
 import { Bike, Wrench, Package } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,15 +15,15 @@ import ProductSearch from './POS/ProductSearch';
 import POSStats from './POS/POSStats';
 import PaymentSection from './POS/PaymentSection';
 import ShortcutsReference from './POS/ShortcutsReference';
+import ProductList from './POS/ProductList';
 import CreateQuickClientDialog from '@/components/dialogs/CreateQuickClientDialog';
-import Cart from './Cart';
 
 interface CartItem {
   id: string;
   name: string;
-  price: number;
+  priceUSD: number;
   quantity: number;
-  subtotal: number;
+  subtotalUSD: number;
 }
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -161,7 +162,7 @@ const findProductByCode = (searchCode: string, products: any[]) => {
 
 const POS = () => {
   const { user } = useAuth();
-  const { convertUSDToVES, formatCurrency: formatExchangeCurrency } = useExchangeRates();
+  const { convertUSDToVES, formatPriceWithBothRates } = useExchangeRates();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -317,8 +318,6 @@ const POS = () => {
     }
 
     const existingItem = cart.find(item => item.id === product.id.toString());
-    // Convertir precio USD a VES usando tasa paralelo
-    const priceInVES = convertUSDToVES(product.salePrice, 'parallel');
 
     if (existingItem) {
       if (existingItem.quantity >= product.currentStock) {
@@ -333,35 +332,37 @@ const POS = () => {
       const newQuantity = existingItem.quantity + 1;
       setCart(cart.map(item =>
         item.id === product.id.toString()
-          ? { ...item, quantity: newQuantity, subtotal: newQuantity * priceInVES }
+          ? { ...item, quantity: newQuantity, subtotalUSD: newQuantity * product.salePrice }
           : item
       ));
 
+      const priceInfo = formatPriceWithBothRates(product.salePrice);
       toast({
         title: "✅ Cantidad actualizada",
         description: (
           <div className="space-y-1">
             <div className="font-medium">{product.name}</div>
             <div className="text-sm text-gray-600">
-              Cantidad: {newQuantity} • Precio: {formatCurrency(priceInVES)}
+              Cantidad: {newQuantity} • Precio: {priceInfo.usd}
             </div>
             <div className="text-sm font-medium">
-              Subtotal: {formatCurrency(newQuantity * priceInVES)}
+              Subtotal: {formatPriceWithBothRates(newQuantity * product.salePrice).usd}
             </div>
           </div>
         ),
       });
     } else {
-      const newItem = {
+      const newItem: CartItem = {
         id: product.id.toString(),
         name: product.name,
-        price: priceInVES,
+        priceUSD: product.salePrice,
         quantity: 1,
-        subtotal: priceInVES,
+        subtotalUSD: product.salePrice,
       };
 
       setCart([...cart, newItem]);
 
+      const priceInfo = formatPriceWithBothRates(product.salePrice);
       toast({
         title: "✅ Producto agregado",
         description: (
@@ -371,10 +372,7 @@ const POS = () => {
               SKU: {product.sku} • Stock: {product.currentStock}
             </div>
             <div className="text-sm text-gray-600">
-              Precio USD: {formatExchangeCurrency(product.salePrice, 'USD')} → {formatCurrency(priceInVES)}
-            </div>
-            <div className="text-sm font-medium">
-              Subtotal: {formatCurrency(priceInVES)}
+              {priceInfo.usd} • BCV: {priceInfo.bcv} • Paralelo: {priceInfo.parallel}
             </div>
           </div>
         ),
@@ -434,24 +432,25 @@ const POS = () => {
 
     setCart(cart.map(item =>
       item.id === itemId
-        ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
+        ? { ...item, quantity: newQuantity, subtotalUSD: newQuantity * item.priceUSD }
         : item
     ));
   };
 
-  const calculateTotal = () => {
-    return cart.reduce((total, item) => total + item.subtotal, 0);
+  const calculateTotalUSD = () => {
+    return cart.reduce((total, item) => total + item.subtotalUSD, 0);
   };
 
   const getTotalPaid = () => {
     return payments.reduce((sum, payment) => {
-      const amount = payment.currency === 'USD' ? payment.amount * 36 : payment.amount;
+      const amount = payment.currency === 'USD' ? convertUSDToVES(payment.amount, 'parallel') : payment.amount;
       return sum + amount;
     }, 0);
   };
 
   const canProcessSale = () => {
-    return cart.length > 0 && getTotalPaid() >= calculateTotal();
+    const totalVES = convertUSDToVES(calculateTotalUSD(), 'parallel');
+    return cart.length > 0 && getTotalPaid() >= totalVES;
   };
 
   const processSale = async () => {
@@ -465,9 +464,10 @@ const POS = () => {
     }
 
     try {
-      const total = calculateTotal();
-      const subtotal = total * 0.84;
-      const tax = total - subtotal;
+      const totalUSD = calculateTotalUSD();
+      const totalVES = convertUSDToVES(totalUSD, 'parallel');
+      const subtotal = totalVES * 0.84;
+      const tax = totalVES - subtotal;
 
       const creditPayment = payments.find((p) => p.method === "credit");
       const clientId = 1;
@@ -476,14 +476,14 @@ const POS = () => {
       const saleData = {
         clientId: clientId,
         saleDate: new Date().toISOString().split('T')[0],
-        total: total,
+        total: totalVES,
         userId: 1,
         payments: payments,
         items: cart.map(item => ({
           productId: item.id,
           quantity: item.quantity,
-          unitPrice: item.price,
-          subtotal: item.subtotal,
+          unitPrice: convertUSDToVES(item.priceUSD, 'parallel'),
+          subtotal: convertUSDToVES(item.subtotalUSD, 'parallel'),
         })),
         status: 'completed' as const,
         subtotal: subtotal,
@@ -509,9 +509,10 @@ const POS = () => {
         });
       }
 
+      const totalPrices = formatPriceWithBothRates(totalUSD);
       toast({
         title: "Venta Completada",
-        description: `Venta procesada por ${formatCurrency(total)} con ${payments.length} método(s) de pago`,
+        description: `Venta procesada por ${totalPrices.usd} con ${payments.length} método(s) de pago`,
       });
 
       setCart([]);
@@ -664,19 +665,18 @@ const POS = () => {
           {/* Sección de carrito y pagos - más estrecha pero visible */}
           <div className="col-span-5 flex flex-col space-y-3 overflow-hidden">
             <div className="flex-1 overflow-y-auto">
-              <Cart
+              <ProductList
                 cart={cart}
                 removeFromCart={removeFromCart}
                 updateQuantity={updateQuantity}
-                formatCurrency={formatCurrency}
-                calculateTotal={calculateTotal}
+                calculateTotalUSD={calculateTotalUSD}
               />
             </div>
 
             <div ref={paymentSectionRef} className="shrink-0">
               <PaymentSection
                 cart={cart}
-                calculateTotal={calculateTotal}
+                calculateTotal={() => convertUSDToVES(calculateTotalUSD(), 'parallel')}
                 payments={payments}
                 onPaymentsUpdate={setPayments}
                 canProcessSale={canProcessSale}
