@@ -1,149 +1,181 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
 import { 
+  LayoutDashboard, 
+  ShoppingCart, 
+  Package, 
+  Wrench, 
   Users, 
-  Database, 
-  Settings, 
-  Search,
-  Calendar,
-  LogOut,
-  User,
+  ShoppingBag,
+  Calculator,
   BarChart3,
-  ShoppingCart,
-  Wrench,
-  Home,
-  Package,
-  Calculator
+  Settings,
+  LogOut,
+  Menu,
+  ChevronLeft,
+  Bike
 } from 'lucide-react';
 
-interface SidebarProps {
-  currentPage: string;
-  onPageChange: (page: string) => void;
-}
+const Sidebar = () => {
+  const { logout, hasPermission } = useAuth();
+  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
-  const { user, logout, hasPermission } = useAuth();
-
-  const menuItems = [
+  const navigationItems = [
     {
-      id: 'dashboard',
       label: 'Dashboard',
-      icon: Home,
-      requiresPermission: null,
+      icon: LayoutDashboard,
+      href: '/',
+      permission: { module: 'dashboard', action: 'read' as const }
     },
     {
-      id: 'pos',
       label: 'Punto de Venta',
       icon: ShoppingCart,
-      requiresPermission: { module: 'sales', action: 'create' },
+      href: '/pos',
+      permission: { module: 'sales', action: 'create' as const }
     },
     {
-      id: 'inventory',
       label: 'Inventario',
       icon: Package,
-      requiresPermission: { module: 'inventory', action: 'read' },
+      href: '/inventory',
+      permission: { module: 'inventory', action: 'read' as const }
     },
     {
-      id: 'workshop',
       label: 'Taller',
       icon: Wrench,
-      requiresPermission: { module: 'workshop', action: 'read' },
+      href: '/workshop',
+      permission: { module: 'workshop', action: 'read' as const }
     },
     {
-      id: 'clients',
       label: 'Clientes',
       icon: Users,
-      requiresPermission: { module: 'clients', action: 'read' },
+      href: '/clients',
+      permission: { module: 'clients', action: 'read' as const }
     },
     {
-      id: 'purchases',
       label: 'Compras',
-      icon: Calendar,
-      requiresPermission: { module: 'purchases', action: 'read' },
+      icon: ShoppingBag,
+      href: '/purchases',
+      permission: { module: 'purchases', action: 'read' as const }
     },
     {
-      id: 'currency-calculator',
       label: 'Calculadora',
       icon: Calculator,
-      requiresPermission: null,
+      href: '/calculator',
+      permission: { module: 'tools', action: 'read' as const }
     },
     {
-      id: 'reports',
       label: 'Reportes',
       icon: BarChart3,
-      requiresPermission: { module: 'reports', action: 'read' },
+      href: '/reports',
+      permission: { module: 'reports', action: 'read' as const }
     },
     {
-      id: 'settings',
       label: 'Configuración',
       icon: Settings,
-      requiresPermission: { module: 'settings', action: 'read' },
-    },
+      href: '/settings',
+      permission: { module: 'settings', action: 'read' as const }
+    }
   ];
 
-  const filteredItems = menuItems.filter(item => {
-    if (!item.requiresPermission) return true;
-    return hasPermission(item.requiresPermission.module, item.requiresPermission.action);
-  });
+  const filteredNavigation = navigationItems.filter(item => 
+    hasPermission(item.permission.module, item.permission.action)
+  );
+
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
 
   return (
-    <div className="flex flex-col h-full bg-sidebar shadow-lg">
+    <div className={cn(
+      "bg-slate-900 text-white transition-all duration-300 ease-in-out flex flex-col",
+      isCollapsed ? "w-16" : "w-64"
+    )}>
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
-            <Database className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-sidebar-foreground">BikeERP</h2>
-            <p className="text-sm text-sidebar-foreground/80">Sistema de Gestión</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 p-3 bg-sidebar-accent rounded-lg shadow-sm">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-            <User className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
-            <p className="text-xs text-sidebar-foreground/80 truncate">{user?.role.displayName}</p>
-          </div>
+      <div className="p-4 border-b border-slate-700">
+        <div className="flex items-center justify-between">
+          {!isCollapsed && (
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-emerald-600 rounded-lg">
+                <Bike className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="font-bold text-lg">BikeERP</h1>
+                <p className="text-xs text-slate-400">Sistema de Gestión</p>
+              </div>
+            </div>
+          )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className="p-2 hover:bg-slate-800 text-white"
+          >
+            {isCollapsed ? <Menu className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
         </div>
       </div>
 
+      {/* User Info */}
+      {!isCollapsed && (
+        <div className="p-4 border-b border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center">
+              <span className="text-sm font-bold">JP</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">Juan Pérez</p>
+              <p className="text-xs text-slate-400 truncate">Administrador</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
-        {filteredItems.map((item) => {
+        {filteredNavigation.map((item) => {
           const Icon = item.icon;
-          const isActive = currentPage === item.id;
+          const isActive = location.pathname === item.href;
           
           return (
-            <button
-              key={item.id}
-              onClick={() => onPageChange(item.id)}
+            <NavLink
+              key={item.href}
+              to={item.href}
               className={cn(
-                'bikeERP-sidebar-item w-full text-left',
-                isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "hover:bg-slate-800 hover:text-white",
+                isActive 
+                  ? "bg-emerald-600 text-white shadow-lg" 
+                  : "text-slate-300",
+                isCollapsed && "justify-center px-2"
               )}
+              title={isCollapsed ? item.label : undefined}
             >
-              <Icon className="h-5 w-5" />
-              <span className="font-medium">{item.label}</span>
-            </button>
+              <Icon className="h-5 w-5 shrink-0" />
+              {!isCollapsed && <span className="truncate">{item.label}</span>}
+            </NavLink>
           );
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
+      {/* Logout */}
+      <div className="p-4 border-t border-slate-700">
         <Button
-          variant="ghost"
           onClick={logout}
-          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md py-3"
+          variant="ghost"
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:bg-red-600 hover:text-white transition-colors",
+            isCollapsed && "justify-center px-2"
+          )}
+          title={isCollapsed ? "Cerrar Sesión" : undefined}
         >
-          <LogOut className="h-5 w-5" />
-          <span className="font-medium">Cerrar Sesión</span>
+          <LogOut className="h-5 w-5 shrink-0" />
+          {!isCollapsed && <span>Cerrar Sesión</span>}
         </Button>
       </div>
     </div>
@@ -151,4 +183,3 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
 };
 
 export default Sidebar;
-

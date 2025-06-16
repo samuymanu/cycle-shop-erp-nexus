@@ -7,12 +7,14 @@ import { useCreateSale } from '@/hooks/useSalesData';
 import { useUpdateClient, useClientsData } from '@/hooks/useClientsData';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { usePOSShortcuts } from '@/hooks/usePOSShortcuts';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { toast } from '@/hooks/use-toast';
 import { PaymentInfo } from '@/types/payment';
 import ProductSearch from './POS/ProductSearch';
 import POSStats from './POS/POSStats';
 import PaymentSection from './POS/PaymentSection';
 import ShortcutsReference from './POS/ShortcutsReference';
+import CreateQuickClientDialog from '@/components/dialogs/CreateQuickClientDialog';
 import Cart from './Cart';
 
 interface CartItem {
@@ -159,12 +161,14 @@ const findProductByCode = (searchCode: string, products: any[]) => {
 
 const POS = () => {
   const { user } = useAuth();
+  const { convertUSDToVES, formatCurrency: formatExchangeCurrency } = useExchangeRates();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const [showCreateClientDialog, setShowCreateClientDialog] = useState(false);
   
   // Referencias para enfocar elementos
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -313,6 +317,8 @@ const POS = () => {
     }
 
     const existingItem = cart.find(item => item.id === product.id.toString());
+    // Convertir precio USD a VES usando tasa paralelo
+    const priceInVES = convertUSDToVES(product.salePrice, 'parallel');
 
     if (existingItem) {
       if (existingItem.quantity >= product.currentStock) {
@@ -327,7 +333,7 @@ const POS = () => {
       const newQuantity = existingItem.quantity + 1;
       setCart(cart.map(item =>
         item.id === product.id.toString()
-          ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
+          ? { ...item, quantity: newQuantity, subtotal: newQuantity * priceInVES }
           : item
       ));
 
@@ -337,10 +343,10 @@ const POS = () => {
           <div className="space-y-1">
             <div className="font-medium">{product.name}</div>
             <div className="text-sm text-gray-600">
-              Cantidad: {newQuantity} • Precio: {formatCurrency(product.salePrice)}
+              Cantidad: {newQuantity} • Precio: {formatCurrency(priceInVES)}
             </div>
             <div className="text-sm font-medium">
-              Subtotal: {formatCurrency(newQuantity * product.salePrice)}
+              Subtotal: {formatCurrency(newQuantity * priceInVES)}
             </div>
           </div>
         ),
@@ -349,9 +355,9 @@ const POS = () => {
       const newItem = {
         id: product.id.toString(),
         name: product.name,
-        price: product.salePrice,
+        price: priceInVES,
         quantity: 1,
-        subtotal: product.salePrice,
+        subtotal: priceInVES,
       };
 
       setCart([...cart, newItem]);
@@ -365,10 +371,10 @@ const POS = () => {
               SKU: {product.sku} • Stock: {product.currentStock}
             </div>
             <div className="text-sm text-gray-600">
-              Cantidad: 1 • Precio: {formatCurrency(product.salePrice)}
+              Precio USD: {formatExchangeCurrency(product.salePrice, 'USD')} → {formatCurrency(priceInVES)}
             </div>
             <div className="text-sm font-medium">
-              Subtotal: {formatCurrency(product.salePrice)}
+              Subtotal: {formatCurrency(priceInVES)}
             </div>
           </div>
         ),
@@ -527,6 +533,14 @@ const POS = () => {
     }).format(amount);
   };
 
+  const handleClientCreated = (newClient: any) => {
+    console.log('🆕 Cliente creado desde POS:', newClient);
+    toast({
+      title: "Cliente agregado",
+      description: `${newClient.name} está disponible para pagos a crédito`,
+    });
+  };
+
   if (isLoading || categoriesLoading) {
     return (
       <div className="p-6 space-y-6 bg-slate-50 min-h-screen flex items-center justify-center">
@@ -668,11 +682,19 @@ const POS = () => {
                 canProcessSale={canProcessSale}
                 processSale={processSale}
                 isProcessing={createSaleMutation.isPending}
+                onCreateClient={() => setShowCreateClientDialog(true)}
               />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Dialog para crear cliente rápido */}
+      <CreateQuickClientDialog
+        open={showCreateClientDialog}
+        onOpenChange={setShowCreateClientDialog}
+        onClientCreated={handleClientCreated}
+      />
     </div>
   );
 };

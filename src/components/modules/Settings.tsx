@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 import UserManagementDialog from '@/components/dialogs/UserManagementDialog';
 import { toast } from '@/hooks/use-toast';
 import { 
@@ -25,8 +26,15 @@ import { setGlobalBarcodeConnection } from '@/hooks/useBarcodeConnectionStatus';
 
 const Settings = () => {
   const { user, hasPermission } = useAuth();
-  const barcodeManager = useBarcodeConnectionManager(true); // inicia conectado por defecto
+  const { rates, updateRates, formatCurrency } = useExchangeRates();
+  const barcodeManager = useBarcodeConnectionManager(true);
   const [barcodeLoading, setBarcodeLoading] = useState(false);
+  
+  const [tempRates, setTempRates] = useState({
+    bcv: rates.bcv.toString(),
+    parallel: rates.parallel.toString(),
+  });
+
   const [dbConfig, setDbConfig] = useState({
     host: 'localhost',
     port: '5432',
@@ -49,6 +57,38 @@ const Settings = () => {
   });
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
 
+  const handleUpdateExchangeRates = () => {
+    const newBcv = parseFloat(tempRates.bcv);
+    const newParallel = parseFloat(tempRates.parallel);
+    
+    if (isNaN(newBcv) || isNaN(newParallel) || newBcv <= 0 || newParallel <= 0) {
+      toast({
+        title: "Error en las tasas",
+        description: "Por favor ingresa valores válidos para las tasas de cambio",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateRates({
+      bcv: newBcv,
+      parallel: newParallel,
+    });
+
+    toast({
+      title: "✅ Tasas actualizadas",
+      description: `BCV: ${formatCurrency(newBcv, 'USD').replace('$', 'Bs.')} | Paralelo: ${formatCurrency(newParallel, 'USD').replace('$', 'Bs.')}`,
+    });
+  };
+
+  // Reset temp rates when rates change
+  React.useEffect(() => {
+    setTempRates({
+      bcv: rates.bcv.toString(),
+      parallel: rates.parallel.toString(),
+    });
+  }, [rates]);
+
   const handleTestConnection = async () => {
     setConnectionStatus('testing');
     console.log('Probando conexión a base de datos...', dbConfig);
@@ -68,15 +108,6 @@ const Settings = () => {
 
   const handleSaveSystemSettings = () => {
     console.log('Guardando configuración del sistema...', systemSettings);
-    // Implementar lógica de guardado
-  };
-
-  const handleUpdateExchangeRates = () => {
-    console.log('Actualizando tasas de cambio...', exchangeRates);
-    setExchangeRates({
-      ...exchangeRates,
-      lastUpdated: new Date(),
-    });
     // Implementar lógica de guardado
   };
 
@@ -188,7 +219,7 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Exchange Rates Configuration */}
+        {/* Exchange Rates Configuration - UPDATED */}
         <Card className="bikeERP-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -196,49 +227,66 @@ const Settings = () => {
               Tasas de Cambio del Bolívar
             </CardTitle>
             <CardDescription>
-              Configura las tasas de cambio USD/Bs (Paralelo y BCV)
+              Configura las tasas de cambio USD/Bs (Paralelo y BCV) - Se aplicarán en todos los módulos
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
                 <Label htmlFor="parallelRate">Tasa Paralelo (USD/Bs)</Label>
                 <Input
                   id="parallelRate"
                   type="number"
                   step="0.01"
-                  value={exchangeRates.parallelRate}
-                  onChange={(e) => setExchangeRates({
-                    ...exchangeRates, 
-                    parallelRate: parseFloat(e.target.value) || 0
-                  })}
+                  value={tempRates.parallel}
+                  onChange={(e) => setTempRates(prev => ({ ...prev, parallel: e.target.value }))}
                   placeholder="35.50"
                 />
+                <div className="text-sm text-gray-600">
+                  Actual: <span className="font-medium">{formatCurrency(rates.parallel, 'USD').replace('$', 'Bs.')}</span>
+                </div>
               </div>
-              <div className="space-y-2">
+              
+              <div className="space-y-3">
                 <Label htmlFor="bcvRate">Tasa BCV (USD/Bs)</Label>
                 <Input
                   id="bcvRate"
                   type="number"
                   step="0.01"
-                  value={exchangeRates.bcvRate}
-                  onChange={(e) => setExchangeRates({
-                    ...exchangeRates, 
-                    bcvRate: parseFloat(e.target.value) || 0
-                  })}
+                  value={tempRates.bcv}
+                  onChange={(e) => setTempRates(prev => ({ ...prev, bcv: e.target.value }))}
                   placeholder="36.20"
                 />
+                <div className="text-sm text-gray-600">
+                  Actual: <span className="font-medium">{formatCurrency(rates.bcv, 'USD').replace('$', 'Bs.')}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">💡 Información importante:</p>
+                <p>• Las tasas se aplicarán automáticamente en todos los módulos (Dashboard, POS, Inventario, etc.)</p>
+                <p>• Los precios en inventario están en USD, se mostrarán convertidos a Bs con ambas tasas</p>
+                <p>• Las tasas se guardan automáticamente y persistirán al cerrar la aplicación</p>
               </div>
             </div>
             
             <div className="flex items-center justify-between pt-4 border-t">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Última actualización: {formatDate(exchangeRates.lastUpdated)}
+                  Última actualización: {formatDate(rates.lastUpdate)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Diferencia: {Math.abs(rates.parallel - rates.bcv).toFixed(2)} Bs ({(((Math.abs(rates.parallel - rates.bcv)) / rates.bcv) * 100).toFixed(2)}%)
                 </p>
               </div>
-              <Button onClick={handleUpdateExchangeRates} className="bikeERP-button-primary">
-                <Save className="h-4 w-4 mr-2" />
+              <Button 
+                onClick={handleUpdateExchangeRates} 
+                className="bikeERP-button-primary gap-2"
+                disabled={tempRates.bcv === rates.bcv.toString() && tempRates.parallel === rates.parallel.toString()}
+              >
+                <Save className="h-4 w-4" />
                 Actualizar Tasas
               </Button>
             </div>
