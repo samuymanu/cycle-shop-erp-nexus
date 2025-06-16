@@ -21,9 +21,11 @@ export function useCreateClientFromPOS() {
     try {
       const newClient = await createClientMutation.mutateAsync({
         ...clientData,
+        phone: clientData.phone || '', // Ensure phone is always a string, not undefined
+        email: clientData.email || '', // Ensure email is always a string, not undefined
         address: '',
         balance: 0,
-        isActive: 1, // Changed from true to 1 to match the number type expected
+        isActive: 1,
       });
 
       toast({
