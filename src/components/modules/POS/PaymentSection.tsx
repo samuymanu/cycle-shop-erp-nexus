@@ -3,13 +3,23 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CreditCard, UserPlus, AlertCircle } from 'lucide-react';
+import { CreditCard, UserPlus, AlertCircle, X, DollarSign } from 'lucide-react';
 import { PaymentInfo } from '@/types/payment';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector';
 import QuickPaymentMethods from '@/components/payments/QuickPaymentMethods';
+import SpecialPaymentMethods from '@/components/payments/SpecialPaymentMethods';
+
+interface CartItem {
+  id: string;
+  name: string;
+  priceUSD: number;
+  quantity: number;
+  subtotalUSD: number;
+}
 
 interface PaymentSectionProps {
-  cart: any[];
+  cart: CartItem[];
   calculateTotal: () => number;
   payments: PaymentInfo[];
   onPaymentsUpdate: (payments: PaymentInfo[]) => void;
@@ -29,7 +39,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   isProcessing,
   onCreateClient,
 }) => {
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
+  const { formatPriceWithBothRates } = useExchangeRates();
 
   const total = calculateTotal();
   const totalPaid = payments.reduce((sum, payment) => {
@@ -46,19 +56,9 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
     }).format(amount);
   };
 
-  const handlePaymentAdded = (payment: PaymentInfo) => {
-    onPaymentsUpdate([...payments, payment]);
-  };
-
   const handlePaymentRemoved = (index: number) => {
     const newPayments = payments.filter((_, i) => i !== index);
     onPaymentsUpdate(newPayments);
-  };
-
-  const handleCreditPayment = () => {
-    if (onCreateClient) {
-      onCreateClient();
-    }
   };
 
   return (
@@ -78,6 +78,39 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
           </div>
         ) : (
           <>
+            {/* Lista de productos agregados */}
+            <div className="space-y-3 max-h-48 overflow-y-auto">
+              <h4 className="text-sm font-medium text-gray-700 border-b pb-2">
+                Productos ({cart.length})
+              </h4>
+              {cart.map((item) => {
+                const itemPrices = formatPriceWithBothRates(item.priceUSD);
+                const subtotalPrices = formatPriceWithBothRates(item.subtotalUSD);
+
+                return (
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{item.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-gray-500">Cant: {item.quantity}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {itemPrices.usd}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        <span className="text-xs text-green-600">BCV: {itemPrices.bcv}</span>
+                        <span className="text-xs text-blue-600">• Paralelo: {itemPrices.parallel}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-sm text-blue-600">{subtotalPrices.usd}</p>
+                      <p className="text-xs text-gray-500">{subtotalPrices.parallel}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             {/* Resumen de pago */}
             <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
               <div className="flex justify-between items-center">
@@ -111,6 +144,14 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
               onPaymentsUpdate={onPaymentsUpdate}
             />
 
+            {/* Pagos especiales */}
+            <SpecialPaymentMethods
+              totalAmount={remaining > 0 ? remaining : total}
+              payments={payments}
+              onPaymentsUpdate={onPaymentsUpdate}
+              onCreateClient={onCreateClient}
+            />
+
             {/* Selector de método de pago */}
             <PaymentMethodSelector
               totalAmount={remaining > 0 ? remaining : total}
@@ -129,14 +170,17 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
                       <span className="text-xs text-gray-500 ml-2">
                         {payment.currency} {payment.amount}
                       </span>
+                      {payment.reference && (
+                        <div className="text-xs text-gray-400 mt-1">{payment.reference}</div>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handlePaymentRemoved(index)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 h-6 w-6 p-0"
                     >
-                      Eliminar
+                      <X className="h-3 w-3" />
                     </Button>
                   </div>
                 ))}
@@ -145,17 +189,6 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
 
             {/* Botón de procesar venta */}
             <div className="pt-3 border-t">
-              {onCreateClient && (
-                <Button
-                  onClick={handleCreditPayment}
-                  variant="outline"
-                  className="w-full mb-3 gap-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Crear Nuevo Cliente
-                </Button>
-              )}
-              
               <Button
                 onClick={processSale}
                 disabled={!canProcessSale() || isProcessing}

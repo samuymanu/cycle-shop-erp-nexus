@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 import AddProductDialog from '@/components/dialogs/AddProductDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
@@ -29,6 +31,7 @@ const Dashboard = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const { formatPriceWithBothRates } = useExchangeRates();
 
   const { data: stats, isLoading, error, refetch, isRefetching } = useDashboardData();
 
@@ -83,6 +86,13 @@ const Dashboard = () => {
       description: "Obteniendo la información más reciente de la base de datos.",
     });
   };
+
+  // Convertir ventas de VES a USD y luego mostrar las tres versiones
+  const todaySalesUSD = (stats?.todaySales || 0) / 36; // Asumiendo conversión aproximada
+  const monthSalesUSD = (stats?.monthSales || 0) / 36; // Asumiendo conversión aproximada
+  
+  const todayPrices = formatPriceWithBothRates(todaySalesUSD);
+  const monthPrices = formatPriceWithBothRates(monthSalesUSD);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -148,8 +158,12 @@ const Dashboard = () => {
                   <div>
                     <p className="text-sm font-medium text-slate-600">Ventas Hoy</p>
                     <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(stats?.todaySales ?? 0)}
+                      {todayPrices.usd}
                     </p>
+                    <div className="text-xs space-y-1 mt-2">
+                      <div className="text-green-700">BCV: {todayPrices.bcv}</div>
+                      <div className="text-blue-700">Paralelo: {todayPrices.parallel}</div>
+                    </div>
                     <div className="flex items-center mt-2">
                       <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
                       <span className="text-sm text-green-600">Tiempo real</span>
@@ -166,8 +180,12 @@ const Dashboard = () => {
                   <div>
                     <p className="text-sm font-medium text-slate-600">Ventas del Mes</p>
                     <p className="text-2xl font-bold text-blue-600">
-                      {formatCurrency(stats?.monthSales ?? 0)}
+                      {monthPrices.usd}
                     </p>
+                    <div className="text-xs space-y-1 mt-2">
+                      <div className="text-green-700">BCV: {monthPrices.bcv}</div>
+                      <div className="text-blue-700">Paralelo: {monthPrices.parallel}</div>
+                    </div>
                     <div className="flex items-center mt-2">
                       <TrendingUp className="h-4 w-4 text-blue-500 mr-1" />
                       <span className="text-sm text-blue-600">Mes actual</span>

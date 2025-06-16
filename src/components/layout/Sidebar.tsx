@@ -82,6 +82,14 @@ const Sidebar = () => {
     return hasPermission(item.permission.module, item.permission.action);
   });
 
+  const getUserRole = () => {
+    if (user?.role) {
+      if (typeof user.role === 'string') return user.role;
+      if (typeof user.role === 'object' && user.role.name) return user.role.name;
+    }
+    return 'Admin';
+  };
+
   return (
     <div className="w-64 bg-slate-800 text-white h-screen flex flex-col">
       {/* Header */}
@@ -105,7 +113,7 @@ const Sidebar = () => {
           </div>
           <div>
             <p className="font-medium text-sm">{user?.name || 'Usuario'}</p>
-            <p className="text-xs text-slate-400">{user?.role ? String(user.role) : 'Administrador'}</p>
+            <p className="text-xs text-slate-400">{getUserRole()}</p>
           </div>
         </div>
       </div>
