@@ -105,7 +105,7 @@ const Sidebar = () => {
           </div>
           <div>
             <p className="font-medium text-sm">{user?.name || 'Usuario'}</p>
-            <p className="text-xs text-slate-400">{user?.role || 'Administrador'}</p>
+            <p className="text-xs text-slate-400">{user?.role ? String(user.role) : 'Administrador'}</p>
           </div>
         </div>
       </div>

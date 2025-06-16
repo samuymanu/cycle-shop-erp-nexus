@@ -61,22 +61,37 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
           <div className="p-4">
             <TabsContent value="cash" className="mt-0">
               <CashPaymentForm
+                paymentInfo={{}}
+                onUpdate={(info) => {
+                  if (info.amount) {
+                    handlePaymentAdded(info as PaymentInfo);
+                  }
+                }}
                 totalAmount={currentAmount}
-                onPaymentAdded={handlePaymentAdded}
               />
             </TabsContent>
 
             <TabsContent value="transfer" className="mt-0">
               <TransferPaymentForm
+                paymentInfo={{}}
+                onUpdate={(info) => {
+                  if (info.amount) {
+                    handlePaymentAdded(info as PaymentInfo);
+                  }
+                }}
                 totalAmount={currentAmount}
-                onPaymentAdded={handlePaymentAdded}
               />
             </TabsContent>
 
             <TabsContent value="zelle" className="mt-0">
               <ZellePaymentForm
+                paymentInfo={{}}
+                onUpdate={(info) => {
+                  if (info.amount) {
+                    handlePaymentAdded(info as PaymentInfo);
+                  }
+                }}
                 totalAmount={currentAmount}
-                onPaymentAdded={handlePaymentAdded}
               />
             </TabsContent>
 

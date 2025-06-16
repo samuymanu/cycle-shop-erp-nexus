@@ -126,7 +126,7 @@ const Settings = () => {
                 </div>
                 <div>
                   <label className="text-sm font-medium">Rol</label>
-                  <p className="text-lg">{user?.role || 'No disponible'}</p>
+                  <p className="text-lg">{user?.role ? String(user.role) : 'No disponible'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium">Email</label>

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserPlus, Users, CreditCard } from 'lucide-react';
-import { PaymentInfo } from '@/types/payment';
+import { PaymentInfo, PaymentMethod } from '@/types/payment';
 import { useClientsData } from '@/hooks/useClientsData';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { toast } from '@/hooks/use-toast';
@@ -64,15 +64,15 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
     }
 
     const payment: PaymentInfo = {
-      method: 'credit',
+      method: PaymentMethod.CREDIT,
       amount: creditAmount,
       currency: 'VES',
-      clientId: parseInt(selectedClientId),
+      clientId: selectedClientId,
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
       installments: parseInt(installments),
       interestRate: parseFloat(interestRate),
       notes: notes || undefined,
-      timestamp: new Date().toISOString(),
-    };
+    } as any;
 
     onPaymentAdded(payment);
     
