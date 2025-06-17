@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useInventoryData } from '@/hooks/useInventoryData';
@@ -104,7 +105,8 @@ const Inventory = () => {
     URL.revokeObjectURL(url);
   };
 
-  const totalValue = inventory.reduce((total, item) => total + (item.currentStock * item.costPrice), 0);
+  // Calcular valor total del inventario en USD (salePrice ya está en USD)
+  const totalValue = inventory.reduce((total, item) => total + (item.currentStock * item.salePrice), 0);
   const lowStockCount = inventory.filter(item => item.currentStock <= item.minStock).length;
   const totalUnits = inventory.reduce((total, item) => total + item.currentStock, 0);
 

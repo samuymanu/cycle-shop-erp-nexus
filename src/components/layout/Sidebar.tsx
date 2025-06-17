@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
   ];
 
   return (
-    <div className={`bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ${
+    <div className={`bg-white shadow-lg border-r border-gray-200 transition-all duration-300 flex-shrink-0 ${
       isCollapsed ? 'w-16' : 'w-80'
     }`}>
       {/* Header with Toggle */}

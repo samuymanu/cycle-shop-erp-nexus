@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import AddProductDialog from '@/components/dialogs/AddProductDialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -33,14 +35,6 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   const { data: stats, isLoading, error, refetch, isRefetching } = useDashboardData();
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'VES',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const handleNewSale = () => {
     onPageChange('pos');
@@ -149,9 +143,11 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Ventas Hoy</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(stats?.todaySales ?? 0)}
-                    </p>
+                    <MultiCurrencyPrice 
+                      usdAmount={stats?.todaySales ?? 0} 
+                      size="lg" 
+                      className="mt-2"
+                    />
                     <div className="flex items-center mt-2">
                       <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
                       <span className="text-sm text-green-600">Tiempo real</span>
@@ -167,9 +163,11 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Ventas del Mes</p>
-                    <p className="text-2xl font-bold text-blue-600">
-                      {formatCurrency(stats?.monthSales ?? 0)}
-                    </p>
+                    <MultiCurrencyPrice 
+                      usdAmount={stats?.monthSales ?? 0} 
+                      size="lg" 
+                      className="mt-2"
+                    />
                     <div className="flex items-center mt-2">
                       <TrendingUp className="h-4 w-4 text-blue-500 mr-1" />
                       <span className="text-sm text-blue-600">Mes actual</span>

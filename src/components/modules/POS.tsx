@@ -13,6 +13,7 @@ import { usePOSShortcuts } from '@/hooks/usePOSShortcuts';
 import { toast } from '@/hooks/use-toast';
 import ProductSearch from './POS/ProductSearch';
 import QuickPaymentMethods from '@/components/payments/QuickPaymentMethods';
+import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector';
 import { PaymentInfo } from '@/types/payment';
 import { PaymentMethod } from '@/types/erp';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
@@ -20,7 +21,7 @@ import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 interface CartItem {
   id: string;
   name: string;
-  price: number;
+  price: number; // precio en USD
   quantity: number;
   stock: number;
   sku: string;
@@ -46,10 +47,6 @@ const POS = () => {
     if (product) {
       addToCart(product);
       setSearchTerm('');
-      toast({
-        title: "Producto agregado por código de barras",
-        description: `${product.name} agregado al carrito`,
-      });
     } else {
       setSearchTerm(barcode);
       toast({
@@ -93,7 +90,7 @@ const POS = () => {
       const newItem: CartItem = {
         id: product.id.toString(),
         name: product.name,
-        price: product.salePrice,
+        price: product.salePrice, // precio en USD
         quantity: 1,
         stock: product.currentStock,
         sku: product.sku,
@@ -147,14 +144,6 @@ const POS = () => {
     return calculateSubtotal() - calculateDiscount();
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'VES',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const filteredProducts = inventory.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -177,13 +166,22 @@ const POS = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <ShoppingCart className="h-6 w-6 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <ShoppingCart className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Punto de Venta</h1>
+                <p className="text-gray-600">Gestiona ventas y transacciones</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Punto de Venta</h1>
-              <p className="text-gray-600">Gestiona ventas y transacciones</p>
+            
+            {/* Atajos de teclado - pequeños arriba */}
+            <div className="flex gap-2">
+              <Badge variant="secondary" className="text-xs">Ctrl+F: Buscar</Badge>
+              <Badge variant="secondary" className="text-xs">Ctrl+Del: Limpiar</Badge>
+              <Badge variant="secondary" className="text-xs">Ctrl+P: Pagos</Badge>
             </div>
           </div>
         </div>
@@ -254,7 +252,7 @@ const POS = () => {
                   Carrito de Compras
                 </CardTitle>
                 <CardDescription className="text-slate-600">
-                  {cart.length} productos • Total: <span className="font-semibold text-green-600">{formatCurrency(calculateTotal())}</span>
+                  {cart.length} productos
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -311,22 +309,12 @@ const POS = () => {
 
                     {/* Cart Summary */}
                     <div className="border-t border-gray-200 pt-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span>{formatCurrency(calculateSubtotal())}</span>
-                      </div>
-                      {discount > 0 && (
-                        <div className="flex justify-between text-sm text-red-600">
-                          <span>Descuento ({discount}%):</span>
-                          <span>-{formatCurrency(calculateDiscount())}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center text-lg font-bold">
+                      <div className="text-lg font-bold">
                         <span>Total:</span>
                         <MultiCurrencyPrice 
-                          usdAmount={calculateTotal() / 36} 
+                          usdAmount={calculateTotal()} 
                           size="md" 
-                          className="text-right"
+                          className="mt-2"
                         />
                       </div>
                     </div>
@@ -358,35 +346,20 @@ const POS = () => {
           <div className="col-span-3">
             <div className="space-y-4">
               {cart.length > 0 && (
-                <QuickPaymentMethods
-                  totalAmount={calculateTotal()}
-                  payments={payments}
-                  onPaymentsUpdate={setPayments}
-                />
+                <>
+                  <QuickPaymentMethods
+                    totalAmount={calculateTotal()}
+                    payments={payments}
+                    onPaymentsUpdate={setPayments}
+                  />
+                  
+                  <PaymentMethodSelector
+                    totalAmount={calculateTotal()}
+                    payments={payments}
+                    onPaymentsUpdate={setPayments}
+                  />
+                </>
               )}
-              
-              {/* Simple shortcuts reference */}
-              <Card className="bikeERP-card">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Atajos de Teclado</CardTitle>
-                </CardHeader>
-                <CardContent className="p-3">
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span>Buscar:</span>
-                      <Badge variant="secondary" className="text-xs">Ctrl+F</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Limpiar:</span>
-                      <Badge variant="secondary" className="text-xs">Ctrl+Del</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Pagos:</span>
-                      <Badge variant="secondary" className="text-xs">Ctrl+P</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>
@@ -410,7 +383,11 @@ const POS = () => {
               <CardContent className="space-y-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <div className="text-2xl font-bold">
-                    Total: {formatCurrency(calculateTotal())}
+                    <MultiCurrencyPrice 
+                      usdAmount={calculateTotal()} 
+                      size="lg" 
+                      className="text-center"
+                    />
                   </div>
                 </div>
                 

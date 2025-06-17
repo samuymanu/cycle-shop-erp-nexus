@@ -6,7 +6,7 @@ import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 interface InventoryMetricsProps {
   totalProducts: number;
   lowStockCount: number;
-  totalValue: number;
+  totalValue: number; // Este valor viene en USD desde el hook
   totalUnits: number;
   formatCurrency: (v: number) => string;
 }
@@ -50,7 +50,7 @@ const InventoryMetrics: React.FC<InventoryMetricsProps> = ({
         <div>
           <p className="text-sm font-medium text-gray-600">Valor Inventario</p>
           <MultiCurrencyPrice 
-            usdAmount={totalValue / 36} 
+            usdAmount={totalValue} 
             size="lg" 
             className="mt-1"
           />
