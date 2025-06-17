@@ -7,14 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Search, Plus, Minus, Trash2, DollarSign, CreditCard } from 'lucide-react';
 import { useInventoryData } from '@/hooks/useInventoryData';
-import { useClientsData } from '@/hooks/useSalesData';
+import { useClientsData } from '@/hooks/useClientsData';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { usePOSShortcuts } from '@/hooks/usePOSShortcuts';
 import { toast } from '@/hooks/use-toast';
-import POSStats from './POS/POSStats';
 import ProductSearch from './POS/ProductSearch';
-import PaymentSection from './POS/PaymentSection';
-import ShortcutsReference from './POS/ShortcutsReference';
 import QuickPaymentMethods from '@/components/payments/QuickPaymentMethods';
 import { PaymentInfo } from '@/types/payment';
 import { PaymentMethod } from '@/types/erp';
@@ -65,9 +62,9 @@ const POS = () => {
 
   // Keyboard shortcuts
   usePOSShortcuts({
-    onNewSale: () => clearCart(),
-    onFocusSearch: () => document.getElementById('product-search')?.focus(),
-    onShowPayment: () => setShowPaymentSection(true),
+    onClearCart: () => clearCart(),
+    onSearchFocus: () => document.getElementById('product-search')?.focus(),
+    onPaymentFocus: () => setShowPaymentSection(true),
   });
 
   const addToCart = (product: any) => {
@@ -193,11 +190,9 @@ const POS = () => {
       </div>
 
       <div className="p-6">
-        <POSStats />
-        
-        {/* Main POS Layout - REDESIGNED */}
+        {/* Main POS Layout */}
         <div className="grid grid-cols-12 gap-6 mt-6">
-          {/* Left Panel: Products and Search - REDUCED */}
+          {/* Left Panel: Products and Search */}
           <div className="col-span-4 space-y-4">
             {/* Compact Product Search */}
             <Card className="bikeERP-card">
@@ -250,7 +245,7 @@ const POS = () => {
             </Card>
           </div>
 
-          {/* Center Panel: Shopping Cart - EXPANDED */}
+          {/* Center Panel: Shopping Cart */}
           <div className="col-span-5 space-y-4">
             <Card className="bikeERP-card">
               <CardHeader className="pb-4">
@@ -359,7 +354,7 @@ const POS = () => {
             </Card>
           </div>
 
-          {/* Right Panel: Quick Payments - NO SCROLL */}
+          {/* Right Panel: Quick Payments */}
           <div className="col-span-3">
             <div className="space-y-4">
               {cart.length > 0 && (
@@ -370,23 +365,87 @@ const POS = () => {
                 />
               )}
               
-              <ShortcutsReference />
+              {/* Simple shortcuts reference */}
+              <Card className="bikeERP-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Atajos de Teclado</CardTitle>
+                </CardHeader>
+                <CardContent className="p-3">
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span>Buscar:</span>
+                      <Badge variant="secondary" className="text-xs">Ctrl+F</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Limpiar:</span>
+                      <Badge variant="secondary" className="text-xs">Ctrl+Del</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Pagos:</span>
+                      <Badge variant="secondary" className="text-xs">Ctrl+P</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
 
-        {/* Payment Section Modal/Dialog */}
+        {/* Simple Payment Section */}
         {showPaymentSection && (
-          <PaymentSection
-            total={calculateTotal()}
-            cart={cart}
-            selectedClient={selectedClient}
-            discount={discount}
-            payments={payments}
-            onPaymentsUpdate={setPayments}
-            onClose={() => setShowPaymentSection(false)}
-            onSaleComplete={clearCart}
-          />
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <Card className="w-full max-w-2xl mx-4">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  Procesar Pago
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPaymentSection(false)}
+                  >
+                    ×
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold">
+                    Total: {formatCurrency(calculateTotal())}
+                  </div>
+                </div>
+                
+                <QuickPaymentMethods
+                  totalAmount={calculateTotal()}
+                  payments={payments}
+                  onPaymentsUpdate={setPayments}
+                />
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowPaymentSection(false)}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      clearCart();
+                      setShowPaymentSection(false);
+                      toast({
+                        title: "Venta procesada",
+                        description: "La venta se ha procesado correctamente",
+                      });
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    disabled={cart.length === 0}
+                  >
+                    Procesar Venta
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </div>
