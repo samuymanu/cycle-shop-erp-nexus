@@ -10,6 +10,7 @@ import { useInventoryData } from '@/hooks/useInventoryData';
 import { useClientsData } from '@/hooks/useClientsData';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { usePOSShortcuts } from '@/hooks/usePOSShortcuts';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { toast } from '@/hooks/use-toast';
 import ProductSearch from './POS/ProductSearch';
 import QuickPaymentMethods from '@/components/payments/QuickPaymentMethods';
@@ -37,6 +38,7 @@ const POS = () => {
 
   const { data: inventory = [], isLoading } = useInventoryData();
   const { data: clients = [] } = useClientsData();
+  const { rates } = useExchangeRates();
 
   // Barcode scanner
   useBarcodeScanner((barcode) => {
@@ -142,6 +144,33 @@ const POS = () => {
 
   const calculateTotal = () => {
     return calculateSubtotal() - calculateDiscount();
+  };
+
+  // Funciones de formateo mejoradas
+  const formatUSD = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  const formatVES = (amount: number) => {
+    return new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'VES',
+      minimumFractionDigits: 0,
+    }).format(amount).replace('VES', 'Bs.S');
+  };
+
+  const getTotalPaidUSD = () => {
+    return payments.reduce((sum, payment) => {
+      return sum + (payment.currency === 'USD' ? payment.amount : payment.amount / rates.parallel);
+    }, 0);
+  };
+
+  const getRemainingAmountUSD = () => {
+    return Math.max(0, calculateTotal() - getTotalPaidUSD());
   };
 
   const filteredProducts = inventory.filter(item =>
@@ -364,17 +393,18 @@ const POS = () => {
           </div>
         </div>
 
-        {/* Simple Payment Section */}
+        {/* Modal de Pago - Tamaño reducido */}
         {showPaymentSection && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <Card className="w-full max-w-2xl mx-4">
-              <CardHeader>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <CardHeader className="pb-4">
                 <CardTitle className="flex items-center justify-between">
                   Procesar Pago
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowPaymentSection(false)}
+                    className="text-2xl"
                   >
                     ×
                   </Button>
@@ -382,22 +412,23 @@ const POS = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold">
-                    <MultiCurrencyPrice 
-                      usdAmount={calculateTotal()} 
-                      size="lg" 
-                      className="text-center"
-                    />
+                  <div className="text-xl font-bold text-blue-600">
+                    Total: {formatUSD(calculateTotal())}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    Equivalente: {formatVES(calculateTotal() * rates.parallel)} (Tasa Paralelo)
                   </div>
                 </div>
                 
-                <QuickPaymentMethods
-                  totalAmount={calculateTotal()}
-                  payments={payments}
-                  onPaymentsUpdate={setPayments}
-                />
+                <div className="max-h-96 overflow-y-auto">
+                  <QuickPaymentMethods
+                    totalAmount={calculateTotal()}
+                    payments={payments}
+                    onPaymentsUpdate={setPayments}
+                  />
+                </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-4 border-t">
                   <Button
                     variant="outline"
                     onClick={() => setShowPaymentSection(false)}

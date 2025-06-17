@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,29 +24,37 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
   const [customAmountUSD, setCustomAmountUSD] = useState('');
   const [customAmountVES, setCustomAmountVES] = useState('');
 
-  const formatCurrency = (amount: number, currency = 'VES') => {
-    return new Intl.NumberFormat('es-VE', {
+  const formatUSD = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency === 'USD' ? 'USD' : 'VES',
-      minimumFractionDigits: currency === 'USD' ? 2 : 0,
+      currency: 'USD',
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 
-  const getTotalPaid = () => {
+  const formatVES = (amount: number) => {
+    return new Intl.NumberFormat('es-VE', {
+      style: 'currency',
+      currency: 'VES',
+      minimumFractionDigits: 0,
+    }).format(amount).replace('VES', 'Bs.S');
+  };
+
+  const getTotalPaidUSD = () => {
     return payments.reduce((sum, payment) => {
-      const amount = payment.currency === 'USD' ? payment.amount * rates.bcv : payment.amount;
-      return sum + amount;
+      // Convertir todo a USD para comparar
+      return sum + (payment.currency === 'USD' ? payment.amount : payment.amount / rates.parallel);
     }, 0);
   };
 
-  const getRemainingAmount = () => {
-    return totalAmount - getTotalPaid();
+  const getRemainingAmountUSD = () => {
+    return Math.max(0, totalAmount - getTotalPaidUSD());
   };
 
   const addPayment = (method: PaymentMethod, amount: number, currency: 'USD' | 'VES') => {
-    const remaining = getRemainingAmount();
+    const remainingUSD = getRemainingAmountUSD();
     
-    if (remaining <= 0) {
+    if (remainingUSD <= 0) {
       toast({
         title: "Pago ya completado",
         description: "No hay monto pendiente por pagar",
@@ -54,13 +63,13 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
       return;
     }
 
-    // Convertir el monto a VES para comparar usando tasa BCV
-    const amountInVES = currency === 'USD' ? amount * rates.bcv : amount;
+    // Convertir el monto a USD para comparar
+    const amountInUSD = currency === 'USD' ? amount : amount / rates.parallel;
     
-    if (amountInVES > remaining) {
+    if (amountInUSD > remainingUSD + 0.01) { // pequeño margen para errores de redondeo
       toast({
         title: "Monto excesivo",
-        description: `El monto excede lo pendiente por pagar (${formatCurrency(remaining)})`,
+        description: `El monto excede lo pendiente por pagar (${formatUSD(remainingUSD)})`,
         variant: "destructive",
       });
       return;
@@ -76,13 +85,13 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
     
     toast({
       title: "Pago agregado",
-      description: `${PaymentMethodLabels[method]} por ${formatCurrency(newPayment.amount, currency)}`,
+      description: `${PaymentMethodLabels[method]} por ${currency === 'USD' ? formatUSD(newPayment.amount) : formatVES(newPayment.amount)}`,
     });
   };
 
   const completePaymentWith = (method: PaymentMethod, currency: 'USD' | 'VES') => {
-    const remaining = getRemainingAmount();
-    const amount = currency === 'USD' ? remaining / rates.bcv : remaining;
+    const remainingUSD = getRemainingAmountUSD();
+    const amount = currency === 'USD' ? remainingUSD : remainingUSD * rates.parallel;
     addPayment(method, amount, currency);
   };
 
@@ -109,9 +118,9 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
     }
   };
 
-  const remaining = getRemainingAmount();
+  const remainingUSD = getRemainingAmountUSD();
 
-  if (remaining <= 0) {
+  if (remainingUSD <= 0) {
     return null;
   }
 
@@ -121,7 +130,10 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
         <CardTitle className="text-lg font-semibold text-gray-800">Pagos Rápidos</CardTitle>
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">Pendiente por pagar:</span>
-          <span className="text-lg font-bold text-red-600">{formatCurrency(remaining)}</span>
+          <div className="text-right">
+            <div className="text-lg font-bold text-blue-600">{formatUSD(remainingUSD)}</div>
+            <div className="text-sm text-gray-500">{formatVES(remainingUSD * rates.parallel)} (Paralelo)</div>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-4 space-y-6">
@@ -146,7 +158,7 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
                 <span className="font-semibold">Completar Pago en USD</span>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold">{formatCurrency(remaining / rates.bcv, 'USD')}</div>
+                <div className="text-lg font-bold">{formatUSD(remainingUSD)}</div>
                 <div className="text-xs opacity-90">Efectivo USD</div>
               </div>
             </div>
@@ -259,8 +271,8 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
         <div className="bg-gray-50 rounded-lg p-3 border-l-4 border-blue-400">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-            <span className="font-medium">Tasa de cambio:</span>
-            <span className="font-bold text-blue-600">1 USD = {rates.bcv} Bs.S (BCV)</span>
+            <span className="font-medium">Tasa de cambio Paralelo:</span>
+            <span className="font-bold text-blue-600">1 USD = {rates.parallel} Bs.S</span>
           </div>
           <div className="text-xs text-gray-500 mt-1 ml-4">
             Puede combinar múltiples métodos de pago para completar la transacción
