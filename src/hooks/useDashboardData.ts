@@ -9,17 +9,23 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
   try {
     // Obtener ventas, productos y items de venta en paralelo
     const [salesResponse, productsResponse, saleItemsResponse] = await Promise.all([
-      apiRequest(API_CONFIG.endpoints.sales),         // ventas
-      apiRequest(API_CONFIG.endpoints.products),      // productos
-      apiRequest(API_CONFIG.endpoints.sale_items),    // sale_items - debe haber un endpoint configurado
+      apiRequest(API_CONFIG.endpoints.sales),
+      apiRequest(API_CONFIG.endpoints.products),
+      apiRequest(API_CONFIG.endpoints.sale_items),
     ]);
+
+    console.log('🔄 Datos obtenidos:', {
+      ventas: salesResponse.length,
+      productos: productsResponse.length,
+      items: saleItemsResponse.length
+    });
 
     // Mapear products por id para fácil acceso
     const productsMap: Record<string, Product> = {};
     productsResponse.forEach((p: any) => {
       productsMap[p.id] = {
         ...p,
-        isActive: true, // fallback por si falta
+        isActive: true,
         category: p.category,
         type: p.type || 'part',
         createdAt: new Date(p.createdAt ?? Date.now()),
@@ -27,17 +33,28 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       };
     });
 
-    // Calcular ventas de hoy y del mes actual usando salesResponse
-    const today = new Date().toISOString().split('T')[0];
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    // Calcular ventas de hoy y del mes actual
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const currentMonthStr = today.toISOString().slice(0, 7);
+
+    console.log('📅 Filtrando por:', { hoy: todayStr, mes: currentMonthStr });
 
     const todaySales = salesResponse
-      .filter((sale: any) => sale.saleDate?.startsWith(today))
+      .filter((sale: any) => {
+        const saleDate = sale.saleDate?.split('T')[0] || sale.saleDate;
+        return saleDate === todayStr;
+      })
       .reduce((total: number, sale: any) => total + (sale.total || 0), 0);
 
     const monthSales = salesResponse
-      .filter((sale: any) => sale.saleDate?.startsWith(currentMonth))
+      .filter((sale: any) => {
+        const saleDate = sale.saleDate?.split('T')[0] || sale.saleDate;
+        return saleDate?.startsWith(currentMonthStr);
+      })
       .reduce((total: number, sale: any) => total + (sale.total || 0), 0);
+
+    console.log('💰 Ventas calculadas:', { hoy: todaySales, mes: monthSales });
 
     // Calcular stock bajo
     const lowStockItems = productsResponse
@@ -45,9 +62,12 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
         product.currentStock <= (product.minStock || 5)
       ).length;
 
-    // Calcular el Top 3 productos más vendidos del mes actual usando saleItemsResponse
+    // Calcular el Top 3 productos más vendidos del mes actual
     const saleIdsMonth = salesResponse
-      .filter((sale: any) => sale.saleDate?.startsWith(currentMonth))
+      .filter((sale: any) => {
+        const saleDate = sale.saleDate?.split('T')[0] || sale.saleDate;
+        return saleDate?.startsWith(currentMonthStr);
+      })
       .map((sale: any) => sale.id);
 
     // Agrupar items por producto solo para las ventas de este mes
@@ -67,9 +87,10 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       .sort((a, b) => b.quantity - a.quantity)
       .slice(0, 3);
 
-    // Simular órdenes activas del taller (por ahora mock hasta conectar)
+    console.log('🏆 Top productos:', topSellingArr);
+
+    // Simular órdenes activas del taller y pagos pendientes
     const activeServiceOrders = 8;
-    // Simular pagos pendientes
     const pendingPayments = 1250000;
 
     return {
@@ -99,8 +120,8 @@ export function useDashboardData() {
   return useQuery({
     queryKey: ['dashboardStats'],
     queryFn: fetchDashboardStats,
-    staleTime: 2 * 60 * 1000, // 2 minutos
-    refetchInterval: 5 * 60 * 1000, // Actualizar cada 5 minutos
+    staleTime: 1 * 60 * 1000, // 1 minuto para actualizaciones más frecuentes
+    refetchInterval: 2 * 60 * 1000, // Actualizar cada 2 minutos
     retry: 2,
   });
 }
