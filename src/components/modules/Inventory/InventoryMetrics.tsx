@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Package, AlertTriangle, DollarSign, TrendingDown } from 'lucide-react';
+import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 
 interface InventoryMetricsProps {
   totalProducts: number;
@@ -48,7 +49,11 @@ const InventoryMetrics: React.FC<InventoryMetricsProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">Valor Inventario</p>
-          <p className="text-2xl font-bold text-green-600">{formatCurrency(totalValue)}</p>
+          <MultiCurrencyPrice 
+            usdAmount={totalValue / 36} 
+            size="lg" 
+            className="mt-1"
+          />
         </div>
         <div className="p-3 bg-green-100 rounded-lg">
           <DollarSign className="h-6 w-6 text-green-600" />

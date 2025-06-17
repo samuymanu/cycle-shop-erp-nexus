@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { PaymentMethod, PaymentMethodLabels } from '@/types/erp';
 import { PaymentInfo } from '@/types/payment';
 import { DollarSign, Coins, CreditCard, Plus, Banknote } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 interface QuickPaymentMethodsProps {
   totalAmount: number;
@@ -19,6 +19,7 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
   payments,
   onPaymentsUpdate
 }) => {
+  const { rates } = useExchangeRates();
   const [customAmountUSD, setCustomAmountUSD] = useState('');
   const [customAmountVES, setCustomAmountVES] = useState('');
 
@@ -32,7 +33,7 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
 
   const getTotalPaid = () => {
     return payments.reduce((sum, payment) => {
-      const amount = payment.currency === 'USD' ? payment.amount * 36 : payment.amount;
+      const amount = payment.currency === 'USD' ? payment.amount * rates.bcv : payment.amount;
       return sum + amount;
     }, 0);
   };
@@ -53,8 +54,8 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
       return;
     }
 
-    // Convertir el monto a VES para comparar
-    const amountInVES = currency === 'USD' ? amount * 36 : amount;
+    // Convertir el monto a VES para comparar usando tasa BCV
+    const amountInVES = currency === 'USD' ? amount * rates.bcv : amount;
     
     if (amountInVES > remaining) {
       toast({
@@ -81,7 +82,7 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
 
   const completePaymentWith = (method: PaymentMethod, currency: 'USD' | 'VES') => {
     const remaining = getRemainingAmount();
-    const amount = currency === 'USD' ? remaining / 36 : remaining;
+    const amount = currency === 'USD' ? remaining / rates.bcv : remaining;
     addPayment(method, amount, currency);
   };
 
@@ -145,7 +146,7 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
                 <span className="font-semibold">Completar Pago en USD</span>
               </div>
               <div className="text-right">
-                <div className="text-lg font-bold">{formatCurrency(remaining / 36, 'USD')}</div>
+                <div className="text-lg font-bold">{formatCurrency(remaining / rates.bcv, 'USD')}</div>
                 <div className="text-xs opacity-90">Efectivo USD</div>
               </div>
             </div>
@@ -259,7 +260,7 @@ const QuickPaymentMethods: React.FC<QuickPaymentMethodsProps> = ({
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
             <span className="font-medium">Tasa de cambio:</span>
-            <span className="font-bold text-blue-600">1 USD = 36 Bs.S</span>
+            <span className="font-bold text-blue-600">1 USD = {rates.bcv} Bs.S (BCV)</span>
           </div>
           <div className="text-xs text-gray-500 mt-1 ml-4">
             Puede combinar múltiples métodos de pago para completar la transacción

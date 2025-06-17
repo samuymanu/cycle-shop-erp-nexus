@@ -1,23 +1,20 @@
 
-import React from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState } from 'react';
 import { 
+  Home, 
+  ShoppingCart, 
+  Package, 
+  Wrench, 
   Users, 
-  Database, 
-  Settings, 
-  Search,
-  Calendar,
-  LogOut,
-  User,
-  BarChart3,
-  ShoppingCart,
-  Wrench,
-  Home,
-  Package,
-  Calculator
+  ShoppingBag, 
+  Calculator,
+  BarChart3, 
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Menu
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface SidebarProps {
   currentPage: string;
@@ -25,130 +22,89 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
-  const { user, logout, hasPermission } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: Home,
-      requiresPermission: null,
-    },
-    {
-      id: 'pos',
-      label: 'Punto de Venta',
-      icon: ShoppingCart,
-      requiresPermission: { module: 'sales', action: 'create' },
-    },
-    {
-      id: 'inventory',
-      label: 'Inventario',
-      icon: Package,
-      requiresPermission: { module: 'inventory', action: 'read' },
-    },
-    {
-      id: 'workshop',
-      label: 'Taller',
-      icon: Wrench,
-      requiresPermission: { module: 'workshop', action: 'read' },
-    },
-    {
-      id: 'clients',
-      label: 'Clientes',
-      icon: Users,
-      requiresPermission: { module: 'clients', action: 'read' },
-    },
-    {
-      id: 'purchases',
-      label: 'Compras',
-      icon: Calendar,
-      requiresPermission: { module: 'purchases', action: 'read' },
-    },
-    {
-      id: 'currency-calculator',
-      label: 'Calculadora',
-      icon: Calculator,
-      requiresPermission: null,
-    },
-    {
-      id: 'reports',
-      label: 'Reportes',
-      icon: BarChart3,
-      requiresPermission: { module: 'reports', action: 'read' },
-    },
-    {
-      id: 'settings',
-      label: 'Configuración',
-      icon: Settings,
-      requiresPermission: { module: 'settings', action: 'read' },
-    },
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'pos', label: 'Punto de Venta', icon: ShoppingCart },
+    { id: 'inventory', label: 'Inventario', icon: Package },
+    { id: 'workshop', label: 'Taller', icon: Wrench },
+    { id: 'clients', label: 'Clientes', icon: Users },
+    { id: 'purchases', label: 'Compras', icon: ShoppingBag },
+    { id: 'currency-calculator', label: 'Calculadora', icon: Calculator },
+    { id: 'reports', label: 'Reportes', icon: BarChart3 },
+    { id: 'settings', label: 'Configuración', icon: Settings },
   ];
 
-  const filteredItems = menuItems.filter(item => {
-    if (!item.requiresPermission) return true;
-    return hasPermission(item.requiresPermission.module, item.requiresPermission.action);
-  });
-
   return (
-    <div className="flex flex-col h-full bg-sidebar shadow-lg">
-      {/* Header */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
-            <Database className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-sidebar-foreground">BikeERP</h2>
-            <p className="text-sm text-sidebar-foreground/80">Sistema de Gestión</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 p-3 bg-sidebar-accent rounded-lg shadow-sm">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-            <User className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{user?.name}</p>
-            <p className="text-xs text-sidebar-foreground/80 truncate">{user?.role.displayName}</p>
-          </div>
+    <div className={`bg-white shadow-lg border-r border-gray-200 transition-all duration-300 ${
+      isCollapsed ? 'w-16' : 'w-80'
+    }`}>
+      {/* Header with Toggle */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          {!isCollapsed && (
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">BikeERP</h1>
+              <p className="text-sm text-gray-600">Sistema de Gestión</p>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 hover:bg-gray-100"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {filteredItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.id;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => onPageChange(item.id)}
-              className={cn(
-                'bikeERP-sidebar-item w-full text-left',
-                isActive && 'bg-sidebar-accent text-sidebar-accent-foreground'
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              <span className="font-medium">{item.label}</span>
-            </button>
-          );
-        })}
+      {/* Navigation Menu */}
+      <nav className="py-4">
+        <div className="space-y-1 px-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPage === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => onPageChange(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-primary'
+                }`}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <Icon className={`h-5 w-5 flex-shrink-0 ${
+                  isActive ? 'text-white' : 'text-gray-500 group-hover:text-primary'
+                }`} />
+                {!isCollapsed && (
+                  <span className="font-medium text-sm">{item.label}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
-        <Button
-          variant="ghost"
-          onClick={logout}
-          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md py-3"
-        >
-          <LogOut className="h-5 w-5" />
-          <span className="font-medium">Cerrar Sesión</span>
-        </Button>
-      </div>
+      {!isCollapsed && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
+          <div className="text-xs text-gray-500 text-center">
+            <p>BikeERP v1.0</p>
+            <p>© 2024 Todos los derechos reservados</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Sidebar;
-

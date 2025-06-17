@@ -47,8 +47,8 @@ const MainLayout = () => {
 
   return (
     <div className="h-screen flex bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-80 flex-shrink-0">
+      {/* Sidebar - Now responsive */}
+      <div className="flex-shrink-0">
         <Sidebar 
           currentPage={currentPage} 
           onPageChange={setCurrentPage}

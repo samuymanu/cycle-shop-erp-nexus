@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import UserManagementDialog from '@/components/dialogs/UserManagementDialog';
 import { toast } from '@/hooks/use-toast';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { 
   Database, 
   Users, 
@@ -25,20 +26,21 @@ import { setGlobalBarcodeConnection } from '@/hooks/useBarcodeConnectionStatus';
 
 const Settings = () => {
   const { user, hasPermission } = useAuth();
-  const barcodeManager = useBarcodeConnectionManager(true); // inicia conectado por defecto
+  const { rates, updateRates } = useExchangeRates();
+  const barcodeManager = useBarcodeConnectionManager(true);
   const [barcodeLoading, setBarcodeLoading] = useState(false);
+  
+  const [newRates, setNewRates] = useState({
+    bcv: rates.bcv.toString(),
+    parallel: rates.parallel.toString(),
+  });
+
   const [dbConfig, setDbConfig] = useState({
     host: 'localhost',
     port: '5432',
     database: 'bicicentro_erp',
     username: 'postgres',
     password: '',
-  });
-  
-  const [exchangeRates, setExchangeRates] = useState({
-    parallelRate: 35.50,
-    bcvRate: 36.20,
-    lastUpdated: new Date(),
   });
 
   const [systemSettings, setSystemSettings] = useState({
@@ -72,12 +74,27 @@ const Settings = () => {
   };
 
   const handleUpdateExchangeRates = () => {
-    console.log('Actualizando tasas de cambio...', exchangeRates);
-    setExchangeRates({
-      ...exchangeRates,
-      lastUpdated: new Date(),
+    const bcvRate = parseFloat(newRates.bcv);
+    const parallelRate = parseFloat(newRates.parallel);
+
+    if (isNaN(bcvRate) || isNaN(parallelRate) || bcvRate <= 0 || parallelRate <= 0) {
+      toast({
+        title: "Error en las tasas",
+        description: "Por favor ingrese tasas válidas mayores a 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateRates({
+      bcv: bcvRate,
+      parallel: parallelRate,
     });
-    // Implementar lógica de guardado
+
+    toast({
+      title: "Tasas actualizadas",
+      description: `BCV: ${bcvRate} Bs.S - Paralelo: ${parallelRate} Bs.S`,
+    });
   };
 
   const handleExportData = () => {
@@ -188,7 +205,7 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Exchange Rates Configuration */}
+        {/* Exchange Rates Configuration - UPDATED */}
         <Card className="bikeERP-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -207,10 +224,10 @@ const Settings = () => {
                   id="parallelRate"
                   type="number"
                   step="0.01"
-                  value={exchangeRates.parallelRate}
-                  onChange={(e) => setExchangeRates({
-                    ...exchangeRates, 
-                    parallelRate: parseFloat(e.target.value) || 0
+                  value={newRates.parallel}
+                  onChange={(e) => setNewRates({
+                    ...newRates, 
+                    parallel: e.target.value
                   })}
                   placeholder="35.50"
                 />
@@ -221,10 +238,10 @@ const Settings = () => {
                   id="bcvRate"
                   type="number"
                   step="0.01"
-                  value={exchangeRates.bcvRate}
-                  onChange={(e) => setExchangeRates({
-                    ...exchangeRates, 
-                    bcvRate: parseFloat(e.target.value) || 0
+                  value={newRates.bcv}
+                  onChange={(e) => setNewRates({
+                    ...newRates, 
+                    bcv: e.target.value
                   })}
                   placeholder="36.20"
                 />
@@ -234,8 +251,11 @@ const Settings = () => {
             <div className="flex items-center justify-between pt-4 border-t">
               <div>
                 <p className="text-sm text-muted-foreground">
-                  Última actualización: {formatDate(exchangeRates.lastUpdated)}
+                  Última actualización: {formatDate(rates.lastUpdate)}
                 </p>
+                <div className="text-xs text-gray-500 mt-1">
+                  <span className="font-medium">Tasas actuales:</span> BCV: {rates.bcv} Bs.S - Paralelo: {rates.parallel} Bs.S
+                </div>
               </div>
               <Button onClick={handleUpdateExchangeRates} className="bikeERP-button-primary">
                 <Save className="h-4 w-4 mr-2" />
@@ -245,7 +265,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Database Configuration */}
         {hasPermission('settings', 'update') && (
           <Card className="bikeERP-card">
             <CardHeader>

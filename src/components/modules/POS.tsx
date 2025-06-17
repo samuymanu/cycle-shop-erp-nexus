@@ -1,319 +1,78 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { Bike, Wrench, Package } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ShoppingCart, Search, Plus, Minus, Trash2, DollarSign, CreditCard } from 'lucide-react';
 import { useInventoryData } from '@/hooks/useInventoryData';
-import { useCategoriesData } from '@/hooks/useCategoriesData';
-import { useCreateSale } from '@/hooks/useSalesData';
-import { useUpdateClient, useClientsData } from '@/hooks/useClientsData';
+import { useClientsData } from '@/hooks/useSalesData';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { usePOSShortcuts } from '@/hooks/usePOSShortcuts';
 import { toast } from '@/hooks/use-toast';
-import { PaymentInfo } from '@/types/payment';
-import ProductSearch from './POS/ProductSearch';
 import POSStats from './POS/POSStats';
+import ProductSearch from './POS/ProductSearch';
 import PaymentSection from './POS/PaymentSection';
 import ShortcutsReference from './POS/ShortcutsReference';
-import Cart from './Cart';
+import QuickPaymentMethods from '@/components/payments/QuickPaymentMethods';
+import { PaymentInfo } from '@/types/payment';
+import { PaymentMethod } from '@/types/erp';
+import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 
 interface CartItem {
   id: string;
   name: string;
   price: number;
   quantity: number;
-  subtotal: number;
+  stock: number;
+  sku: string;
 }
 
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  bicicletas: <Bike className="h-4 w-4" />,
-  motocicletas: <Wrench className="h-4 w-4" />,
-  accesorios: <Package className="h-4 w-4" />,
-  repuestos: <Wrench className="h-4 w-4" />,
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  bicicletas: "bg-green-100 text-green-800 border-green-200",
-  motocicletas: "bg-blue-100 text-blue-800 border-blue-200",
-  accesorios: "bg-purple-100 text-purple-800 border-purple-200",
-  repuestos: "bg-orange-100 text-orange-800 border-orange-200",
-  default: "bg-gray-100 text-gray-800 border-gray-200",
-};
-
-// Función mejorada para extraer el SKU original de un código EAN-13
-const extractOriginalSKU = (ean13: string) => {
-  // Si tiene 13 dígitos y empieza con 789 (prefix Venezuela)
-  if (ean13.length === 13 && ean13.startsWith('789')) {
-    // Formato: 789 + 3 timestamp + 6 productId + 1 checkDigit
-    // Extraer los últimos 6 dígitos antes del check digit
-    const productIdSection = ean13.slice(6, 12); // Posiciones 6-11
-    // Remover ceros a la izquierda para obtener el SKU original
-    return productIdSection.replace(/^0+/, '') || '0';
-  }
-  
-  // Si tiene 13 dígitos pero no es nuestro formato, intentar extraer los últimos dígitos
-  if (ean13.length === 13) {
-    // Intentar extraer diferentes longitudes desde el final
-    for (let len = 8; len >= 4; len--) {
-      const extracted = ean13.slice(-(len + 1), -1); // Excluir check digit
-      const cleaned = extracted.replace(/^0+/, '') || '0';
-      if (cleaned.length >= 4) return cleaned;
-    }
-  }
-  
-  return ean13;
-};
-
-// Función optimizada para encontrar productos
-const findProductByCode = (searchCode: string, products: any[]) => {
-  console.log(`🔍 Buscando producto con código: "${searchCode}"`);
-  console.log(`📦 Total productos disponibles: ${products.length}`);
-  
-  if (!searchCode || !products.length) {
-    console.log(`❌ No hay código válido o productos cargados`);
-    return null;
-  }
-
-  const normalizedSearch = searchCode.trim();
-
-  // 1. Búsqueda exacta por SKU
-  let product = products.find(p => p.sku === normalizedSearch);
-  if (product) {
-    console.log(`✅ Producto encontrado por SKU exacto: ${product.name} (SKU: ${product.sku})`);
-    return product;
-  }
-
-  // 2. Si el código de búsqueda es EAN-13, extraer el SKU original
-  if (normalizedSearch.length === 13 && /^\d{13}$/.test(normalizedSearch)) {
-    const extractedSKU = extractOriginalSKU(normalizedSearch);
-    console.log(`🔧 EAN-13 detectado: ${normalizedSearch}, SKU extraído: ${extractedSKU}`);
-    
-    product = products.find(p => p.sku === extractedSKU);
-    if (product) {
-      console.log(`✅ Producto encontrado por SKU extraído de EAN-13: ${product.name} (SKU: ${product.sku})`);
-      return product;
-    }
-    
-    // También buscar por coincidencia parcial del SKU extraído
-    product = products.find(p => 
-      p.sku.includes(extractedSKU) || extractedSKU.includes(p.sku)
-    );
-    if (product) {
-      console.log(`✅ Producto encontrado por coincidencia parcial con SKU extraído: ${product.name} (SKU: ${product.sku})`);
-      return product;
-    }
-  }
-
-  // 3. Si el SKU del producto es largo y el código de búsqueda es corto
-  if (normalizedSearch.length < 13) {
-    product = products.find(p => {
-      if (p.sku.length === 13) {
-        const extractedFromProduct = extractOriginalSKU(p.sku);
-        return extractedFromProduct === normalizedSearch;
-      }
-      return false;
-    });
-    if (product) {
-      console.log(`✅ Producto encontrado: código corto coincide con SKU largo: ${product.name} (SKU: ${product.sku})`);
-      return product;
-    }
-  }
-
-  // 4. Búsqueda por ID si es numérico
-  if (/^\d+$/.test(normalizedSearch)) {
-    const id = parseInt(normalizedSearch, 10);
-    product = products.find(p => p.id === id);
-    if (product) {
-      console.log(`✅ Producto encontrado por ID: ${product.name} (ID: ${product.id})`);
-      return product;
-    }
-  }
-
-  // 5. Búsqueda por coincidencia parcial en SKU
-  product = products.find(p => 
-    p.sku.toLowerCase().includes(normalizedSearch.toLowerCase()) ||
-    normalizedSearch.toLowerCase().includes(p.sku.toLowerCase())
-  );
-  if (product) {
-    console.log(`✅ Producto encontrado por coincidencia parcial de SKU: ${product.name} (SKU: ${product.sku})`);
-    return product;
-  }
-
-  // 6. Búsqueda por nombre (solo si el código tiene más de 3 caracteres)
-  if (normalizedSearch.length > 3) {
-    product = products.find(p => 
-      p.name.toLowerCase().includes(normalizedSearch.toLowerCase())
-    );
-    if (product) {
-      console.log(`✅ Producto encontrado por nombre: ${product.name}`);
-      return product;
-    }
-  }
-
-  console.log(`❌ No se encontró producto con código: "${normalizedSearch}"`);
-  console.log(`🔍 Primeros 3 productos para referencia:`, products.slice(0, 3).map(p => ({ 
-    id: p.id, 
-    name: p.name, 
-    sku: p.sku 
-  })));
-  return null;
-};
-
 const POS = () => {
-  const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [isSearchActive, setIsSearchActive] = useState(false);
-  
-  // Referencias para enfocar elementos
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const paymentSectionRef = useRef<HTMLDivElement>(null);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [discount, setDiscount] = useState(0);
+  const [payments, setPayments] = useState<PaymentInfo[]>([]);
+  const [showPaymentSection, setShowPaymentSection] = useState(false);
 
-  const { data: products = [], isLoading } = useInventoryData();
-  const { data: categories = [], isLoading: categoriesLoading } = useCategoriesData();
+  const { data: inventory = [], isLoading } = useInventoryData();
   const { data: clients = [] } = useClientsData();
-  const createSaleMutation = useCreateSale();
-  const updateClientMutation = useUpdateClient();
 
-  // Configurar atajos de teclado
-  usePOSShortcuts({
-    onProcessSale: () => {
-      if (canProcessSale()) {
-        processSale();
-      } else {
-        toast({
-          title: "No se puede procesar",
-          description: "Complete el carrito y los pagos antes de procesar la venta",
-          variant: "destructive",
-        });
-      }
-    },
-    onClearCart: () => {
-      if (cart.length > 0) {
-        setCart([]);
-        setPayments([]);
-        toast({
-          title: "Carrito limpiado",
-          description: "Todos los items han sido removidos del carrito",
-        });
-      }
-    },
-    onSearchFocus: () => {
-      searchInputRef.current?.focus();
-    },
-    onPaymentFocus: () => {
-      if (cart.length > 0) {
-        paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }
-    },
-    onCategoryAll: () => setSelectedCategory('all'),
-    onCategoryBikes: () => {
-      const bikeCategory = categories.find(cat => 
-        cat.name.toLowerCase().includes('bici')
-      );
-      if (bikeCategory) setSelectedCategory(bikeCategory.name);
-    },
-    onCategoryMotos: () => {
-      const motoCategory = categories.find(cat => 
-        cat.name.toLowerCase().includes('moto')
-      );
-      if (motoCategory) setSelectedCategory(motoCategory.name);
-    },
-    onCategoryAccessories: () => {
-      const accessoryCategory = categories.find(cat => 
-        cat.name.toLowerCase().includes('accesor')
-      );
-      if (accessoryCategory) setSelectedCategory(accessoryCategory.name);
-    },
-    onCategoryParts: () => {
-      const partsCategory = categories.find(cat => 
-        cat.name.toLowerCase().includes('repuest')
-      );
-      if (partsCategory) setSelectedCategory(partsCategory.name);
-    },
-  });
-
-  // Integrar scanner optimizado
+  // Barcode scanner
   useBarcodeScanner((barcode) => {
-    console.log(`🎯 Código escaneado recibido en POS: "${barcode}"`);
-    const product = findProductByCode(barcode, products);
+    const product = inventory.find(item => 
+      item.sku.toLowerCase() === barcode.toLowerCase()
+    );
+    
     if (product) {
       addToCart(product);
+      setSearchTerm('');
       toast({
-        title: "¡Producto encontrado!",
+        title: "Producto agregado por código de barras",
         description: `${product.name} agregado al carrito`,
       });
     } else {
+      setSearchTerm(barcode);
       toast({
         title: "Producto no encontrado",
-        description: `No se encontró un producto con el código "${barcode}". Verifica el código o agrega el producto manualmente.`,
+        description: `No se encontró un producto con el código: ${barcode}`,
         variant: "destructive",
       });
     }
   });
 
-  // Determinar a qué categoría real pertenece un producto
-  const getCategoryOfProduct = (productCategoryName: string) => {
-    const matchedCategory = categories.find(
-      (cat) =>
-        cat.name.toLowerCase() === productCategoryName.toLowerCase() ||
-        cat.displayName.toLowerCase() === productCategoryName.toLowerCase()
-    );
-    return matchedCategory;
-  };
+  // Keyboard shortcuts
+  usePOSShortcuts({
+    onNewSale: () => clearCart(),
+    onFocusSearch: () => document.getElementById('product-search')?.focus(),
+    onShowPayment: () => setShowPaymentSection(true),
+  });
 
-  // Mapear un nombre técnico de categoría a un identificador estandarizado (para asignar color/icono)
-  const getCategoryKey = (categoryName: string) => {
-    if (!categoryName) return 'default';
-    const normalized = categoryName.toLowerCase();
-    if (normalized.includes('bici')) return 'bicicletas';
-    if (normalized.includes('moto')) return 'motocicletas';
-    if (normalized.includes('accesor')) return 'accesorios';
-    if (normalized.includes('repuest') || normalized.includes('transmisión') || normalized.includes('transmision') || normalized.includes('freno') || normalized.includes('rueda')) return 'repuestos';
-    return 'default';
-  };
-
-  // Productos filtrados según búsqueda y categoría seleccionada
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      const matchesSearch =
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const matchesCategory =
-        selectedCategory === 'all' ||
-        product.category === selectedCategory;
-
-      return matchesSearch && matchesCategory;
-    });
-  }, [products, searchTerm, selectedCategory]);
-
-  // Estadísticas por categoría
-  const categoryStats = useMemo(() => {
-    return categories.map((cat) => {
-      const count = products.filter((p) => p.category === cat.name).length;
-      return {
-        ...cat,
-        count,
-      };
-    });
-  }, [categories, products]);
-
-  // Funciones de carrito y pago
   const addToCart = (product: any) => {
-    if (product.currentStock === 0) {
-      toast({
-        title: "Sin stock",
-        description: `${product.name} no tiene stock disponible`,
-        variant: "destructive",
-      });
-      return;
-    }
-
     const existingItem = cart.find(item => item.id === product.id.toString());
-
+    
     if (existingItem) {
       if (existingItem.quantity >= product.currentStock) {
         toast({
@@ -323,50 +82,26 @@ const POS = () => {
         });
         return;
       }
-
-      setCart(cart.map(item =>
-        item.id === product.id.toString()
-          ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
-          : item
-      ));
+      updateQuantity(existingItem.id, existingItem.quantity + 1);
     } else {
-      setCart([...cart, {
+      if (product.currentStock <= 0) {
+        toast({
+          title: "Sin stock",
+          description: "Este producto no tiene stock disponible",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const newItem: CartItem = {
         id: product.id.toString(),
         name: product.name,
         price: product.salePrice,
         quantity: 1,
-        subtotal: product.salePrice,
-      }]);
-    }
-
-    console.log(`🛒 Producto agregado al carrito: ${product.name}`);
-  };
-
-  const addProductFromSearch = (product: any) => {
-    addToCart(product);
-    setSearchTerm('');
-    setHighlightedIndex(-1);
-    setIsSearchActive(false);
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const resultsCount = filteredProducts.slice(0, 10).length;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightedIndex(prev => (prev < resultsCount - 1 ? prev + 1 : prev));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : 0));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (highlightedIndex > -1 && filteredProducts[highlightedIndex]) {
-        addProductFromSearch(filteredProducts[highlightedIndex]);
-      } else if (filteredProducts.length > 0) {
-        addProductFromSearch(filteredProducts[0]);
-      }
-    } else if (e.key === 'Escape') {
-      setIsSearchActive(false);
-      setHighlightedIndex(-1);
+        stock: product.currentStock,
+        sku: product.sku,
+      };
+      setCart([...cart, newItem]);
     }
   };
 
@@ -380,107 +115,39 @@ const POS = () => {
       return;
     }
 
-    const product = products.find(p => p.id.toString() === itemId);
-    if (product && newQuantity > product.currentStock) {
+    const item = cart.find(item => item.id === itemId);
+    if (item && newQuantity > item.stock) {
       toast({
         title: "Stock insuficiente",
-        description: `Solo hay ${product.currentStock} unidades disponibles`,
+        description: `Solo hay ${item.stock} unidades disponibles`,
         variant: "destructive",
       });
       return;
     }
 
-    setCart(cart.map(item =>
-      item.id === itemId
-        ? { ...item, quantity: newQuantity, subtotal: newQuantity * item.price }
-        : item
+    setCart(cart.map(item => 
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
     ));
   };
 
+  const clearCart = () => {
+    setCart([]);
+    setSelectedClient(null);
+    setDiscount(0);
+    setPayments([]);
+    setShowPaymentSection(false);
+  };
+
+  const calculateSubtotal = () => {
+    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  };
+
+  const calculateDiscount = () => {
+    return calculateSubtotal() * (discount / 100);
+  };
+
   const calculateTotal = () => {
-    return cart.reduce((total, item) => total + item.subtotal, 0);
-  };
-
-  const getTotalPaid = () => {
-    return payments.reduce((sum, payment) => {
-      const amount = payment.currency === 'USD' ? payment.amount * 36 : payment.amount;
-      return sum + amount;
-    }, 0);
-  };
-
-  const canProcessSale = () => {
-    return cart.length > 0 && getTotalPaid() >= calculateTotal();
-  };
-
-  const processSale = async () => {
-    if (!canProcessSale()) {
-      toast({
-        title: "Error",
-        description: "Complete el carrito y los pagos antes de procesar la venta",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const total = calculateTotal();
-      const subtotal = total * 0.84;
-      const tax = total - subtotal;
-
-      const creditPayment = payments.find((p) => p.method === "credit");
-      const clientId = 1;
-      const client = clients.find(c => c.id === clientId);
-
-      const saleData = {
-        clientId: clientId,
-        saleDate: new Date().toISOString().split('T')[0],
-        total: total,
-        userId: 1,
-        payments: payments,
-        items: cart.map(item => ({
-          productId: item.id,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          subtotal: item.subtotal,
-        })),
-        status: 'completed' as const,
-        subtotal: subtotal,
-        tax: tax,
-      };
-
-      await createSaleMutation.mutateAsync(saleData);
-
-      if (creditPayment && client) {
-        const creditAmount = creditPayment.amount || 0;
-        const newBalance = (client.balance || 0) + creditAmount;
-
-        await updateClientMutation.mutateAsync({
-          id: client.id,
-          name: client.name,
-          documentType: client.documentType,
-          documentNumber: client.documentNumber,
-          address: client.address,
-          phone: client.phone,
-          email: client.email,
-          balance: newBalance,
-          isActive: client.isActive,
-        });
-      }
-
-      toast({
-        title: "Venta Completada",
-        description: `Venta procesada por ${formatCurrency(total)} con ${payments.length} método(s) de pago`,
-      });
-
-      setCart([]);
-      setPayments([]);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al procesar la venta",
-        variant: "destructive",
-      });
-    }
+    return calculateSubtotal() - calculateDiscount();
   };
 
   const formatCurrency = (amount: number) => {
@@ -491,141 +158,236 @@ const POS = () => {
     }).format(amount);
   };
 
-  if (isLoading || categoriesLoading) {
+  const filteredProducts = inventory.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.brand.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (isLoading) {
     return (
-      <div className="p-6 space-y-6 bg-slate-50 min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando productos y categorías...</p>
+          <p className="text-gray-600">Cargando punto de venta...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Punto de Venta</h1>
-          <p className="text-slate-600">Sistema POS - Vendedor: {user?.name}</p>
-        </div>
-      </div>
-
-      {/* Shortcuts Reference moved to top with full width */}
-      <div className="w-full">
-        <ShortcutsReference
-          onProcessSale={() => {
-            if (canProcessSale()) {
-              processSale();
-            } else {
-              toast({
-                title: "No se puede procesar",
-                description: "Complete el carrito y los pagos antes de procesar la venta",
-                variant: "destructive",
-              });
-            }
-          }}
-          onClearCart={() => {
-            if (cart.length > 0) {
-              setCart([]);
-              setPayments([]);
-              toast({
-                title: "Carrito limpiado",
-                description: "Todos los items han sido removidos del carrito",
-              });
-            }
-          }}
-          onSearchFocus={() => searchInputRef.current?.focus()}
-          onPaymentFocus={() => {
-            if (cart.length > 0) {
-              paymentSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-            }
-          }}
-          onCategoryAll={() => setSelectedCategory('all')}
-          onCategoryBikes={() => {
-            const bikeCategory = categories.find(cat => 
-              cat.name.toLowerCase().includes('bici')
-            );
-            if (bikeCategory) setSelectedCategory(bikeCategory.name);
-          }}
-          onCategoryMotos={() => {
-            const motoCategory = categories.find(cat => 
-              cat.name.toLowerCase().includes('moto')
-            );
-            if (motoCategory) setSelectedCategory(motoCategory.name);
-          }}
-          onCategoryAccessories={() => {
-            const accessoryCategory = categories.find(cat => 
-              cat.name.toLowerCase().includes('accesor')
-            );
-            if (accessoryCategory) setSelectedCategory(accessoryCategory.name);
-          }}
-          onCategoryParts={() => {
-            const partsCategory = categories.find(cat => 
-              cat.name.toLowerCase().includes('repuest')
-            );
-            if (partsCategory) setSelectedCategory(partsCategory.name);
-          }}
-          canProcessSale={canProcessSale()}
-          hasItems={cart.length > 0}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Products Section */}
-        <div className="lg:col-span-2 space-y-4">
-          <ProductSearch
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
-            categories={categories}
-            filteredProducts={filteredProducts}
-            highlightedIndex={highlightedIndex}
-            setHighlightedIndex={setHighlightedIndex}
-            isSearchActive={isSearchActive}
-            setIsSearchActive={setIsSearchActive}
-            onSearchKeyDown={handleSearchKeyDown}
-            onProductSelect={addProductFromSearch}
-            formatCurrency={formatCurrency}
-            ref={searchInputRef}
-          />
-          
-          <POSStats
-            categoryStats={categoryStats}
-            getCategoryKey={getCategoryKey}
-            CATEGORY_COLORS={CATEGORY_COLORS}
-            CATEGORY_ICONS={CATEGORY_ICONS}
-            products={products}
-            filteredProducts={filteredProducts}
-            getCategoryOfProduct={getCategoryOfProduct}
-            addToCart={addToCart}
-            formatCurrency={formatCurrency}
-          />
-        </div>
-
-        {/* Cart and Payment Section */}
-        <div className="space-y-4">
-          <Cart
-            cart={cart}
-            removeFromCart={removeFromCart}
-            updateQuantity={updateQuantity}
-            formatCurrency={formatCurrency}
-            calculateTotal={calculateTotal}
-          />
-
-          <div ref={paymentSectionRef}>
-            <PaymentSection
-              cart={cart}
-              calculateTotal={calculateTotal}
-              payments={payments}
-              onPaymentsUpdate={setPayments}
-              canProcessSale={canProcessSale}
-              processSale={processSale}
-              isProcessing={createSaleMutation.isPending}
-            />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <ShoppingCart className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Punto de Venta</h1>
+              <p className="text-gray-600">Gestiona ventas y transacciones</p>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="p-6">
+        <POSStats />
+        
+        {/* Main POS Layout - REDESIGNED */}
+        <div className="grid grid-cols-12 gap-6 mt-6">
+          {/* Left Panel: Products and Search - REDUCED */}
+          <div className="col-span-4 space-y-4">
+            {/* Compact Product Search */}
+            <Card className="bikeERP-card">
+              <CardContent className="p-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="product-search"
+                    placeholder="Buscar productos (F2) o escanear código..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Product Results - Compact */}
+            <Card className="bikeERP-card">
+              <CardContent className="p-4">
+                <div className="max-h-60 overflow-y-auto space-y-2">
+                  {searchTerm && filteredProducts.length > 0 ? (
+                    filteredProducts.slice(0, 8).map((product) => (
+                      <div
+                        key={product.id}
+                        onClick={() => addToCart(product)}
+                        className="p-3 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 cursor-pointer transition-all duration-200"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm text-gray-900">{product.name}</h4>
+                            <p className="text-xs text-gray-500">{product.sku} • Stock: {product.currentStock}</p>
+                            <MultiCurrencyPrice 
+                              usdAmount={product.salePrice} 
+                              size="sm" 
+                              className="mt-1"
+                            />
+                          </div>
+                          <Plus className="h-4 w-4 text-blue-600" />
+                        </div>
+                      </div>
+                    ))
+                  ) : searchTerm ? (
+                    <p className="text-center text-gray-500 py-4">No se encontraron productos</p>
+                  ) : (
+                    <p className="text-center text-gray-400 py-4">Escriba para buscar productos</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Center Panel: Shopping Cart - EXPANDED */}
+          <div className="col-span-5 space-y-4">
+            <Card className="bikeERP-card">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Carrito de Compras
+                </CardTitle>
+                <CardDescription className="text-slate-600">
+                  {cart.length} productos • Total: <span className="font-semibold text-green-600">{formatCurrency(calculateTotal())}</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {cart.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">Carrito vacío</p>
+                    <p className="text-xs text-gray-400">Busque y agregue productos</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {cart.map((item) => (
+                        <div key={item.id} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                          <div className="flex-1">
+                            <h5 className="font-medium text-sm text-slate-900">{item.name}</h5>
+                            <p className="text-xs text-slate-500">{item.sku}</p>
+                            <MultiCurrencyPrice 
+                              usdAmount={item.price} 
+                              size="sm" 
+                              className="mt-1"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeFromCart(item.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Cart Summary */}
+                    <div className="border-t border-gray-200 pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span>{formatCurrency(calculateSubtotal())}</span>
+                      </div>
+                      {discount > 0 && (
+                        <div className="flex justify-between text-sm text-red-600">
+                          <span>Descuento ({discount}%):</span>
+                          <span>-{formatCurrency(calculateDiscount())}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center text-lg font-bold">
+                        <span>Total:</span>
+                        <MultiCurrencyPrice 
+                          usdAmount={calculateTotal() / 36} 
+                          size="md" 
+                          className="text-right"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={clearCart}
+                        className="flex-1"
+                      >
+                        Limpiar
+                      </Button>
+                      <Button 
+                        onClick={() => setShowPaymentSection(true)}
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        disabled={cart.length === 0}
+                      >
+                        Procesar Pago
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Panel: Quick Payments - NO SCROLL */}
+          <div className="col-span-3">
+            <div className="space-y-4">
+              {cart.length > 0 && (
+                <QuickPaymentMethods
+                  totalAmount={calculateTotal()}
+                  payments={payments}
+                  onPaymentsUpdate={setPayments}
+                />
+              )}
+              
+              <ShortcutsReference />
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Section Modal/Dialog */}
+        {showPaymentSection && (
+          <PaymentSection
+            total={calculateTotal()}
+            cart={cart}
+            selectedClient={selectedClient}
+            discount={discount}
+            payments={payments}
+            onPaymentsUpdate={setPayments}
+            onClose={() => setShowPaymentSection(false)}
+            onSaleComplete={clearCart}
+          />
+        )}
       </div>
     </div>
   );
