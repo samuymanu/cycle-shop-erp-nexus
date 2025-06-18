@@ -173,7 +173,7 @@ const POS = () => {
       clientId: selectedClient?.id || 1, // Cliente por defecto si no se selecciona
       saleDate: new Date().toISOString(),
       total: calculateTotal(),
-      userId: user.id,
+      userId: parseInt(user.id), // Convert string to number
       payments: payments,
       items: cart.map(item => ({
         productId: item.id,
