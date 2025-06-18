@@ -9,12 +9,7 @@ router.get('/', (req, res) => {
     FROM sales s 
     LEFT JOIN sale_payments sp ON s.id = sp.sale_id
   `, [], (err, rows) => {
-    if (err) {
-      console.error('❌ Error obteniendo ventas:', err.message);
-      return res.status(500).json({ error: err.message });
-    }
-    
-    console.log(`💰 ${rows.length} registros de ventas obtenidos`);
+    if (err) return res.status(500).json({ error: err.message });
     
     // Agrupar los pagos por venta
     const salesMap = {};
@@ -22,7 +17,7 @@ router.get('/', (req, res) => {
       if (!salesMap[row.id]) {
         salesMap[row.id] = {
           id: row.id,
-          clientId: row.client_id,
+          clientId: row.client_id, // Mapear client_id a clientId para el frontend
           saleDate: row.saleDate,
           total: row.total,
           userId: row.userId,
@@ -52,97 +47,121 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const { clientId, saleDate, total, userId, payments, items, status, subtotal, tax, discount, notes } = req.body;
   
-  console.log('💰 Iniciando proceso de venta:', { clientId, total, itemsCount: items?.length });
+  console.log('💰 Iniciando proceso de venta completa con actualización de stock...');
   
-  // Verificar que la tabla sales tenga la estructura correcta
-  db.all("PRAGMA table_info(sales)", [], (err, columns) => {
-    if (err) {
-      console.error('❌ Error verificando estructura de tabla sales:', err);
-      return res.status(500).json({ error: 'Error verificando estructura de tabla' });
-    }
+  // Iniciar transacción
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
     
-    const hasClientId = columns.some(col => col.name === 'client_id');
-    console.log('📋 Columnas en tabla sales:', columns.map(c => c.name));
-    console.log('✅ Tiene client_id:', hasClientId);
-    
-    if (!hasClientId) {
-      console.error('❌ La tabla sales no tiene la columna client_id');
-      return res.status(500).json({ error: 'La tabla sales no tiene la estructura correcta' });
-    }
-    
-    // Proceder con la inserción
-    db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
-      
-      // Insertar venta principal
-      db.run(
-        `INSERT INTO sales (client_id, saleDate, total, userId, status, subtotal, tax, discount, notes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [clientId, saleDate, total, userId, status || 'completed', subtotal, tax, discount, notes],
-        function(err) {
-          if (err) {
-            console.error('❌ Error insertando venta:', err.message);
-            db.run('ROLLBACK');
-            return res.status(400).json({ error: err.message });
-          }
-          
-          const saleId = this.lastID;
-          console.log('📝 Venta creada con ID:', saleId);
-          
-          let operationsCompleted = 0;
-          const totalOperations = (items?.length || 0) + (payments?.length || 0);
-          
-          if (totalOperations === 0) {
-            db.run('COMMIT');
-            return res.json({ id: saleId });
-          }
-          
-          const checkCompletion = () => {
-            operationsCompleted++;
-            if (operationsCompleted === totalOperations) {
-              db.run('COMMIT');
-              console.log('🎉 Venta completa guardada exitosamente');
-              res.json({ id: saleId });
+    // Insertar venta principal - usar client_id en lugar de clientId
+    db.run(
+      `INSERT INTO sales (client_id, saleDate, total, userId, status, subtotal, tax, discount, notes) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [clientId, saleDate, total, userId, status || 'completed', subtotal, tax, discount, notes],
+      function(err) {
+        if (err) {
+          console.error('❌ Error insertando venta:', err.message);
+          db.run('ROLLBACK');
+          return res.status(400).json({ error: err.message });
+        }
+        
+        const saleId = this.lastID;
+        console.log('📝 Venta creada con ID:', saleId);
+        
+        // Función para actualizar stock de productos
+        const updateProductStock = (productId, quantitySold, callback) => {
+          db.run(
+            `UPDATE products SET currentStock = currentStock - ? WHERE id = ?`,
+            [quantitySold, productId],
+            function(stockErr) {
+              if (stockErr) {
+                console.error('❌ Error actualizando stock del producto', productId, ':', stockErr.message);
+                return callback(stockErr);
+              }
+              console.log(`📦 Stock actualizado para producto ${productId}: -${quantitySold} unidades`);
+              callback(null);
             }
-          };
+          );
+        };
+        
+        // Insertar items de venta y actualizar stock
+        if (items && items.length > 0) {
+          let itemsProcessed = 0;
+          let hasError = false;
           
-          // Insertar items y actualizar stock
-          if (items && items.length > 0) {
-            items.forEach((item) => {
-              // Insertar item
-              db.run(
-                `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal) 
-                 VALUES (?, ?, ?, ?, ?)`,
-                [saleId, item.productId, item.quantity, item.unitPrice, item.subtotal],
-                function(itemErr) {
-                  if (itemErr) {
-                    console.error('❌ Error insertando item:', itemErr);
-                    db.run('ROLLBACK');
-                    return res.status(400).json({ error: itemErr.message });
-                  }
-                  
-                  // Actualizar stock
-                  db.run(
-                    `UPDATE products SET currentStock = currentStock - ? WHERE id = ?`,
-                    [item.quantity, item.productId],
-                    function(stockErr) {
-                      if (stockErr) {
-                        console.error('❌ Error actualizando stock:', stockErr);
-                        db.run('ROLLBACK');
-                        return res.status(400).json({ error: stockErr.message });
-                      }
-                      
-                      console.log(`📦 Stock actualizado para producto ${item.productId}: -${item.quantity}`);
-                      checkCompletion();
-                    }
-                  );
+          items.forEach((item) => {
+            // Insertar item de venta
+            db.run(
+              `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, subtotal) 
+               VALUES (?, ?, ?, ?, ?)`,
+              [saleId, item.productId, item.quantity, item.unitPrice, item.subtotal],
+              function(itemErr) {
+                if (itemErr && !hasError) {
+                  hasError = true;
+                  console.error('❌ Error insertando item:', itemErr);
+                  db.run('ROLLBACK');
+                  return res.status(400).json({ error: itemErr.message });
                 }
-              );
-            });
-          }
-          
-          // Insertar pagos
+                
+                if (!hasError) {
+                  console.log(`📦 Item insertado: ${item.quantity} x producto ${item.productId}`);
+                  
+                  // Actualizar stock del producto
+                  updateProductStock(item.productId, item.quantity, (stockErr) => {
+                    if (stockErr && !hasError) {
+                      hasError = true;
+                      db.run('ROLLBACK');
+                      return res.status(400).json({ error: 'Error actualizando stock: ' + stockErr.message });
+                    }
+                    
+                    itemsProcessed++;
+                    
+                    // Si todos los items fueron procesados, insertar pagos
+                    if (itemsProcessed === items.length && !hasError) {
+                      console.log('✅ Todos los items procesados y stock actualizado');
+                      
+                      // Insertar pagos
+                      if (payments && payments.length > 0) {
+                        let paymentsInserted = 0;
+                        payments.forEach((payment) => {
+                          db.run(
+                            `INSERT INTO sale_payments (sale_id, payment_data, amount, currency, method) 
+                             VALUES (?, ?, ?, ?, ?)`,
+                            [saleId, JSON.stringify(payment), payment.amount, payment.currency, payment.method],
+                            function(paymentErr) {
+                              if (paymentErr && !hasError) {
+                                hasError = true;
+                                console.error('❌ Error insertando pago:', paymentErr);
+                                db.run('ROLLBACK');
+                                return res.status(400).json({ error: paymentErr.message });
+                              }
+                              
+                              paymentsInserted++;
+                              console.log(`💳 Pago ${paymentsInserted}/${payments.length} insertado`);
+                              
+                              if (paymentsInserted === payments.length && !hasError) {
+                                db.run('COMMIT');
+                                console.log('🎉 Venta completa guardada exitosamente con stock actualizado');
+                                res.json({ id: saleId });
+                              }
+                            }
+                          );
+                        });
+                      } else {
+                        db.run('COMMIT');
+                        console.log('🎉 Venta guardada exitosamente (sin pagos)');
+                        res.json({ id: saleId });
+                      }
+                    }
+                  });
+                }
+              }
+            );
+          });
+        } else {
+          // Sin items, solo insertar pagos
           if (payments && payments.length > 0) {
+            let paymentsInserted = 0;
             payments.forEach((payment) => {
               db.run(
                 `INSERT INTO sale_payments (sale_id, payment_data, amount, currency, method) 
@@ -155,15 +174,22 @@ router.post('/', (req, res) => {
                     return res.status(400).json({ error: paymentErr.message });
                   }
                   
-                  console.log('💳 Pago insertado exitosamente');
-                  checkCompletion();
+                  paymentsInserted++;
+                  
+                  if (paymentsInserted === payments.length) {
+                    db.run('COMMIT');
+                    res.json({ id: saleId });
+                  }
                 }
               );
             });
+          } else {
+            db.run('COMMIT');
+            res.json({ id: saleId });
           }
         }
-      );
-    });
+      }
+    );
   });
 });
 
