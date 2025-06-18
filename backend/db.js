@@ -38,42 +38,26 @@ db.serialize(() => {
     updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
 
-  // Verificar si la tabla sales existe y si tiene la columna client_id
-  db.all("PRAGMA table_info(sales)", [], (err, columns) => {
+  // Eliminar tabla sales existente y recrearla con la estructura correcta
+  console.log('🔄 Recreando tabla sales con estructura correcta...');
+  db.run(`DROP TABLE IF EXISTS sales`);
+  db.run(`CREATE TABLE sales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER,
+    saleDate TEXT,
+    total REAL,
+    userId INTEGER,
+    status TEXT DEFAULT 'completed',
+    subtotal REAL,
+    tax REAL,
+    discount REAL DEFAULT 0,
+    notes TEXT,
+    createdAt TEXT DEFAULT CURRENT_TIMESTAMP
+  )`, (err) => {
     if (err) {
-      console.error('Error verificando estructura de tabla sales:', err);
-      return;
-    }
-    
-    const hasClientId = columns.some(col => col.name === 'client_id');
-    const hasClientIdCamelCase = columns.some(col => col.name === 'clientId');
-    
-    if (columns.length === 0) {
-      // La tabla no existe, crearla con la estructura correcta
-      console.log('📝 Creando tabla sales con estructura correcta...');
-      db.run(`CREATE TABLE sales (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        client_id INTEGER,
-        saleDate TEXT,
-        total REAL,
-        userId INTEGER,
-        status TEXT DEFAULT 'completed',
-        subtotal REAL,
-        tax REAL,
-        discount REAL DEFAULT 0,
-        notes TEXT,
-        createdAt TEXT DEFAULT CURRENT_TIMESTAMP
-      )`);
-    } else if (hasClientIdCamelCase && !hasClientId) {
-      // Existe con clientId, necesitamos añadir client_id o renombrar
-      console.log('🔄 Actualizando estructura de tabla sales para consistencia...');
-      db.run(`ALTER TABLE sales ADD COLUMN client_id INTEGER`);
-      // Copiar datos de clientId a client_id
-      db.run(`UPDATE sales SET client_id = clientId WHERE client_id IS NULL`);
-    } else if (!hasClientId && !hasClientIdCamelCase) {
-      // No tiene ninguna columna de cliente, añadir client_id
-      console.log('➕ Añadiendo columna client_id a tabla sales...');
-      db.run(`ALTER TABLE sales ADD COLUMN client_id INTEGER`);
+      console.error('❌ Error creando tabla sales:', err);
+    } else {
+      console.log('✅ Tabla sales recreada exitosamente con client_id');
     }
   });
 
