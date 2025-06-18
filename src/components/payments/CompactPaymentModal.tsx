@@ -29,8 +29,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
   const [notes, setNotes] = useState('');
 
   const totalPaid = payments.reduce((sum, payment) => {
-    // Convert to USD for comparison
-    const amountInUSD = payment.currency === 'USD' ? payment.amount : payment.amount / 36; // Simple conversion
+    const amountInUSD = payment.currency === 'USD' ? payment.amount : payment.amount / 36;
     return sum + amountInUSD;
   }, 0);
 
@@ -53,8 +52,8 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-5xl h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-2">
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
@@ -66,46 +65,42 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Columna izquierda - Resumen y métodos rápidos */}
-          <div className="space-y-4">
-            {/* Resumen de la transacción */}
-            <div className="bikeERP-card p-4">
-              <h3 className="font-semibold mb-3">Resumen de Venta</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Total a Pagar:</span>
-                  <MultiCurrencyPrice usdAmount={totalAmount} size="sm" />
-                </div>
-                <div className="flex justify-between">
-                  <span>Total Pagado:</span>
-                  <MultiCurrencyPrice usdAmount={totalPaid} size="sm" />
-                </div>
-                <Separator />
-                <div className="flex justify-between font-semibold">
-                  <span>Restante:</span>
-                  <MultiCurrencyPrice usdAmount={remaining} size="sm" />
-                </div>
-              </div>
-            </div>
+        {/* Resumen compacto arriba */}
+        <div className="flex-shrink-0 grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-4">
+          <div className="text-center">
+            <div className="text-sm text-gray-600">Total a Pagar</div>
+            <MultiCurrencyPrice usdAmount={totalAmount} size="sm" />
+          </div>
+          <div className="text-center">
+            <div className="text-sm text-gray-600">Total Pagado</div>
+            <MultiCurrencyPrice usdAmount={totalPaid} size="sm" />
+          </div>
+          <div className="text-center">
+            <div className="text-sm text-gray-600">Restante</div>
+            <MultiCurrencyPrice usdAmount={remaining} size="sm" />
+          </div>
+        </div>
 
-            {/* Métodos de pago rápido */}
+        {/* Contenido principal en dos columnas */}
+        <div className="flex-1 grid grid-cols-2 gap-6 overflow-hidden">
+          {/* Columna izquierda - Métodos rápidos */}
+          <div className="space-y-4 overflow-y-auto">
             <QuickPaymentMethods
               totalAmount={totalAmount}
               payments={payments}
               onPaymentsUpdate={handlePaymentsUpdate}
             />
 
-            {/* Pagos agregados */}
+            {/* Pagos agregados compactos */}
             {payments.length > 0 && (
-              <div className="bikeERP-card p-4">
-                <h3 className="font-semibold mb-3">Pagos Agregados</h3>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
+              <div className="bikeERP-card p-3">
+                <h4 className="font-semibold mb-2 text-sm">Pagos Agregados</h4>
+                <div className="space-y-1 max-h-24 overflow-y-auto">
                   {payments.map((payment, index) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-xs">
                       <div>
-                        <span className="text-sm font-medium">{payment.method.toUpperCase()}</span>
-                        <div className="text-xs text-gray-600">
+                        <span className="font-medium">{payment.method.toUpperCase()}</span>
+                        <div className="text-gray-600">
                           {payment.currency === 'USD' ? '$' : 'Bs.S '}{payment.amount.toFixed(2)}
                         </div>
                       </div>
@@ -116,7 +111,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                           const newPayments = payments.filter((_, i) => i !== index);
                           setPayments(newPayments);
                         }}
-                        className="h-6 w-6 p-0"
+                        className="h-5 w-5 p-0"
                       >
                         <X className="h-3 w-3" />
                       </Button>
@@ -128,29 +123,28 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
           </div>
 
           {/* Columna derecha - Métodos especiales */}
-          <div className="space-y-4">
+          <div className="overflow-y-auto">
             <PaymentMethodSelector
               totalAmount={totalAmount}
               payments={payments}
               onPaymentsUpdate={handlePaymentsUpdate}
             />
-
-            {/* Notas */}
-            <div className="bikeERP-card p-4">
-              <h3 className="font-semibold mb-3">Notas (Opcional)</h3>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Agregar notas sobre la venta..."
-                className="w-full p-2 border border-gray-300 rounded-md text-sm resize-none"
-                rows={2}
-              />
-            </div>
           </div>
         </div>
 
+        {/* Notas compactas */}
+        <div className="flex-shrink-0 mt-4">
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notas opcionales..."
+            className="w-full p-2 border border-gray-300 rounded-md text-sm resize-none"
+            rows={1}
+          />
+        </div>
+
         {/* Footer con botón de completar */}
-        <div className="flex-shrink-0 border-t pt-4">
+        <div className="flex-shrink-0 border-t pt-3 mt-4">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
               {canComplete ? '✅ Pago completo' : `Falta: $${remaining.toFixed(2)}`}

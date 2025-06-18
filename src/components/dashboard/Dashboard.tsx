@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,6 +72,10 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
   };
 
   const handleRefreshData = () => {
+    // Forzar actualización inmediata de todas las estadísticas
+    queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+    queryClient.invalidateQueries({ queryKey: ['sales'] });
+    queryClient.invalidateQueries({ queryKey: ['products'] });
     refetch();
     toast({
       title: "Actualizando datos",
@@ -100,7 +103,7 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
               </p>
               {error && (
                 <p className="text-red-600 text-sm mt-1">
-                  ⚠️ Error conectando con la base de datos - mostrando datos de respaldo
+                  ⚠️ Error conectando con la base de datos - verifique la conexión
                 </p>
               )}
             </div>

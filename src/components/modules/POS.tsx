@@ -8,13 +8,14 @@ import { Separator } from "@/components/ui/separator";
 import { ShoppingCart, Search, Plus, Minus, Trash2, DollarSign, CreditCard } from 'lucide-react';
 import { useInventoryData } from '@/hooks/useInventoryData';
 import { useClientsData } from '@/hooks/useClientsData';
+import { useCreateSale } from '@/hooks/useSalesData';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { usePOSShortcuts } from '@/hooks/usePOSShortcuts';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import ProductSearch from './POS/ProductSearch';
-import QuickPaymentMethods from '@/components/payments/QuickPaymentMethods';
-import PaymentMethodSelector from '@/components/payments/PaymentMethodSelector';
+import CompactPaymentModal from '@/components/payments/CompactPaymentModal';
 import { PaymentInfo } from '@/types/payment';
 import { PaymentMethod } from '@/types/erp';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
@@ -26,19 +27,22 @@ interface CartItem {
   quantity: number;
   stock: number;
   sku: string;
+  brand: string;
+  model: string;
 }
 
 const POS = () => {
+  const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [discount, setDiscount] = useState(0);
-  const [payments, setPayments] = useState<PaymentInfo[]>([]);
-  const [showPaymentSection, setShowPaymentSection] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  const { data: inventory = [], isLoading } = useInventoryData();
+  const { data: inventory = [], isLoading, refetch: refetchInventory } = useInventoryData();
   const { data: clients = [] } = useClientsData();
   const { rates } = useExchangeRates();
+  const createSaleMutation = useCreateSale();
 
   // Barcode scanner
   useBarcodeScanner((barcode) => {
@@ -63,7 +67,7 @@ const POS = () => {
   usePOSShortcuts({
     onClearCart: () => clearCart(),
     onSearchFocus: () => document.getElementById('product-search')?.focus(),
-    onPaymentFocus: () => setShowPaymentSection(true),
+    onPaymentFocus: () => setShowPaymentModal(true),
   });
 
   const addToCart = (product: any) => {
@@ -92,10 +96,12 @@ const POS = () => {
       const newItem: CartItem = {
         id: product.id.toString(),
         name: product.name,
-        price: product.salePrice, // precio en USD
+        price: product.salePrice,
         quantity: 1,
         stock: product.currentStock,
         sku: product.sku,
+        brand: product.brand,
+        model: product.model,
       };
       setCart([...cart, newItem]);
     }
@@ -130,8 +136,6 @@ const POS = () => {
     setCart([]);
     setSelectedClient(null);
     setDiscount(0);
-    setPayments([]);
-    setShowPaymentSection(false);
   };
 
   const calculateSubtotal = () => {
@@ -146,37 +150,76 @@ const POS = () => {
     return calculateSubtotal() - calculateDiscount();
   };
 
-  // Funciones de formateo mejoradas
-  const formatUSD = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
+  const handleProcessPayment = async (payments: PaymentInfo[], notes?: string) => {
+    if (cart.length === 0) {
+      toast({
+        title: "Carrito vacío",
+        description: "Agregue productos antes de procesar la venta",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const formatVES = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'VES',
-      minimumFractionDigits: 0,
-    }).format(amount).replace('VES', 'Bs.S');
-  };
+    if (!user) {
+      toast({
+        title: "Error de autenticación",
+        description: "Usuario no identificado",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const getTotalPaidUSD = () => {
-    return payments.reduce((sum, payment) => {
-      return sum + (payment.currency === 'USD' ? payment.amount : payment.amount / rates.parallel);
-    }, 0);
-  };
+    const saleData = {
+      clientId: selectedClient?.id || 1, // Cliente por defecto si no se selecciona
+      saleDate: new Date().toISOString(),
+      total: calculateTotal(),
+      userId: user.id,
+      payments: payments,
+      items: cart.map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        subtotal: item.price * item.quantity,
+      })),
+      status: 'completed' as const,
+      subtotal: calculateSubtotal(),
+      tax: 0,
+      discount: calculateDiscount(),
+      notes: notes || '',
+    };
 
-  const getRemainingAmountUSD = () => {
-    return Math.max(0, calculateTotal() - getTotalPaidUSD());
+    try {
+      console.log('🛒 Procesando venta:', saleData);
+      
+      await createSaleMutation.mutateAsync(saleData);
+      
+      toast({
+        title: "¡Venta procesada!",
+        description: `Venta por ${calculateTotal().toFixed(2)} USD completada exitosamente`,
+      });
+
+      // Limpiar el carrito y cerrar modal
+      clearCart();
+      setShowPaymentModal(false);
+      
+      // Refrescar inventario para mostrar stock actualizado
+      refetchInventory();
+      
+    } catch (error) {
+      console.error('❌ Error procesando venta:', error);
+      toast({
+        title: "Error al procesar venta",
+        description: "Ocurrió un error al guardar la venta. Inténtelo nuevamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredProducts = inventory.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.brand.toLowerCase().includes(searchTerm.toLowerCase())
+    item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.model.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (isLoading) {
@@ -206,7 +249,6 @@ const POS = () => {
               </div>
             </div>
             
-            {/* Atajos de teclado - pequeños arriba */}
             <div className="flex gap-2">
               <Badge variant="secondary" className="text-xs">Ctrl+F: Buscar</Badge>
               <Badge variant="secondary" className="text-xs">Ctrl+Del: Limpiar</Badge>
@@ -217,11 +259,9 @@ const POS = () => {
       </div>
 
       <div className="p-6">
-        {/* Main POS Layout */}
         <div className="grid grid-cols-12 gap-6 mt-6">
           {/* Left Panel: Products and Search */}
           <div className="col-span-4 space-y-4">
-            {/* Compact Product Search */}
             <Card className="bikeERP-card">
               <CardContent className="p-4">
                 <div className="relative">
@@ -237,7 +277,6 @@ const POS = () => {
               </CardContent>
             </Card>
 
-            {/* Product Results - Compact */}
             <Card className="bikeERP-card">
               <CardContent className="p-4">
                 <div className="max-h-60 overflow-y-auto space-y-2">
@@ -251,7 +290,7 @@ const POS = () => {
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <h4 className="font-medium text-sm text-gray-900">{product.name}</h4>
-                            <p className="text-xs text-gray-500">{product.sku} • Stock: {product.currentStock}</p>
+                            <p className="text-xs text-gray-500">{product.brand} - {product.model} • Stock: {product.currentStock}</p>
                             <MultiCurrencyPrice 
                               usdAmount={product.salePrice} 
                               size="sm" 
@@ -273,7 +312,7 @@ const POS = () => {
           </div>
 
           {/* Center Panel: Shopping Cart */}
-          <div className="col-span-5 space-y-4">
+          <div className="col-span-8 space-y-4">
             <Card className="bikeERP-card">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
@@ -298,7 +337,7 @@ const POS = () => {
                         <div key={item.id} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
                           <div className="flex-1">
                             <h5 className="font-medium text-sm text-slate-900">{item.name}</h5>
-                            <p className="text-xs text-slate-500">{item.sku}</p>
+                            <p className="text-xs text-slate-500">{item.brand} - {item.model}</p>
                             <MultiCurrencyPrice 
                               usdAmount={item.price} 
                               size="sm" 
@@ -336,7 +375,6 @@ const POS = () => {
                       ))}
                     </div>
 
-                    {/* Cart Summary */}
                     <div className="border-t border-gray-200 pt-4 space-y-2">
                       <div className="text-lg font-bold">
                         <span>Total:</span>
@@ -348,7 +386,6 @@ const POS = () => {
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex gap-2 pt-4">
                       <Button 
                         variant="outline" 
@@ -358,7 +395,7 @@ const POS = () => {
                         Limpiar
                       </Button>
                       <Button 
-                        onClick={() => setShowPaymentSection(true)}
+                        onClick={() => setShowPaymentModal(true)}
                         className="flex-1 bg-green-600 hover:bg-green-700"
                         disabled={cart.length === 0}
                       >
@@ -370,92 +407,17 @@ const POS = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* Right Panel: Quick Payments */}
-          <div className="col-span-3">
-            <div className="space-y-4">
-              {cart.length > 0 && (
-                <>
-                  <QuickPaymentMethods
-                    totalAmount={calculateTotal()}
-                    payments={payments}
-                    onPaymentsUpdate={setPayments}
-                  />
-                  
-                  <PaymentMethodSelector
-                    totalAmount={calculateTotal()}
-                    payments={payments}
-                    onPaymentsUpdate={setPayments}
-                  />
-                </>
-              )}
-            </div>
-          </div>
         </div>
-
-        {/* Modal de Pago - Tamaño reducido */}
-        {showPaymentSection && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center justify-between">
-                  Procesar Pago
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowPaymentSection(false)}
-                    className="text-2xl"
-                  >
-                    ×
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-xl font-bold text-blue-600">
-                    Total: {formatUSD(calculateTotal())}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    Equivalente: {formatVES(calculateTotal() * rates.parallel)} (Tasa Paralelo)
-                  </div>
-                </div>
-                
-                <div className="max-h-96 overflow-y-auto">
-                  <QuickPaymentMethods
-                    totalAmount={calculateTotal()}
-                    payments={payments}
-                    onPaymentsUpdate={setPayments}
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowPaymentSection(false)}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      clearCart();
-                      setShowPaymentSection(false);
-                      toast({
-                        title: "Venta procesada",
-                        description: "La venta se ha procesado correctamente",
-                      });
-                    }}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                    disabled={cart.length === 0}
-                  >
-                    Procesar Venta
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
+
+      {/* Compact Payment Modal */}
+      <CompactPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        totalAmount={calculateTotal()}
+        onProcessPayment={handleProcessPayment}
+        isProcessing={createSaleMutation.isPending}
+      />
     </div>
   );
 };
