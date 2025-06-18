@@ -4,13 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import PaymentMethodSelector from './PaymentMethodSelector';
-import CashPaymentForm from './CashPaymentForm';
-import TransferPaymentForm from './TransferPaymentForm';
-import ZellePaymentForm from './ZellePaymentForm';
-import CreditPaymentForm from './CreditPaymentForm';
 import QuickPaymentMethods from './QuickPaymentMethods';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
-import { PaymentMethod, PaymentInfo } from '@/types/payment';
+import { PaymentMethod } from '@/types/erp';
+import { PaymentInfo } from '@/types/payment';
 import { CreditCard, X } from 'lucide-react';
 
 interface CompactPaymentModalProps {
@@ -28,22 +25,15 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
   onProcessPayment,
   isProcessing = false,
 }) => {
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('cash');
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
-  const [currentPayment, setCurrentPayment] = useState<Partial<PaymentInfo>>({});
   const [notes, setNotes] = useState('');
 
-  const handleAddPayment = (payment: PaymentInfo) => {
-    setPayments([...payments, payment]);
-    setCurrentPayment({});
-  };
+  const totalPaid = payments.reduce((sum, payment) => {
+    // Convert to USD for comparison
+    const amountInUSD = payment.currency === 'USD' ? payment.amount : payment.amount / 36; // Simple conversion
+    return sum + amountInUSD;
+  }, 0);
 
-  const handleRemovePayment = (index: number) => {
-    const newPayments = payments.filter((_, i) => i !== index);
-    setPayments(newPayments);
-  };
-
-  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const remaining = totalAmount - totalPaid;
   const canComplete = remaining <= 0.01;
 
@@ -53,29 +43,12 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
     }
   };
 
-  const handleQuickPayment = (payments: PaymentInfo[]) => {
-    onProcessPayment(payments, notes);
+  const handleQuickPayment = (newPayments: PaymentInfo[]) => {
+    onProcessPayment(newPayments, notes);
   };
 
-  const renderPaymentForm = () => {
-    const commonProps = {
-      amount: remaining,
-      onAddPayment: handleAddPayment,
-      maxAmount: remaining,
-    };
-
-    switch (selectedMethod) {
-      case 'cash':
-        return <CashPaymentForm {...commonProps} />;
-      case 'transfer':
-        return <TransferPaymentForm {...commonProps} />;
-      case 'zelle':
-        return <ZellePaymentForm {...commonProps} />;
-      case 'credit':
-        return <CreditPaymentForm {...commonProps} />;
-      default:
-        return null;
-    }
+  const handlePaymentsUpdate = (newPayments: PaymentInfo[]) => {
+    setPayments(newPayments);
   };
 
   return (
@@ -117,14 +90,11 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
             </div>
 
             {/* Métodos de pago rápido */}
-            <div className="bikeERP-card p-4">
-              <h3 className="font-semibold mb-3">Pago Completo</h3>
-              <QuickPaymentMethods
-                totalAmount={totalAmount}
-                onQuickPayment={handleQuickPayment}
-                disabled={isProcessing}
-              />
-            </div>
+            <QuickPaymentMethods
+              totalAmount={totalAmount}
+              payments={payments}
+              onPaymentsUpdate={handlePaymentsUpdate}
+            />
 
             {/* Pagos agregados */}
             {payments.length > 0 && (
@@ -136,13 +106,16 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                       <div>
                         <span className="text-sm font-medium">{payment.method.toUpperCase()}</span>
                         <div className="text-xs text-gray-600">
-                          ${payment.amount.toFixed(2)}
+                          {payment.currency === 'USD' ? '$' : 'Bs.S '}{payment.amount.toFixed(2)}
                         </div>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRemovePayment(index)}
+                        onClick={() => {
+                          const newPayments = payments.filter((_, i) => i !== index);
+                          setPayments(newPayments);
+                        }}
                         className="h-6 w-6 p-0"
                       >
                         <X className="h-3 w-3" />
@@ -154,21 +127,13 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
             )}
           </div>
 
-          {/* Columna derecha - Formularios de pago */}
+          {/* Columna derecha - Métodos especiales */}
           <div className="space-y-4">
-            <div className="bikeERP-card p-4">
-              <h3 className="font-semibold mb-3">Agregar Pago Parcial</h3>
-              
-              <PaymentMethodSelector
-                selectedMethod={selectedMethod}
-                onMethodChange={setSelectedMethod}
-                className="mb-4"
-              />
-
-              <div className="max-h-40 overflow-y-auto">
-                {renderPaymentForm()}
-              </div>
-            </div>
+            <PaymentMethodSelector
+              totalAmount={totalAmount}
+              payments={payments}
+              onPaymentsUpdate={handlePaymentsUpdate}
+            />
 
             {/* Notas */}
             <div className="bikeERP-card p-4">
