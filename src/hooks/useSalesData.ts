@@ -54,7 +54,7 @@ export function useSalesData() {
   return useQuery({
     queryKey: ['sales'],
     queryFn: fetchSales,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30 segundos para datos más frescos
     retry: 2,
   });
 }
@@ -65,8 +65,15 @@ export function useCreateSale() {
   return useMutation({
     mutationFn: createSale,
     onSuccess: () => {
+      console.log('🎉 Venta creada exitosamente, invalidando todas las queries...');
+      
+      // Invalidar todas las queries relacionadas para actualizaciones en tiempo real
       queryClient.invalidateQueries({ queryKey: ['sales'] });
-      queryClient.invalidateQueries({ queryKey: ['reportsData'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] }); // Para actualizar stock
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] }); // Para dashboard
+      queryClient.invalidateQueries({ queryKey: ['reportsData'] }); // Para reportes
+      
+      console.log('✅ Queries invalidadas, datos actualizándose en tiempo real');
     },
   });
 }

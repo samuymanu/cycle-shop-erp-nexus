@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import BarcodeDisplay from '@/components/ui/BarcodeDisplay';
+import BarcodeActions from './BarcodeActions';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 import { Edit, MoreHorizontal, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -70,10 +71,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                   <TableCell>
                     <div className="space-y-2">
                       <div className="text-sm font-mono text-gray-600">{item.sku}</div>
-                      <BarcodeDisplay 
+                      <BarcodeActions 
                         value={item.sku} 
-                        size="small"
-                        showValue={false}
+                        productId={item.id}
+                        onSkuRegenerated={() => window.location.reload()}
                       />
                     </div>
                   </TableCell>

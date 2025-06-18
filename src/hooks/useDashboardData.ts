@@ -120,8 +120,8 @@ export function useDashboardData() {
   return useQuery({
     queryKey: ['dashboardStats'],
     queryFn: fetchDashboardStats,
-    staleTime: 1 * 60 * 1000, // 1 minuto para actualizaciones más frecuentes
-    refetchInterval: 2 * 60 * 1000, // Actualizar cada 2 minutos
+    staleTime: 30 * 1000, // 30 segundos para actualizaciones más frecuentes
+    refetchInterval: 60 * 1000, // Actualizar cada minuto
     retry: 2,
   });
 }
