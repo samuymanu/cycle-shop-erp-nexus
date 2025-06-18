@@ -17,7 +17,7 @@ router.get('/', (req, res) => {
       if (!salesMap[row.id]) {
         salesMap[row.id] = {
           id: row.id,
-          clientId: row.clientId,
+          clientId: row.client_id, // Mapear client_id a clientId para el frontend
           saleDate: row.saleDate,
           total: row.total,
           userId: row.userId,
@@ -53,9 +53,9 @@ router.post('/', (req, res) => {
   db.serialize(() => {
     db.run('BEGIN TRANSACTION');
     
-    // Insertar venta principal
+    // Insertar venta principal - usar client_id en lugar de clientId
     db.run(
-      `INSERT INTO sales (clientId, saleDate, total, userId, status, subtotal, tax, discount, notes) 
+      `INSERT INTO sales (client_id, saleDate, total, userId, status, subtotal, tax, discount, notes) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [clientId, saleDate, total, userId, status || 'completed', subtotal, tax, discount, notes],
       function(err) {
