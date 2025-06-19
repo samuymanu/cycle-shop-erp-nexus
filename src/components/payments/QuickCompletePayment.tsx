@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, CreditCard } from 'lucide-react';
-import { PaymentInfo, PaymentMethod } from '@/types/payment';
+import { PaymentInfo, PaymentMethod, CashPaymentInfo, CardPaymentInfo } from '@/types/payment';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 
 interface QuickCompletePaymentProps {
@@ -18,12 +18,38 @@ const QuickCompletePayment: React.FC<QuickCompletePaymentProps> = ({
   onOpenMixedPayment,
 }) => {
   const handleCompletePayment = (method: PaymentMethod, currency: 'USD' | 'VES') => {
-    const payment: PaymentInfo = {
-      method: method,
-      amount: totalAmount,
-      currency: currency,
-      notes: `Pago completo en ${method.toUpperCase()}`,
-    };
+    let payment: PaymentInfo;
+    
+    if (method === PaymentMethod.CASH_USD) {
+      payment = {
+        method: PaymentMethod.CASH_USD,
+        amount: totalAmount,
+        currency: 'USD',
+        notes: `Pago completo en ${method.toUpperCase()}`,
+      } as CashPaymentInfo;
+    } else if (method === PaymentMethod.CASH_VES) {
+      payment = {
+        method: PaymentMethod.CASH_VES,
+        amount: totalAmount * 36,
+        currency: 'VES',
+        notes: `Pago completo en ${method.toUpperCase()}`,
+      } as CashPaymentInfo;
+    } else if (method === PaymentMethod.CARD) {
+      payment = {
+        method: PaymentMethod.CARD,
+        amount: totalAmount * 36,
+        currency: 'VES',
+        notes: `Pago completo en ${method.toUpperCase()}`,
+      } as CardPaymentInfo;
+    } else {
+      // Fallback for other payment methods
+      payment = {
+        method: method,
+        amount: currency === 'USD' ? totalAmount : totalAmount * 36,
+        currency: currency,
+        notes: `Pago completo en ${method.toUpperCase()}`,
+      } as any;
+    }
     
     onCompletePayment([payment]);
   };
