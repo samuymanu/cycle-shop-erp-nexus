@@ -15,7 +15,7 @@ import { useCreateProduct } from '@/hooks/useInventoryData';
 import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Save, Settings, AlertCircle } from 'lucide-react';
-import { ProductCategory } from '@/types/erp';
+import { ProductCategory, ProductType } from '@/types/erp';
 import CategoryManagementDialog from './CategoryManagementDialog';
 
 interface AddProductDialogProps {
@@ -41,7 +41,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
     brand: '',
     model: '',
     description: '',
-    type: 'part' as const,
+    type: ProductType.PART,
     isActive: true,
   });
 
@@ -90,7 +90,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
         brand: '',
         model: '',
         description: '',
-        type: 'part' as const,
+        type: ProductType.PART,
         isActive: true,
       });
     } catch (error) {
