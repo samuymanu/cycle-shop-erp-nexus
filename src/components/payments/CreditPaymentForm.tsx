@@ -1,98 +1,197 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CreditPaymentInfo } from '@/types/payment';
+import { CreditCard } from 'lucide-react';
+import { PaymentInfo } from '@/types/payment';
 import { useClientsData } from '@/hooks/useClientsData';
+import QuickCreateClientDialog from '@/components/dialogs/QuickCreateClientDialog';
 
 interface CreditPaymentFormProps {
-  paymentInfo: Partial<CreditPaymentInfo>;
-  onUpdate: (info: Partial<CreditPaymentInfo>) => void;
   totalAmount: number;
+  onAddPayment: (payment: PaymentInfo) => void;
 }
 
 const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
-  paymentInfo,
-  onUpdate,
-  totalAmount
+  totalAmount,
+  onAddPayment,
 }) => {
-  const { data: clients = [] } = useClientsData();
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [creditAmount, setCreditAmount] = useState(totalAmount.toString());
+  const [dueDate, setDueDate] = useState('');
+  const [installments, setInstallments] = useState('');
+  const [interestRate, setInterestRate] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const { data: clients = [], refetch: refetchClients } = useClientsData();
+
+  useEffect(() => {
+    // Establecer fecha de vencimiento por defecto (30 días)
+    const defaultDueDate = new Date();
+    defaultDueDate.setDate(defaultDueDate.getDate() + 30);
+    setDueDate(defaultDueDate.toISOString().split('T')[0]);
+  }, []);
+
+  const selectedClient = clients.find(c => c.id === parseInt(selectedClientId));
+  const maxCreditAmount = selectedClient ? Math.max(0, totalAmount + (selectedClient.balance > 0 ? selectedClient.balance : 0)) : totalAmount;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedClientId) {
+      return;
+    }
+
+    const amount = parseFloat(creditAmount);
+    if (amount <= 0 || amount > maxCreditAmount) {
+      return;
+    }
+
+    const payment: PaymentInfo = {
+      method: 'credit',
+      amount,
+      currency: 'USD',
+      reference: `Cliente ID: ${selectedClientId}`,
+      notes: `Crédito hasta ${dueDate}. ${notes}`,
+      clientId: parseInt(selectedClientId),
+      dueDate,
+      installments: installments ? parseInt(installments) : undefined,
+      interestRate: interestRate ? parseFloat(interestRate) : undefined,
+    };
+
+    onAddPayment(payment);
+    
+    // Limpiar formulario
+    setCreditAmount('');
+    setNotes('');
+  };
+
+  const handleClientCreated = (newClient: any) => {
+    setSelectedClientId(newClient.id.toString());
+    refetchClients();
+  };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <Label>Cliente</Label>
-        <Select 
-          value={paymentInfo.clientId || ''} 
-          onValueChange={(value) => onUpdate({ ...paymentInfo, clientId: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Seleccionar cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            {clients.map((client) => (
-              <SelectItem key={client.id} value={client.id.toString()}>
-                {client.name} - {client.documentNumber}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+    <Card className="bikeERP-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          Agregar Pago Especial
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="paymentMethod">Método de Pago</Label>
+            <select
+              id="paymentMethod"
+              className="bikeERP-select"
+              defaultValue="credit"
+            >
+              <option value="credit">Crédito</option>
+            </select>
+          </div>
 
-      <div>
-        <Label>Monto del Crédito</Label>
-        <Input
-          type="number"
-          value={paymentInfo.amount || ''}
-          onChange={(e) => onUpdate({ ...paymentInfo, amount: Number(e.target.value) })}
-          placeholder={`Máximo: ${totalAmount.toLocaleString()}`}
-        />
-      </div>
+          <div>
+            <Label htmlFor="client">Cliente</Label>
+            <div className="flex gap-2">
+              <select
+                id="client"
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                className="bikeERP-select flex-1"
+                required
+              >
+                <option value="">Seleccionar cliente</option>
+                {clients.map(client => (
+                  <option key={client.id} value={client.id}>
+                    {client.name} - {client.documentNumber}
+                    {client.balance !== 0 && ` (Balance: $${(client.balance / 36).toFixed(2)})`}
+                  </option>
+                ))}
+              </select>
+              <QuickCreateClientDialog onClientCreated={handleClientCreated} />
+            </div>
+          </div>
 
-      <div>
-        <Label>Fecha de Vencimiento</Label>
-        <Input
-          type="date"
-          value={paymentInfo.dueDate || ''}
-          onChange={(e) => onUpdate({ ...paymentInfo, dueDate: e.target.value })}
-          min={new Date().toISOString().split('T')[0]}
-        />
-      </div>
+          <div>
+            <Label htmlFor="creditAmount">Monto del Crédito (USD)</Label>
+            <Input
+              id="creditAmount"
+              type="number"
+              step="0.01"
+              max={maxCreditAmount}
+              value={creditAmount}
+              onChange={(e) => setCreditAmount(e.target.value)}
+              placeholder={`Máximo: $${maxCreditAmount.toFixed(2)}`}
+              required
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Máximo: ${maxCreditAmount.toFixed(2)}
+            </p>
+          </div>
 
-      <div>
-        <Label>Cuotas (Opcional)</Label>
-        <Input
-          type="number"
-          value={paymentInfo.installments || ''}
-          onChange={(e) => onUpdate({ ...paymentInfo, installments: Number(e.target.value) })}
-          placeholder="Número de cuotas"
-          min="1"
-        />
-      </div>
+          <div>
+            <Label htmlFor="dueDate">Fecha de Vencimiento</Label>
+            <Input
+              id="dueDate"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              required
+            />
+          </div>
 
-      <div>
-        <Label>Tasa de Interés % (Opcional)</Label>
-        <Input
-          type="number"
-          step="0.01"
-          value={paymentInfo.interestRate || ''}
-          onChange={(e) => onUpdate({ ...paymentInfo, interestRate: Number(e.target.value) })}
-          placeholder="Ej: 5.5"
-        />
-      </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="installments">Cuotas (Opcional)</Label>
+              <Input
+                id="installments"
+                type="number"
+                min="1"
+                value={installments}
+                onChange={(e) => setInstallments(e.target.value)}
+                placeholder="Número de cuotas"
+              />
+            </div>
+            <div>
+              <Label htmlFor="interestRate">Tasa de Interés % (Opcional)</Label>
+              <Input
+                id="interestRate"
+                type="number"
+                step="0.1"
+                min="0"
+                value={interestRate}
+                onChange={(e) => setInterestRate(e.target.value)}
+                placeholder="Ej: 5.5"
+              />
+            </div>
+          </div>
 
-      <div>
-        <Label>Notas</Label>
-        <Textarea
-          value={paymentInfo.notes || ''}
-          onChange={(e) => onUpdate({ ...paymentInfo, notes: e.target.value })}
-          placeholder="Observaciones adicionales sobre el crédito"
-          rows={3}
-        />
-      </div>
-    </div>
+          <div>
+            <Label htmlFor="notes">Notas</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Observaciones adicionales sobre el crédito"
+              rows={3}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full bikeERP-button-primary"
+            disabled={!selectedClientId || !creditAmount}
+          >
+            Agregar Pago
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

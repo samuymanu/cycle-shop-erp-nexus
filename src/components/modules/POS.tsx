@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import AdvancedProductSearch from './POS/AdvancedProductSearch';
 import CompactPaymentModal from '@/components/payments/CompactPaymentModal';
+import QuickCompletePayment from '@/components/payments/QuickCompletePayment';
 import { PaymentInfo } from '@/types/payment';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 
@@ -178,6 +178,14 @@ const POS = () => {
     }
   };
 
+  const handleQuickCompletePayment = async (payments: PaymentInfo[]) => {
+    await handleProcessPayment(payments);
+  };
+
+  const handleOpenMixedPayment = () => {
+    setShowPaymentModal(true);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -251,6 +259,15 @@ const POS = () => {
                 </select>
               </CardContent>
             </Card>
+
+            {/* Pagos rápidos - nueva sección */}
+            {cart.length > 0 && (
+              <QuickCompletePayment
+                totalAmount={calculateTotal()}
+                onCompletePayment={handleQuickCompletePayment}
+                onOpenMixedPayment={handleOpenMixedPayment}
+              />
+            )}
           </div>
 
           {/* Panel derecho: Carrito mejorado */}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import CreateClientDialog from '@/components/dialogs/CreateClientDialog';
 import ViewClientDialog from '@/components/dialogs/ViewClientDialog';
 import EditClientDialog from '@/components/dialogs/EditClientDialog';
 import DeleteClientDialog from '@/components/dialogs/DeleteClientDialog';
+import AdjustClientBalanceDialog from '@/components/dialogs/AdjustClientBalanceDialog';
 import { Plus, Users, Search, Edit, Eye, UserCheck, UserX, Trash2 } from 'lucide-react';
 
 const Clients = () => {
@@ -226,7 +226,10 @@ const Clients = () => {
                         <div className="flex gap-2">
                           <ViewClientDialog client={client} />
                           {hasPermission('clients', 'update') && (
-                            <EditClientDialog client={client} />
+                            <>
+                              <EditClientDialog client={client} />
+                              <AdjustClientBalanceDialog client={client} />
+                            </>
                           )}
                           {hasPermission('clients', 'delete') && (
                             <DeleteClientDialog client={client} />
@@ -241,6 +244,7 @@ const Clients = () => {
           </CardContent>
         </Card>
 
+        {/* No clients found */}
         {filteredClients.length === 0 && (
           <Card className="bikeERP-card">
             <CardContent className="text-center py-8">
