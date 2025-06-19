@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CreditCard } from 'lucide-react';
-import { PaymentInfo } from '@/types/payment';
+import { PaymentInfo, PaymentMethod } from '@/types/payment';
 import { useClientsData } from '@/hooks/useClientsData';
 import QuickCreateClientDialog from '@/components/dialogs/QuickCreateClientDialog';
 
@@ -51,15 +50,14 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
     }
 
     const payment: PaymentInfo = {
-      method: 'credit',
+      method: PaymentMethod.CREDIT,
       amount,
       currency: 'USD',
-      reference: `Cliente ID: ${selectedClientId}`,
-      notes: `Crédito hasta ${dueDate}. ${notes}`,
-      clientId: parseInt(selectedClientId),
+      clientId: selectedClientId,
       dueDate,
       installments: installments ? parseInt(installments) : undefined,
       interestRate: interestRate ? parseFloat(interestRate) : undefined,
+      notes: `Crédito hasta ${dueDate}. ${notes}`,
     };
 
     onAddPayment(payment);
@@ -89,9 +87,9 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
             <select
               id="paymentMethod"
               className="bikeERP-select"
-              defaultValue="credit"
+              defaultValue={PaymentMethod.CREDIT}
             >
-              <option value="credit">Crédito</option>
+              <option value={PaymentMethod.CREDIT}>Crédito</option>
             </select>
           </div>
 

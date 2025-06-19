@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +35,6 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
 }) => {
   const [showAddPayment, setShowAddPayment] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(PaymentMethod.TRANSFER);
-  const [currentPaymentInfo, setCurrentPaymentInfo] = useState<Partial<PaymentInfo>>({});
 
   const getTotalPaid = () => {
     return payments.reduce((sum, payment) => {
@@ -55,6 +55,16 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     }).format(amount);
   };
 
+  const addPayment = (payment: PaymentInfo) => {
+    onPaymentsUpdate([...payments, payment]);
+    setShowAddPayment(false);
+    
+    toast({
+      title: "Pago agregado",
+      description: `${PaymentMethodLabels[payment.method]} por ${formatCurrency(payment.amount, payment.currency)}`,
+    });
+  };
+
   const renderPaymentForm = () => {
     const remaining = getRemainingAmount();
     
@@ -62,24 +72,23 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
       case PaymentMethod.CREDIT:
         return (
           <CreditPaymentForm
-            paymentInfo={currentPaymentInfo as Partial<CreditPaymentInfo>}
-            onUpdate={(info) => setCurrentPaymentInfo(info)}
             totalAmount={remaining}
+            onAddPayment={addPayment}
           />
         );
       case PaymentMethod.ZELLE:
         return (
           <ZellePaymentForm
-            paymentInfo={currentPaymentInfo as Partial<ZellePaymentInfo>}
-            onUpdate={(info) => setCurrentPaymentInfo(info)}
+            paymentInfo={{} as Partial<ZellePaymentInfo>}
+            onUpdate={() => {}}
             totalAmount={remaining}
           />
         );
       case PaymentMethod.TRANSFER:
         return (
           <TransferPaymentForm
-            paymentInfo={currentPaymentInfo as Partial<TransferPaymentInfo>}
-            onUpdate={(info) => setCurrentPaymentInfo(info)}
+            paymentInfo={{} as Partial<TransferPaymentInfo>}
+            onUpdate={() => {}}
             totalAmount={remaining}
           />
         );
@@ -90,32 +99,6 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
           </div>
         );
     }
-  };
-
-  const addPayment = () => {
-    if (!currentPaymentInfo.amount || currentPaymentInfo.amount <= 0) {
-      toast({
-        title: "Error",
-        description: "Debe especificar un monto válido",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newPayment: PaymentInfo = {
-      ...currentPaymentInfo,
-      method: selectedMethod,
-      currency: currentPaymentInfo.currency || 'VES',
-    } as PaymentInfo;
-
-    onPaymentsUpdate([...payments, newPayment]);
-    setCurrentPaymentInfo({});
-    setShowAddPayment(false);
-    
-    toast({
-      title: "Pago agregado",
-      description: `${PaymentMethodLabels[selectedMethod]} por ${formatCurrency(newPayment.amount, newPayment.currency)}`,
-    });
   };
 
   const removePayment = (index: number) => {
@@ -186,7 +169,6 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 <label className="block text-sm font-medium mb-2">Método de Pago</label>
                 <Select value={selectedMethod} onValueChange={(value) => {
                   setSelectedMethod(value as PaymentMethod);
-                  setCurrentPaymentInfo({ method: value as PaymentMethod });
                 }}>
                   <SelectTrigger>
                     <SelectValue />
@@ -207,9 +189,6 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddPayment(false)}>
                 Cancelar
-              </Button>
-              <Button onClick={addPayment}>
-                Agregar Pago
               </Button>
             </DialogFooter>
           </DialogContent>

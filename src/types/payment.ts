@@ -7,6 +7,7 @@ export interface BasePaymentInfo {
   method: PaymentMethod;
   amount: number;
   currency: 'VES' | 'USD';
+  notes?: string;
 }
 
 export interface CashPaymentInfo extends BasePaymentInfo {
@@ -17,42 +18,41 @@ export interface CashPaymentInfo extends BasePaymentInfo {
 
 export interface CardPaymentInfo extends BasePaymentInfo {
   method: PaymentMethod.CARD;
-  cardType: 'debit' | 'credit';
-  last4Digits: string;
-  authCode: string;
+  cardType?: 'debit' | 'credit';
+  last4Digits?: string;
+  authCode?: string;
   terminal?: string;
 }
 
 export interface TransferPaymentInfo extends BasePaymentInfo {
   method: PaymentMethod.TRANSFER;
-  bankName: string;
-  referenceNumber: string;
+  bankName?: string;
+  referenceNumber?: string;
   senderAccount?: string;
 }
 
 export interface CreditPaymentInfo extends BasePaymentInfo {
   method: PaymentMethod.CREDIT;
   clientId: string;
-  dueDate: string;
+  dueDate?: string;
   interestRate?: number;
   installments?: number;
-  notes?: string;
 }
 
 export interface ZellePaymentInfo extends BasePaymentInfo {
   method: PaymentMethod.ZELLE;
-  holderName: string;
-  confirmationNumber: string;
-  email: string;
+  holderName?: string;
+  confirmationNumber?: string;
+  email?: string;
   phone?: string;
 }
 
 export interface USDTPaymentInfo extends BasePaymentInfo {
   method: PaymentMethod.USDT;
-  walletAddress: string;
-  transactionHash: string;
-  network: 'TRC20' | 'ERC20' | 'BSC';
-  rate: number; // Tasa de cambio usada
+  walletAddress?: string;
+  transactionHash?: string;
+  network?: 'TRC20' | 'ERC20' | 'BSC';
+  rate?: number; // Tasa de cambio usada
 }
 
 export type PaymentInfo = 

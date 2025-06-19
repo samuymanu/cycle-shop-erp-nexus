@@ -72,7 +72,7 @@ const DebtAlertsCard: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <MultiCurrencyPrice usdAmount={debt.debtAmount / 36} size="xs" />
+                    <MultiCurrencyPrice usdAmount={debt.debtAmount / 36} size="sm" />
                   </div>
                 </div>
               ))}
@@ -105,7 +105,7 @@ const DebtAlertsCard: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <MultiCurrencyPrice usdAmount={debt.debtAmount / 36} size="xs" />
+                    <MultiCurrencyPrice usdAmount={debt.debtAmount / 36} size="sm" />
                   </div>
                 </div>
               ))}

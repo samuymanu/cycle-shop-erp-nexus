@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Check, CreditCard } from 'lucide-react';
-import { PaymentInfo } from '@/types/payment';
+import { PaymentInfo, PaymentMethod } from '@/types/payment';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
 
 interface QuickCompletePaymentProps {
@@ -17,12 +17,11 @@ const QuickCompletePayment: React.FC<QuickCompletePaymentProps> = ({
   onCompletePayment,
   onOpenMixedPayment,
 }) => {
-  const handleCompletePayment = (method: string, currency: string) => {
+  const handleCompletePayment = (method: PaymentMethod, currency: 'USD' | 'VES') => {
     const payment: PaymentInfo = {
-      method: method as any,
+      method: method,
       amount: totalAmount,
-      currency: currency as 'USD' | 'VES',
-      reference: '',
+      currency: currency,
       notes: `Pago completo en ${method.toUpperCase()}`,
     };
     
@@ -41,7 +40,7 @@ const QuickCompletePayment: React.FC<QuickCompletePaymentProps> = ({
         <div className="space-y-2">
           {/* Pago completo en USD */}
           <Button
-            onClick={() => handleCompletePayment('cash', 'USD')}
+            onClick={() => handleCompletePayment(PaymentMethod.CASH_USD, 'USD')}
             className="w-full bg-green-600 hover:bg-green-700 text-white"
             size="sm"
           >
@@ -51,7 +50,7 @@ const QuickCompletePayment: React.FC<QuickCompletePaymentProps> = ({
           
           {/* Pago completo en Bs.S */}
           <Button
-            onClick={() => handleCompletePayment('cash', 'VES')}
+            onClick={() => handleCompletePayment(PaymentMethod.CASH_VES, 'VES')}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             size="sm"
           >
@@ -61,7 +60,7 @@ const QuickCompletePayment: React.FC<QuickCompletePaymentProps> = ({
           
           {/* Pago completo con tarjeta */}
           <Button
-            onClick={() => handleCompletePayment('card', 'VES')}
+            onClick={() => handleCompletePayment(PaymentMethod.CARD, 'VES')}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white"
             size="sm"
           >
