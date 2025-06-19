@@ -12,7 +12,7 @@ const DebtAlertsCard: React.FC = () => {
   
   const overdueDebts = debts.filter(debt => debt.status === 'overdue');
   const dueSoonDebts = debts.filter(debt => debt.status === 'due_soon');
-  const totalOverdueAmount = overdueDebts.reduce((sum, debt) => sum + debt.debtAmount, 0);
+  const totalOverdueAmount = overdueDebts.reduce((sum, debt) => sum + debt.totalDebt, 0);
 
   if (isLoading) {
     return (
@@ -57,7 +57,7 @@ const DebtAlertsCard: React.FC = () => {
             </div>
             <div className="bg-red-50 p-2 rounded-lg">
               <div className="text-xs text-red-700 mb-1">Total vencido:</div>
-              <MultiCurrencyPrice usdAmount={totalOverdueAmount / 36} size="sm" />
+              <MultiCurrencyPrice usdAmount={totalOverdueAmount} size="sm" />
             </div>
             <div className="space-y-1 max-h-32 overflow-y-auto">
               {overdueDebts.slice(0, 3).map((debt) => (
@@ -72,7 +72,7 @@ const DebtAlertsCard: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <MultiCurrencyPrice usdAmount={debt.debtAmount / 36} size="sm" />
+                    <MultiCurrencyPrice usdAmount={debt.totalDebt} size="sm" />
                   </div>
                 </div>
               ))}
@@ -105,7 +105,7 @@ const DebtAlertsCard: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <MultiCurrencyPrice usdAmount={debt.debtAmount / 36} size="sm" />
+                    <MultiCurrencyPrice usdAmount={debt.totalDebt} size="sm" />
                   </div>
                 </div>
               ))}
