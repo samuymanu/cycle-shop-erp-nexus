@@ -115,7 +115,7 @@ const POS = () => {
       userId: parseInt(user.id),
       payments: payments,
       items: cart.map(item => ({
-        productId: item.id,
+        productId: parseInt(item.id), // Convert string id back to number for API
         quantity: item.quantity,
         unitPrice: item.price * (1 - (item.discount || 0) / 100),
         subtotal: item.price * item.quantity * (1 - (item.discount || 0) / 100),

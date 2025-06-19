@@ -1,26 +1,34 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, API_CONFIG } from "@/config/api";
-
-export interface Product {
-  id: number;
-  name: string;
-  sku: string;
-  category: string;
-  salePrice: number;
-  costPrice: number;
-  currentStock: number;
-  minStock: number;
-  maxStock: number;
-  brand: string;
-  model: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Product } from "@/types/erp";
 
 const fetchProducts = async (): Promise<Product[]> => {
   console.log('🔧 Obteniendo productos desde backend local...');
-  return await apiRequest(API_CONFIG.endpoints.products);
+  const rawProducts = await apiRequest(API_CONFIG.endpoints.products);
+  
+  // Transform raw data to match Product interface from erp types
+  return rawProducts.map((product: any) => ({
+    id: product.id.toString(), // Convert to string as erp types expect string id
+    name: product.name,
+    description: product.description || '', // Provide default if missing
+    sku: product.sku,
+    category: product.category,
+    type: product.type || 'part', // Provide default ProductType
+    salePrice: product.salePrice,
+    costPrice: product.costPrice,
+    currentStock: product.currentStock,
+    minStock: product.minStock,
+    maxStock: product.maxStock,
+    brand: product.brand,
+    model: product.model,
+    isActive: product.isActive !== undefined ? product.isActive : true, // Default to true
+    serialNumber: product.serialNumber,
+    size: product.size,
+    location: product.location,
+    createdAt: new Date(product.createdAt),
+    updatedAt: new Date(product.updatedAt),
+  }));
 };
 
 const createProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ id: number; sku: string; message: string }> => {
@@ -30,20 +38,20 @@ const createProduct = async (productData: Omit<Product, 'id' | 'createdAt' | 'up
   });
 };
 
-const updateProduct = async ({ id, ...productData }: Partial<Product> & { id: number }): Promise<{ changes: number }> => {
+const updateProduct = async ({ id, ...productData }: Partial<Product> & { id: string }): Promise<{ changes: number }> => {
   return await apiRequest(`${API_CONFIG.endpoints.products}/${id}`, {
     method: 'PUT',
     body: JSON.stringify(productData),
   });
 };
 
-const deleteProduct = async (id: number): Promise<{ changes: number }> => {
+const deleteProduct = async (id: string): Promise<{ changes: number }> => {
   return await apiRequest(`${API_CONFIG.endpoints.products}/${id}`, {
     method: 'DELETE',
   });
 };
 
-const regenerateSKU = async (id: number): Promise<{ id: number; sku: string; message: string }> => {
+const regenerateSKU = async (id: string): Promise<{ id: number; sku: string; message: string }> => {
   return await apiRequest(`${API_CONFIG.endpoints.products}/${id}/regenerate-sku`, {
     method: 'POST',
   });
