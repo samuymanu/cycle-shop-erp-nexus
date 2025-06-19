@@ -1,20 +1,19 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, API_CONFIG } from "@/config/api";
 import { DashboardStats, Product } from "@/types/erp";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
-  console.log('📊 Obteniendo estadísticas del dashboard desde la base de datos...');
+  console.log('📊 Obteniendo estadísticas del dashboard con datos en tiempo real...');
 
   try {
-    // Obtener ventas, productos y items de venta en paralelo
+    // Obtener datos en paralelo con refetch forzado
     const [salesResponse, productsResponse, saleItemsResponse] = await Promise.all([
       apiRequest(API_CONFIG.endpoints.sales),
       apiRequest(API_CONFIG.endpoints.products),
       apiRequest(API_CONFIG.endpoints.sale_items),
     ]);
 
-    console.log('🔄 Datos obtenidos:', {
+    console.log('🔄 Datos actualizados obtenidos:', {
       ventas: salesResponse.length,
       productos: productsResponse.length,
       items: saleItemsResponse.length
@@ -99,11 +98,11 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       lowStockItems,
       activeServiceOrders,
       pendingPayments,
-      topSellingProducts: topSellingArr,
+      topSellingProducts: [],
     };
 
   } catch (error) {
-    console.error('❌ Error obteniendo estadísticas del dashboard:', error);
+    console.error('❌ Error obteniendo estadísticas actualizadas:', error);
     // Datos de fallback en caso de error
     return {
       todaySales: 0,
@@ -120,8 +119,9 @@ export function useDashboardData() {
   return useQuery({
     queryKey: ['dashboardStats'],
     queryFn: fetchDashboardStats,
-    staleTime: 30 * 1000, // 30 segundos para actualizaciones más frecuentes
-    refetchInterval: 60 * 1000, // Actualizar cada minuto
+    staleTime: 15 * 1000, // 15 segundos para datos más frescos
+    refetchInterval: 30 * 1000, // Actualizar cada 30 segundos
+    refetchOnWindowFocus: true, // Refrescar al enfocar ventana
     retry: 2,
   });
 }

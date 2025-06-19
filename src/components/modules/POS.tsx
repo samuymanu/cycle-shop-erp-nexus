@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -225,15 +226,24 @@ const POS = () => {
       </div>
 
       <div className="p-6">
+        {/* Layout mejorado según referencia */}
         <div className="grid grid-cols-12 gap-6">
-          {/* Panel izquierdo: Búsqueda mejorada */}
-          <div className="col-span-5 space-y-4">
-            <AdvancedProductSearch
-              products={inventory}
-              onAddToCart={addToCart}
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-            />
+          {/* Panel izquierdo: Búsqueda más pequeña */}
+          <div className="col-span-3 space-y-4">
+            {/* Búsqueda de productos - más compacta */}
+            <Card className="bikeERP-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium">Buscar Productos</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <AdvancedProductSearch
+                  products={inventory}
+                  onAddToCart={addToCart}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                />
+              </CardContent>
+            </Card>
 
             {/* Selector de cliente */}
             <Card className="bikeERP-card">
@@ -259,25 +269,16 @@ const POS = () => {
                 </select>
               </CardContent>
             </Card>
-
-            {/* Pagos rápidos - nueva sección */}
-            {cart.length > 0 && (
-              <QuickCompletePayment
-                totalAmount={calculateTotal()}
-                onCompletePayment={handleQuickCompletePayment}
-                onOpenMixedPayment={handleOpenMixedPayment}
-              />
-            )}
           </div>
 
-          {/* Panel derecho: Carrito mejorado */}
-          <div className="col-span-7 space-y-4">
+          {/* Panel central: Carrito con más protagonismo */}
+          <div className="col-span-6 space-y-4">
             <Card className="bikeERP-card">
               <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                      <ShoppingCart className="h-5 w-5" />
+                    <CardTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                      <ShoppingCart className="h-6 w-6" />
                       Carrito de Compras
                     </CardTitle>
                     <CardDescription className="text-slate-600">
@@ -304,19 +305,19 @@ const POS = () => {
               
               <CardContent className="space-y-4">
                 {cart.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">Carrito vacío</p>
-                    <p className="text-xs text-gray-400">Busque y agregue productos</p>
+                  <div className="text-center py-12">
+                    <ShoppingCart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-lg text-gray-500 mb-2">Carrito vacío</p>
+                    <p className="text-sm text-gray-400">Busque y agregue productos para comenzar</p>
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
                       {cart.map((item) => (
-                        <div key={item.id} className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div key={item.id} className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                           <div className="flex-1 min-w-0">
-                            <h5 className="font-medium text-sm text-slate-900 truncate">{item.name}</h5>
-                            <p className="text-xs text-slate-500">{item.brand} - {item.model}</p>
+                            <h5 className="font-semibold text-slate-900 truncate">{item.name}</h5>
+                            <p className="text-sm text-slate-500">{item.brand} - {item.model}</p>
                             <div className="flex items-center gap-2 mt-1">
                               <MultiCurrencyPrice usdAmount={item.price} size="sm" />
                               {item.discount && (
@@ -334,7 +335,7 @@ const POS = () => {
                               value={item.discount || ''}
                               onChange={(e) => applyItemDiscount(item.id, parseFloat(e.target.value) || 0)}
                               placeholder="0"
-                              className="w-12 h-6 text-xs"
+                              className="w-14 h-7 text-xs"
                               min="0"
                               max="100"
                             />
@@ -347,49 +348,49 @@ const POS = () => {
                               variant="outline"
                               size="sm"
                               onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              className="h-8 w-8 p-0"
+                              className="h-9 w-9 p-0"
                             >
-                              <Minus className="h-3 w-3" />
+                              <Minus className="h-4 w-4" />
                             </Button>
-                            <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                            <span className="text-base font-semibold w-10 text-center">{item.quantity}</span>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              className="h-8 w-8 p-0"
+                              className="h-9 w-9 p-0"
                               disabled={item.quantity >= item.stock}
                             >
-                              <Plus className="h-3 w-3" />
+                              <Plus className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="destructive"
                               size="sm"
                               onClick={() => removeFromCart(item.id)}
-                              className="h-8 w-8 p-0"
+                              className="h-9 w-9 p-0"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Resumen de totales */}
+                    {/* Resumen de totales - más prominente */}
                     <Separator />
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-between text-base">
                         <span>Subtotal:</span>
                         <MultiCurrencyPrice usdAmount={calculateSubtotal()} size="sm" />
                       </div>
                       {calculateGlobalDiscount() > 0 && (
-                        <div className="flex justify-between text-sm text-red-600">
+                        <div className="flex justify-between text-base text-red-600">
                           <span>Descuento total:</span>
                           <span>-${calculateGlobalDiscount().toFixed(2)}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-lg font-bold border-t pt-2">
+                      <div className="flex justify-between text-xl font-bold border-t pt-3">
                         <span>TOTAL:</span>
-                        <MultiCurrencyPrice usdAmount={calculateTotal()} size="md" />
+                        <MultiCurrencyPrice usdAmount={calculateTotal()} size="lg" />
                       </div>
                     </div>
 
@@ -403,36 +404,22 @@ const POS = () => {
                       />
                     </div>
 
-                    {/* Botones de acción */}
-                    <div className="flex gap-2 pt-4">
+                    {/* Botones de acción - más prominentes */}
+                    <div className="flex gap-3 pt-4">
                       <Button 
                         variant="outline" 
                         onClick={clearCart}
                         className="flex-1"
+                        size="lg"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Limpiar
                       </Button>
-                      {lastSaleId && (
-                        <Button 
-                          variant="outline"
-                          onClick={() => {
-                            // Reimprimir último recibo
-                            toast({
-                              title: "Reimpresión",
-                              description: `Reimprimiendo recibo #${lastSaleId}`,
-                            });
-                          }}
-                          className="flex-1"
-                        >
-                          <Receipt className="h-4 w-4 mr-2" />
-                          Reimprimir
-                        </Button>
-                      )}
                       <Button 
                         onClick={() => setShowPaymentModal(true)}
                         className="flex-2 bg-green-600 hover:bg-green-700"
                         disabled={cart.length === 0}
+                        size="lg"
                       >
                         <CreditCard className="h-4 w-4 mr-2" />
                         Procesar Pago
@@ -442,6 +429,40 @@ const POS = () => {
                 )}
               </CardContent>
             </Card>
+          </div>
+
+          {/* Panel derecho: Pagos rápidos más prominentes */}
+          <div className="col-span-3 space-y-4">
+            {cart.length > 0 && (
+              <QuickCompletePayment
+                totalAmount={calculateTotal()}
+                onCompletePayment={handleQuickCompletePayment}
+                onOpenMixedPayment={handleOpenMixedPayment}
+              />
+            )}
+
+            {/* Información adicional */}
+            {lastSaleId && (
+              <Card className="bikeERP-card">
+                <CardContent className="p-4 text-center">
+                  <p className="text-sm text-gray-600 mb-2">Última venta: #{lastSaleId}</p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      toast({
+                        title: "Reimpresión",
+                        description: `Reimprimiendo recibo #${lastSaleId}`,
+                      });
+                    }}
+                    className="w-full"
+                    size="sm"
+                  >
+                    <Receipt className="h-4 w-4 mr-2" />
+                    Reimprimir Recibo
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

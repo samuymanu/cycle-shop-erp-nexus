@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,34 +74,23 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
   };
 
   return (
-    <Card className="bikeERP-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="bikeERP-card h-fit">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <CreditCard className="h-5 w-5" />
-          Agregar Pago Especial
+          Pago a Crédito
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="paymentMethod">Método de Pago</Label>
-            <select
-              id="paymentMethod"
-              className="bikeERP-select"
-              defaultValue={PaymentMethod.CREDIT}
-            >
-              <option value={PaymentMethod.CREDIT}>Crédito</option>
-            </select>
-          </div>
-
-          <div>
-            <Label htmlFor="client">Cliente</Label>
-            <div className="flex gap-2">
+            <Label htmlFor="client" className="text-sm font-medium">Cliente *</Label>
+            <div className="flex gap-2 mt-1">
               <select
                 id="client"
                 value={selectedClientId}
                 onChange={(e) => setSelectedClientId(e.target.value)}
-                className="bikeERP-select flex-1"
+                className="flex-1 h-10 px-3 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               >
                 <option value="">Seleccionar cliente</option>
@@ -116,7 +106,7 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="creditAmount">Monto del Crédito (USD)</Label>
+            <Label htmlFor="creditAmount" className="text-sm font-medium">Monto del Crédito (USD) *</Label>
             <Input
               id="creditAmount"
               type="number"
@@ -125,38 +115,41 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
               value={creditAmount}
               onChange={(e) => setCreditAmount(e.target.value)}
               placeholder={`Máximo: $${maxCreditAmount.toFixed(2)}`}
+              className="mt-1"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              Máximo: ${maxCreditAmount.toFixed(2)}
+              Máximo disponible: ${maxCreditAmount.toFixed(2)}
             </p>
           </div>
 
           <div>
-            <Label htmlFor="dueDate">Fecha de Vencimiento</Label>
+            <Label htmlFor="dueDate" className="text-sm font-medium">Fecha de Vencimiento *</Label>
             <Input
               id="dueDate"
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
+              className="mt-1"
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="installments">Cuotas (Opcional)</Label>
+              <Label htmlFor="installments" className="text-sm font-medium">Cuotas</Label>
               <Input
                 id="installments"
                 type="number"
                 min="1"
                 value={installments}
                 onChange={(e) => setInstallments(e.target.value)}
-                placeholder="Número de cuotas"
+                placeholder="Opcional"
+                className="mt-1"
               />
             </div>
             <div>
-              <Label htmlFor="interestRate">Tasa de Interés % (Opcional)</Label>
+              <Label htmlFor="interestRate" className="text-sm font-medium">Interés %</Label>
               <Input
                 id="interestRate"
                 type="number"
@@ -164,19 +157,21 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
                 min="0"
                 value={interestRate}
                 onChange={(e) => setInterestRate(e.target.value)}
-                placeholder="Ej: 5.5"
+                placeholder="Opcional"
+                className="mt-1"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="notes">Notas</Label>
+            <Label htmlFor="notes" className="text-sm font-medium">Notas</Label>
             <Textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Observaciones adicionales sobre el crédito"
               rows={3}
+              className="mt-1 resize-none"
             />
           </div>
 
@@ -185,7 +180,7 @@ const CreditPaymentForm: React.FC<CreditPaymentFormProps> = ({
             className="w-full bikeERP-button-primary"
             disabled={!selectedClientId || !creditAmount}
           >
-            Agregar Pago
+            Agregar Pago a Crédito
           </Button>
         </form>
       </CardContent>

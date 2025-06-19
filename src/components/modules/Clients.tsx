@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useClientsData } from '@/hooks/useClientsData';
+import { useClientDebtSummary } from '@/hooks/useClientCredits';
 import CreateClientDialog from '@/components/dialogs/CreateClientDialog';
 import ViewClientDialog from '@/components/dialogs/ViewClientDialog';
 import EditClientDialog from '@/components/dialogs/EditClientDialog';
 import DeleteClientDialog from '@/components/dialogs/DeleteClientDialog';
 import AdjustClientBalanceDialog from '@/components/dialogs/AdjustClientBalanceDialog';
-import { Plus, Users, Search, Edit, Eye, UserCheck, UserX, Trash2 } from 'lucide-react';
+import { Plus, Users, Search, Edit, Eye, UserCheck, UserX, Trash2, Calendar, AlertTriangle } from 'lucide-react';
 
 const Clients = () => {
   const { user, hasPermission } = useAuth();
@@ -19,6 +19,7 @@ const Clients = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const { data: clients = [], isLoading, error } = useClientsData();
+  const { data: debtSummaries = [] } = useClientDebtSummary();
 
   if (isLoading) {
     return (
@@ -56,11 +57,11 @@ const Clients = () => {
   });
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'VES',
-      minimumFractionDigits: 0,
-    }).format(amount);
+      currency: 'USD',
+      minimumFractionDigits: 2,
+    }).format(amount / 36); // Convertir de Bs.S a USD
   };
 
   const formatDate = (dateString: string) => {
@@ -69,6 +70,10 @@ const Clients = () => {
       month: '2-digit',
       year: 'numeric',
     });
+  };
+
+  const getClientDebtInfo = (clientId: number) => {
+    return debtSummaries.find(debt => debt.clientId === clientId);
   };
 
   const getClientStats = () => {
@@ -179,66 +184,102 @@ const Clients = () => {
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 font-medium">Cliente</th>
                     <th className="text-left py-3 px-4 font-medium">Contacto</th>
-                    <th className="text-left py-3 px-4 font-medium">Balance</th>
+                    <th className="text-left py-3 px-4 font-medium">Balance (USD)</th>
+                    <th className="text-left py-3 px-4 font-medium">Deuda/Vencimiento</th>
                     <th className="text-left py-3 px-4 font-medium">Fecha Registro</th>
                     <th className="text-left py-3 px-4 font-medium">Estado</th>
                     <th className="text-left py-3 px-4 font-medium">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredClients.map((client) => (
-                    <tr key={client.id} className="bikeERP-table-row">
-                      <td className="py-3 px-4">
-                        <div>
-                          <p className="font-medium">{client.name}</p>
-                          <p className="text-sm text-gray-500">
-                            {client.documentType}: {client.documentNumber}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div>
-                          <p className="text-sm">{client.phone}</p>
-                          <p className="text-sm text-gray-500">{client.email}</p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`font-medium ${
-                          client.balance > 0 ? 'text-blue-600' :
-                          client.balance < 0 ? 'text-red-600' :
-                          'text-gray-600'
-                        }`}>
-                          {formatCurrency(client.balance)}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <p className="text-sm">{formatDate(client.createdAt)}</p>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant={client.isActive ? 'default' : 'secondary'}>
-                          {client.isActive ? (
-                            <><UserCheck className="h-3 w-3 mr-1" />Activo</>
+                  {filteredClients.map((client) => {
+                    const debtInfo = getClientDebtInfo(client.id);
+                    
+                    return (
+                      <tr key={client.id} className="bikeERP-table-row">
+                        <td className="py-3 px-4">
+                          <div>
+                            <p className="font-medium">{client.name}</p>
+                            <p className="text-sm text-gray-500">
+                              {client.documentType}: {client.documentNumber}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div>
+                            <p className="text-sm">{client.phone}</p>
+                            <p className="text-sm text-gray-500">{client.email}</p>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`font-medium ${
+                            client.balance > 0 ? 'text-blue-600' :
+                            client.balance < 0 ? 'text-red-600' :
+                            'text-gray-600'
+                          }`}>
+                            {formatCurrency(client.balance)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {debtInfo ? (
+                            <div className="space-y-1">
+                              <div className={`text-sm font-medium ${
+                                debtInfo.status === 'overdue' ? 'text-red-600' :
+                                debtInfo.status === 'due_soon' ? 'text-orange-600' :
+                                'text-gray-600'
+                              }`}>
+                                {formatCurrency(debtInfo.totalDebt * 36)}
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <Calendar className="h-3 w-3" />
+                                {debtInfo.nextDueDate && formatDate(debtInfo.nextDueDate)}
+                              </div>
+                              {debtInfo.status === 'overdue' && (
+                                <div className="flex items-center gap-1 text-xs text-red-600">
+                                  <AlertTriangle className="h-3 w-3" />
+                                  Vencida hace {debtInfo.daysPastDue} días
+                                </div>
+                              )}
+                              {debtInfo.status === 'due_soon' && (
+                                <div className="flex items-center gap-1 text-xs text-orange-600">
+                                  <Calendar className="h-3 w-3" />
+                                  Vence en {debtInfo.daysUntilDue} días
+                                </div>
+                              )}
+                            </div>
                           ) : (
-                            <><UserX className="h-3 w-3 mr-1" />Inactivo</>
+                            <span className="text-sm text-gray-400">Sin deuda</span>
                           )}
-                        </Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex gap-2">
-                          <ViewClientDialog client={client} />
-                          {hasPermission('clients', 'update') && (
-                            <>
-                              <EditClientDialog client={client} />
-                              <AdjustClientBalanceDialog client={client} />
-                            </>
-                          )}
-                          {hasPermission('clients', 'delete') && (
-                            <DeleteClientDialog client={client} />
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3 px-4">
+                          <p className="text-sm">{formatDate(client.createdAt)}</p>
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge variant={client.isActive ? 'default' : 'secondary'}>
+                            {client.isActive ? (
+                              <><UserCheck className="h-3 w-3 mr-1" />Activo</>
+                            ) : (
+                              <><UserX className="h-3 w-3 mr-1" />Inactivo</>
+                            )}
+                          </Badge>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex gap-2">
+                            <ViewClientDialog client={client} />
+                            {hasPermission('clients', 'update') && (
+                              <>
+                                <EditClientDialog client={client} />
+                                <AdjustClientBalanceDialog client={client} />
+                              </>
+                            )}
+                            {hasPermission('clients', 'delete') && (
+                              <DeleteClientDialog client={client} />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
