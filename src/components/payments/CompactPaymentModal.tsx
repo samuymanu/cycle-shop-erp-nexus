@@ -1,14 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import PaymentMethodSelector from './PaymentMethodSelector';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { PaymentInfo, PaymentMethod } from '@/types/payment';
+import CashPaymentForm from './CashPaymentForm';
+import ZellePaymentForm from './ZellePaymentForm';
+import TransferPaymentForm from './TransferPaymentForm';
+import EnhancedCreditPaymentForm from './EnhancedCreditPaymentForm';
 import QuickPaymentMethods from './QuickPaymentMethods';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
-import { PaymentMethod } from '@/types/erp';
-import { PaymentInfo } from '@/types/payment';
-import { CreditCard, X } from 'lucide-react';
+import { X, CreditCard, DollarSign, Trash2 } from 'lucide-react';
 
 interface CompactPaymentModalProps {
   isOpen: boolean;
@@ -27,138 +30,187 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
 }) => {
   const [payments, setPayments] = useState<PaymentInfo[]>([]);
   const [notes, setNotes] = useState('');
+  const [activeTab, setActiveTab] = useState('quick');
 
-  const totalPaid = payments.reduce((sum, payment) => {
-    const amountInUSD = payment.currency === 'USD' ? payment.amount : payment.amount / 36;
-    return sum + amountInUSD;
-  }, 0);
+  useEffect(() => {
+    if (!isOpen) {
+      setPayments([]);
+      setNotes('');
+      setActiveTab('quick');
+    }
+  }, [isOpen]);
 
+  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const remaining = totalAmount - totalPaid;
-  const canComplete = remaining <= 0.01;
+  const isComplete = Math.abs(remaining) < 0.01;
 
-  const handleComplete = () => {
-    if (canComplete) {
+  const addPayment = (payment: PaymentInfo) => {
+    setPayments(prev => [...prev, payment]);
+  };
+
+  const removePayment = (index: number) => {
+    setPayments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleProcess = () => {
+    if (isComplete) {
       onProcessPayment(payments, notes);
     }
   };
 
-  const handleQuickPayment = (newPayments: PaymentInfo[]) => {
-    onProcessPayment(newPayments, notes);
-  };
-
-  const handlePaymentsUpdate = (newPayments: PaymentInfo[]) => {
-    setPayments(newPayments);
+  const getPaymentMethodName = (method: PaymentMethod) => {
+    switch (method) {
+      case PaymentMethod.CASH_USD: return 'Efectivo USD';
+      case PaymentMethod.CASH_VES: return 'Efectivo Bs.S';
+      case PaymentMethod.ZELLE: return 'Zelle';
+      case PaymentMethod.TRANSFER: return 'Transferencia';
+      case PaymentMethod.CARD: return 'Tarjeta';
+      case PaymentMethod.CREDIT: return 'Crédito';
+      default: return method;
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl h-[85vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0 pb-2">
-          <DialogTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0 pb-4 border-b">
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <CreditCard className="h-6 w-6" />
               Procesar Pago
-            </div>
+            </DialogTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
-          </DialogTitle>
+          </div>
+          
+          {/* Resumen de pago - FIXED: más compacto */}
+          <div className="bg-gray-50 rounded-lg p-3 mt-3">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-sm text-gray-600">Total</div>
+                <MultiCurrencyPrice usdAmount={totalAmount} size="sm" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Pagado</div>
+                <MultiCurrencyPrice usdAmount={totalPaid} size="sm" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Pendiente</div>
+                <div className={`font-bold ${remaining > 0.01 ? 'text-red-600' : remaining < -0.01 ? 'text-blue-600' : 'text-green-600'}`}>
+                  ${Math.abs(remaining).toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
         </DialogHeader>
 
-        {/* Resumen compacto arriba */}
-        <div className="flex-shrink-0 grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-4">
-          <div className="text-center">
-            <div className="text-sm text-gray-600">Total a Pagar</div>
-            <MultiCurrencyPrice usdAmount={totalAmount} size="sm" />
-          </div>
-          <div className="text-center">
-            <div className="text-sm text-gray-600">Total Pagado</div>
-            <MultiCurrencyPrice usdAmount={totalPaid} size="sm" />
-          </div>
-          <div className="text-center">
-            <div className="text-sm text-gray-600">Restante</div>
-            <MultiCurrencyPrice usdAmount={remaining} size="sm" />
-          </div>
-        </div>
+        {/* Contenido principal - FIXED: sin scroll, layout optimizado */}
+        <div className="flex-1 overflow-hidden flex gap-4">
+          {/* Panel izquierdo: Métodos de pago */}
+          <div className="flex-1 min-w-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
+                <TabsTrigger value="quick">Rápido</TabsTrigger>
+                <TabsTrigger value="cash">Efectivo</TabsTrigger>
+                <TabsTrigger value="digital">Digital</TabsTrigger>
+                <TabsTrigger value="credit">Crédito</TabsTrigger>
+              </TabsList>
 
-        {/* Contenido principal en dos columnas */}
-        <div className="flex-1 grid grid-cols-2 gap-6 overflow-hidden">
-          {/* Columna izquierda - Métodos rápidos */}
-          <div className="space-y-4 overflow-y-auto">
-            <QuickPaymentMethods
-              totalAmount={totalAmount}
-              payments={payments}
-              onPaymentsUpdate={handlePaymentsUpdate}
-            />
+              <div className="flex-1 mt-3 overflow-y-auto">
+                <TabsContent value="quick" className="mt-0 h-full">
+                  <QuickPaymentMethods
+                    remainingAmount={remaining}
+                    onAddPayment={addPayment}
+                  />
+                </TabsContent>
 
-            {/* Pagos agregados compactos */}
-            {payments.length > 0 && (
-              <div className="bikeERP-card p-3">
-                <h4 className="font-semibold mb-2 text-sm">Pagos Agregados</h4>
-                <div className="space-y-1 max-h-24 overflow-y-auto">
-                  {payments.map((payment, index) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded text-xs">
-                      <div>
-                        <span className="font-medium">{payment.method.toUpperCase()}</span>
-                        <div className="text-gray-600">
-                          {payment.currency === 'USD' ? '$' : 'Bs.S '}{payment.amount.toFixed(2)}
-                        </div>
-                      </div>
+                <TabsContent value="cash" className="mt-0 h-full">
+                  <CashPaymentForm
+                    maxAmount={remaining}
+                    onAddPayment={addPayment}
+                  />
+                </TabsContent>
+
+                <TabsContent value="digital" className="mt-0 h-full">
+                  <div className="space-y-4">
+                    <ZellePaymentForm
+                      maxAmount={remaining}
+                      onAddPayment={addPayment}
+                    />
+                    <TransferPaymentForm
+                      maxAmount={remaining}
+                      onAddPayment={addPayment}
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="credit" className="mt-0 h-full">
+                  <EnhancedCreditPaymentForm
+                    totalAmount={remaining}
+                    onAddPayment={addPayment}
+                  />
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
+
+          {/* Panel derecho: Resumen de pagos - FIXED: más compacto */}
+          <div className="w-80 flex-shrink-0 bg-gray-50 rounded-lg p-4 flex flex-col">
+            <h3 className="font-semibold mb-3 text-gray-900">Pagos Registrados</h3>
+            
+            {payments.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-gray-500 text-sm">
+                <div className="text-center">
+                  <DollarSign className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                  <p>No hay pagos registrados</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 space-y-2 overflow-y-auto">
+                {payments.map((payment, index) => (
+                  <div key={index} className="bg-white rounded p-3 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {getPaymentMethodName(payment.method)}
+                      </Badge>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          const newPayments = payments.filter((_, i) => i !== index);
-                          setPayments(newPayments);
-                        }}
-                        className="h-5 w-5 p-0"
+                        onClick={() => removePayment(index)}
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700"
                       >
-                        <X className="h-3 w-3" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
-                  ))}
-                </div>
+                    <div className="text-sm font-medium">
+                      ${payment.amount.toFixed(2)} {payment.currency}
+                    </div>
+                    {payment.notes && (
+                      <div className="text-xs text-gray-600 mt-1 truncate">
+                        {payment.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
-          </div>
 
-          {/* Columna derecha - Métodos especiales */}
-          <div className="overflow-y-auto">
-            <PaymentMethodSelector
-              totalAmount={totalAmount}
-              payments={payments}
-              onPaymentsUpdate={handlePaymentsUpdate}
-            />
-          </div>
-        </div>
-
-        {/* Notas compactas */}
-        <div className="flex-shrink-0 mt-4">
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Notas opcionales..."
-            className="w-full p-2 border border-gray-300 rounded-md text-sm resize-none"
-            rows={1}
-          />
-        </div>
-
-        {/* Footer con botón de completar */}
-        <div className="flex-shrink-0 border-t pt-3 mt-4">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              {canComplete ? '✅ Pago completo' : `Falta: $${remaining.toFixed(2)}`}
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-                Cancelar
-              </Button>
+            {/* Botón de procesar - FIXED: siempre visible */}
+            <div className="mt-4 pt-3 border-t border-gray-200">
               <Button
-                onClick={handleComplete}
-                disabled={!canComplete || isProcessing}
-                className="bikeERP-button-primary"
+                onClick={handleProcess}
+                disabled={!isComplete || isProcessing}
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
+                size="lg"
               >
-                {isProcessing ? 'Procesando...' : 'Completar Venta'}
+                {isProcessing ? (
+                  'Procesando...'
+                ) : isComplete ? (
+                  `Completar Venta - $${totalAmount.toFixed(2)}`
+                ) : (
+                  `Faltan $${remaining.toFixed(2)}`
+                )}
               </Button>
             </div>
           </div>

@@ -1,9 +1,10 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest, API_CONFIG } from "@/config/api";
 import { DashboardStats, Product } from "@/types/erp";
 
 const fetchDashboardStats = async (): Promise<DashboardStats> => {
-  console.log('📊 Obteniendo estadísticas del dashboard con datos en tiempo real...');
+  console.log('📊 Obteniendo estadísticas del dashboard con Top 3 productos...');
 
   try {
     // Obtener datos en paralelo con refetch forzado
@@ -61,7 +62,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
         product.currentStock <= (product.minStock || 5)
       ).length;
 
-    // Calcular el Top 3 productos más vendidos del mes actual
+    // FIXED: Calcular el Top 3 productos más vendidos del mes actual
     const saleIdsMonth = salesResponse
       .filter((sale: any) => {
         const saleDate = sale.saleDate?.split('T')[0] || sale.saleDate;
@@ -69,24 +70,38 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       })
       .map((sale: any) => sale.id);
 
+    console.log('🔍 Ventas del mes actual:', saleIdsMonth.length);
+
     // Agrupar items por producto solo para las ventas de este mes
     const productQuantityMap: Record<string, number> = {};
     saleItemsResponse.forEach((item: any) => {
       if (saleIdsMonth.includes(item.sale_id)) {
-        productQuantityMap[item.product_id] = (productQuantityMap[item.product_id] || 0) + (item.quantity || 0);
+        const productId = item.product_id.toString();
+        productQuantityMap[productId] = (productQuantityMap[productId] || 0) + (item.quantity || 0);
       }
     });
 
+    console.log('📈 Productos vendidos este mes:', Object.keys(productQuantityMap).length);
+
     // Convertir a array y ordenar descendente por cantidad
-    const topSellingArr = Object.entries(productQuantityMap)
+    const topSellingProducts = Object.entries(productQuantityMap)
       .map(([productId, quantity]) => ({
-        product: productsMap[productId] || { id: productId, name: "Producto desconocido" } as Product,
+        product: productsMap[productId] || { 
+          id: productId, 
+          name: "Producto desconocido",
+          category: "N/A",
+          brand: "N/A",
+          salePrice: 0
+        } as Product,
         quantity,
       }))
       .sort((a, b) => b.quantity - a.quantity)
-      .slice(0, 3);
+      .slice(0, 3); // Top 3
 
-    console.log('🏆 Top productos:', topSellingArr);
+    console.log('🏆 Top 3 productos del mes:', topSellingProducts.map(p => ({
+      name: p.product.name,
+      quantity: p.quantity
+    })));
 
     // Simular órdenes activas del taller y pagos pendientes
     const activeServiceOrders = 8;
@@ -98,7 +113,7 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
       lowStockItems,
       activeServiceOrders,
       pendingPayments,
-      topSellingProducts: [],
+      topSellingProducts, // FIXED: Ahora incluye los productos reales
     };
 
   } catch (error) {

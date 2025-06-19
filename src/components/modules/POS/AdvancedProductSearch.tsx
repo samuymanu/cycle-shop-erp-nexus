@@ -128,9 +128,9 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
         </div>
       )}
 
-      {/* Dropdown de resultados - FIXED Z-INDEX */}
+      {/* Dropdown de resultados - FIXED: mejor estructura y nombres prominentes */}
       {isOpen && (searchTerm || selectedCategory) && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-80 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999] max-h-80 overflow-y-auto">
           {selectedCategory && (
             <div className="p-3 bg-blue-50 border-b">
               <div className="flex items-center justify-between">
@@ -161,45 +161,53 @@ const AdvancedProductSearch: React.FC<AdvancedProductSearchProps> = ({
               {filteredProducts.slice(0, 8).map((product) => (
                 <div
                   key={product.id}
-                  className="p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors border-l-4 border-transparent hover:border-l-blue-500"
                   onClick={() => handleAddProduct(product)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm text-gray-900 truncate">
-                          {product.name}
-                        </h4>
-                        <Badge variant="secondary" className="text-xs">
-                          Stock: {product.currentStock}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {product.brand} - {product.model}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        SKU: {product.sku}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0 mr-4">
+                      {/* FIXED: Nombre del producto más prominente */}
+                      <h4 className="font-bold text-base text-gray-900 mb-2 leading-tight">
+                        {product.name}
+                      </h4>
+                      
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-2">
+                        <div>
+                          <span className="font-medium">Marca:</span> {product.brand}
+                        </div>
+                        <div>
+                          <span className="font-medium">Modelo:</span> {product.model}
+                        </div>
+                        <div>
+                          <span className="font-medium">SKU:</span> {product.sku}
+                        </div>
+                        <div>
+                          <Badge variant="secondary" className="text-xs w-fit">
+                            Stock: {product.currentStock}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right ml-4">
+                    
+                    <div className="text-right flex flex-col items-end gap-2">
                       <MultiCurrencyPrice usdAmount={product.salePrice} size="sm" />
                       <Button
                         size="sm"
-                        className="mt-1 h-6 w-6 p-0 bg-green-600 hover:bg-green-700"
+                        className="h-8 px-3 bg-green-600 hover:bg-green-700 text-white font-medium"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleAddProduct(product);
                         }}
                       >
-                        <span className="text-xs">+</span>
+                        + Agregar
                       </Button>
                     </div>
                   </div>
                 </div>
               ))}
               {filteredProducts.length > 8 && (
-                <div className="p-2 text-center text-xs text-gray-500">
-                  +{filteredProducts.length - 8} productos más...
+                <div className="p-3 text-center text-xs text-gray-500 bg-gray-50">
+                  +{filteredProducts.length - 8} productos más... (refina tu búsqueda)
                 </div>
               )}
             </div>
