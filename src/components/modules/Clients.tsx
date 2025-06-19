@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,10 +43,10 @@ const Clients = () => {
   }
 
   const filteredClients = clients.filter(client => {
-    const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.documentNumber.includes(searchTerm) ||
-                         client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         client.phone?.includes(searchTerm);
+    const matchesSearch = (client.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (client.documentNumber || '').includes(searchTerm) ||
+                         (client.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (client.phone || '').includes(searchTerm);
     
     const matchesStatus = statusFilter === 'all' || 
                          (statusFilter === 'active' && client.isActive) ||
