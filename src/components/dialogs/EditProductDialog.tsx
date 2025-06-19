@@ -35,6 +35,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
     maxStock: '',
     brand: '',
     model: '',
+    description: '',
   });
 
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
@@ -56,6 +57,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
         maxStock: product.maxStock.toString(),
         brand: product.brand,
         model: product.model,
+        description: product.description || '',
       });
     }
   }, [product]);
@@ -70,7 +72,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
         id: product.id,
         name: formData.name,
         sku: formData.sku,
-        category: formData.category,
+        category: formData.category as any, // Allow string category for now
         salePrice: parseFloat(formData.salePrice),
         costPrice: parseFloat(formData.costPrice),
         currentStock: parseInt(formData.currentStock),
@@ -78,6 +80,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
         maxStock: parseInt(formData.maxStock),
         brand: formData.brand,
         model: formData.model,
+        description: formData.description,
       });
 
       toast({
@@ -193,6 +196,15 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
                 value={formData.model}
                 onChange={(e) => handleInputChange('model', e.target.value)}
                 required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Descripción</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
               />
             </div>
 

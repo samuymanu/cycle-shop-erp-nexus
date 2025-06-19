@@ -3,6 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, API_CONFIG } from "@/config/api";
 import { Product } from "@/types/erp";
 
+// Re-export Product type for components that import it from here
+export { Product } from "@/types/erp";
+
 const fetchProducts = async (): Promise<Product[]> => {
   console.log('🔧 Obteniendo productos desde backend local...');
   const rawProducts = await apiRequest(API_CONFIG.endpoints.products);

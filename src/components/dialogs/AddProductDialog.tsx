@@ -39,6 +39,9 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
     costPrice: 0,
     brand: '',
     model: '',
+    description: '',
+    type: 'part' as const,
+    isActive: true,
   });
 
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
@@ -82,6 +85,9 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
         costPrice: 0,
         brand: '',
         model: '',
+        description: '',
+        type: 'part' as const,
+        isActive: true,
       });
     } catch (error) {
       toast({
@@ -197,6 +203,16 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
                   value={formData.model}
                   onChange={(e) => setFormData({...formData, model: e.target.value})}
                   placeholder="Ej: FX 3, Align"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Descripción</Label>
+                <Input
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Descripción del producto"
                 />
               </div>
 

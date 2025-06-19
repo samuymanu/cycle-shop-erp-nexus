@@ -25,7 +25,7 @@ export interface CreateSaleData {
   userId: number;
   payments: PaymentInfo[];
   items: {
-    productId: string;
+    productId: number; // Changed back to number to match backend expectation
     quantity: number;
     unitPrice: number;
     subtotal: number;
