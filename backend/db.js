@@ -1,4 +1,3 @@
-
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database("./erp.sqlite");
 
@@ -240,6 +239,28 @@ db.serialize(() => {
       });
     }
   });
+
+  // Nueva tabla específica para créditos de clientes
+  db.run(`CREATE TABLE IF NOT EXISTS client_credits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    amount_usd REAL NOT NULL,
+    amount_bss REAL NOT NULL,
+    due_date TEXT NOT NULL,
+    created_date TEXT DEFAULT CURRENT_TIMESTAMP,
+    status TEXT DEFAULT 'active',
+    notes TEXT,
+    sale_id INTEGER,
+    exchange_rate_used REAL,
+    paid_date TEXT,
+    FOREIGN KEY (client_id) REFERENCES clients (id),
+    FOREIGN KEY (sale_id) REFERENCES sales (id)
+  )`);
+
+  // Índices para mejorar consultas de créditos
+  db.run(`CREATE INDEX IF NOT EXISTS idx_client_credits_client_id ON client_credits (client_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_client_credits_due_date ON client_credits (due_date)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_client_credits_status ON client_credits (status)`);
 });
 
 module.exports = db;
