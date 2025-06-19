@@ -4,7 +4,7 @@ import { apiRequest, API_CONFIG } from "@/config/api";
 import { Product } from "@/types/erp";
 
 // Re-export Product type for components that import it from here
-export { Product } from "@/types/erp";
+export type { Product } from "@/types/erp";
 
 const fetchProducts = async (): Promise<Product[]> => {
   console.log('🔧 Obteniendo productos desde backend local...');

@@ -15,6 +15,7 @@ import { useCreateProduct } from '@/hooks/useInventoryData';
 import { useCategoriesData } from '@/hooks/useCategoriesData';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Save, Settings, AlertCircle } from 'lucide-react';
+import { ProductCategory } from '@/types/erp';
 import CategoryManagementDialog from './CategoryManagementDialog';
 
 interface AddProductDialogProps {
@@ -31,7 +32,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
-    category: '',
+    category: '' as ProductCategory | '',
     currentStock: 0,
     minStock: 0,
     maxStock: 0,
@@ -63,7 +64,10 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
     }
 
     try {
-      await createProductMutation.mutateAsync(formData);
+      await createProductMutation.mutateAsync({
+        ...formData,
+        category: formData.category as ProductCategory
+      });
 
       toast({
         title: 'Producto agregado',
@@ -77,7 +81,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
       setFormData({
         name: '',
         sku: '',
-        category: '',
+        category: '' as ProductCategory | '',
         currentStock: 0,
         minStock: 0,
         maxStock: 0,
@@ -172,7 +176,7 @@ const AddProductDialog: React.FC<AddProductDialogProps> = ({
                   <select
                     id="category"
                     value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    onChange={(e) => setFormData({...formData, category: e.target.value as ProductCategory})}
                     className="erp-select w-full"
                     required
                   >

@@ -281,7 +281,7 @@ const BarcodeActions: React.FC<BarcodeActionsProps> = ({ value, productId, onSku
     if (!productId) return;
     
     try {
-      const result = await regenerateSKUMutation.mutateAsync(productId);
+      const result = await regenerateSKUMutation.mutateAsync(productId.toString());
       toast({
         title: "SKU EAN-13 Generado",
         description: result.message,
