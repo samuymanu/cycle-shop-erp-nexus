@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Check, CreditCard } from 'lucide-react';
 import { PaymentInfo, PaymentMethod, CashPaymentInfo, CardPaymentInfo } from '@/types/payment';
 import MultiCurrencyPrice from '@/components/ui/MultiCurrencyPrice';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
 
 interface QuickCompletePaymentProps {
   totalAmount: number;
@@ -17,37 +18,43 @@ const QuickCompletePayment: React.FC<QuickCompletePaymentProps> = ({
   onCompletePayment,
   onOpenMixedPayment,
 }) => {
+  const { rates } = useExchangeRates();
+
   const handleCompletePayment = (method: PaymentMethod, currency: 'USD' | 'VES') => {
     let payment: PaymentInfo;
+    
+    // USAR TASA PARALELA PARA TODOS LOS CÁLCULOS EN BS.S
+    const parallelRate = rates.parallel;
+    const amountInBsS = totalAmount * parallelRate;
     
     if (method === PaymentMethod.CASH_USD) {
       payment = {
         method: PaymentMethod.CASH_USD,
         amount: totalAmount,
         currency: 'USD',
-        notes: `Pago completo en ${method.toUpperCase()}`,
+        notes: `Pago completo en efectivo USD`,
       } as CashPaymentInfo;
     } else if (method === PaymentMethod.CASH_VES) {
       payment = {
         method: PaymentMethod.CASH_VES,
-        amount: totalAmount * 36,
+        amount: amountInBsS,
         currency: 'VES',
-        notes: `Pago completo en ${method.toUpperCase()}`,
+        notes: `Pago completo en efectivo Bs.S (tasa paralela: ${parallelRate})`,
       } as CashPaymentInfo;
     } else if (method === PaymentMethod.CARD) {
       payment = {
         method: PaymentMethod.CARD,
-        amount: totalAmount * 36,
+        amount: amountInBsS,
         currency: 'VES',
-        notes: `Pago completo en ${method.toUpperCase()}`,
+        notes: `Pago completo con tarjeta (tasa paralela: ${parallelRate})`,
       } as CardPaymentInfo;
     } else {
       // Fallback for other payment methods
       payment = {
         method: method,
-        amount: currency === 'USD' ? totalAmount : totalAmount * 36,
+        amount: currency === 'USD' ? totalAmount : amountInBsS,
         currency: currency,
-        notes: `Pago completo en ${method.toUpperCase()}`,
+        notes: `Pago completo en ${method.toUpperCase()} (tasa paralela: ${parallelRate})`,
       } as any;
     }
     
@@ -61,6 +68,9 @@ const QuickCompletePayment: React.FC<QuickCompletePaymentProps> = ({
         <div className="text-center mb-3">
           <div className="text-sm text-gray-600">Completar venta directamente</div>
           <MultiCurrencyPrice usdAmount={totalAmount} size="sm" />
+          <div className="text-xs text-blue-600 mt-1">
+            Tasa paralela: Bs.S {rates.parallel.toFixed(2)}/USD
+          </div>
         </div>
         
         <div className="space-y-2">
@@ -74,24 +84,30 @@ const QuickCompletePayment: React.FC<QuickCompletePaymentProps> = ({
             Efectivo USD - ${totalAmount.toFixed(2)}
           </Button>
           
-          {/* Pago completo en Bs.S */}
+          {/* Pago completo en Bs.S - USANDO TASA PARALELA */}
           <Button
             onClick={() => handleCompletePayment(PaymentMethod.CASH_VES, 'VES')}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             size="sm"
           >
             <Check className="h-4 w-4 mr-2" />
-            Efectivo Bs.S - Bs.S {(totalAmount * 36).toLocaleString('es-VE', { minimumFractionDigits: 0 })}
+            Efectivo Bs.S - Bs.S {(totalAmount * rates.parallel).toLocaleString('es-VE', { 
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0 
+            })}
           </Button>
           
-          {/* Pago completo con tarjeta */}
+          {/* Pago completo con tarjeta - USANDO TASA PARALELA */}
           <Button
             onClick={() => handleCompletePayment(PaymentMethod.CARD, 'VES')}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white"
             size="sm"
           >
             <CreditCard className="h-4 w-4 mr-2" />
-            Tarjeta - Bs.S {(totalAmount * 36).toLocaleString('es-VE', { minimumFractionDigits: 0 })}
+            Tarjeta - Bs.S {(totalAmount * rates.parallel).toLocaleString('es-VE', { 
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0 
+            })}
           </Button>
           
           {/* Botón para pago mixto */}

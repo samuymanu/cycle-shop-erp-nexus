@@ -1,19 +1,21 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { useClientDebtSummary } from "./useClientCredits";
+import { useEnhancedClientDebtSummary } from "./useClientCreditsEnhanced";
 
 export interface DebtInfo {
   clientId: number;
   clientName: string;
   documentNumber: string;
-  debtAmount: number;
+  totalDebt: number; // Unificado - solo "deuda total"
   status: 'overdue' | 'due_soon' | 'current';
   daysPastDue?: number;
   daysUntilDue?: number;
+  dueDate?: string; // Fecha de vencimiento específica
+  currency: 'USD' | 'VES';
 }
 
 export const useClientDebts = () => {
-  const { data: debtSummaries = [], isLoading, error } = useClientDebtSummary();
+  const { data: debtSummaries = [], isLoading, error } = useEnhancedClientDebtSummary();
 
   return useQuery({
     queryKey: ['clientDebts', debtSummaries],
@@ -22,10 +24,12 @@ export const useClientDebts = () => {
         clientId: summary.clientId,
         clientName: summary.clientName,
         documentNumber: summary.documentNumber,
-        debtAmount: summary.totalDebt,
+        totalDebt: summary.totalDebtUSD, // UNIFICADO: solo "deuda total"
         status: summary.status,
         daysPastDue: summary.daysPastDue,
         daysUntilDue: summary.daysUntilDue,
+        dueDate: summary.nextDueDate, // Incluir fecha de vencimiento
+        currency: 'USD',
       }));
     },
     enabled: !isLoading && !error,

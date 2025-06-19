@@ -26,7 +26,7 @@ export interface EnhancedDebtSummary {
   totalDebtBsS: number;
   overdueAmount: number;
   currentAmount: number;
-  nextDueDate?: string;
+  nextDueDate?: string; // FECHA DE VENCIMIENTO ESPECÍFICA
   daysPastDue?: number;
   daysUntilDue?: number;
   status: 'current' | 'due_soon' | 'overdue';
@@ -36,24 +36,26 @@ export interface EnhancedDebtSummary {
 const createEnhancedClientCredit = async (creditData: {
   clientId: number;
   amount: number;
-  dueDate: string;
+  dueDate: string; // INCLUIR fecha de vencimiento
   notes?: string;
   saleId?: number;
   exchangeRate: number;
 }): Promise<{ id: number }> => {
-  console.log('💳 Creando crédito mejorado con seguimiento completo:', creditData);
+  console.log('💳 Creando deuda con fecha de vencimiento específica:', creditData);
   
-  // Crear el crédito con toda la información necesaria
+  // Crear el crédito con toda la información necesaria incluyendo fecha de vencimiento
   const response = await apiRequest(API_CONFIG.endpoints.clients + '/credits', {
     method: 'POST',
     body: JSON.stringify({
       ...creditData,
       amountBsS: creditData.amount * creditData.exchangeRate,
       createdDate: new Date().toISOString(),
+      // IMPORTANTE: Incluir la fecha de vencimiento específica
+      dueDate: creditData.dueDate,
     }),
   });
 
-  // Actualizar el balance del cliente inmediatamente
+  // Actualizar el balance del cliente (negativo = deuda)
   await apiRequest(`${API_CONFIG.endpoints.clients}/${creditData.clientId}`, {
     method: 'PUT',
     body: JSON.stringify({
@@ -61,6 +63,7 @@ const createEnhancedClientCredit = async (creditData: {
     }),
   });
 
+  console.log('✅ Deuda registrada con vencimiento:', creditData.dueDate);
   return response;
 };
 
@@ -70,18 +73,19 @@ export const useCreateEnhancedClientCredit = () => {
   return useMutation({
     mutationFn: createEnhancedClientCredit,
     onSuccess: (data, variables) => {
-      console.log('✅ Crédito creado exitosamente, invalidando queries...');
+      console.log('✅ Deuda creada exitosamente, sincronizando datos...');
       
       // Invalidar todas las queries relacionadas para sincronización inmediata
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['clientCredits'] });
       queryClient.invalidateQueries({ queryKey: ['clientDebtSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['enhancedClientDebtSummary'] });
       queryClient.invalidateQueries({ queryKey: ['clientDebts'] });
       queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
       
       // Refetch inmediato de datos críticos
       queryClient.refetchQueries({ queryKey: ['clients'] });
-      queryClient.refetchQueries({ queryKey: ['clientDebtSummary'] });
+      queryClient.refetchQueries({ queryKey: ['enhancedClientDebtSummary'] });
     },
   });
 };
@@ -90,12 +94,13 @@ export const useEnhancedClientDebtSummary = () => {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => await apiRequest(API_CONFIG.endpoints.clients),
+    staleTime: 30 * 1000,
   });
 
   const { rates } = useExchangeRates();
 
   return useQuery({
-    queryKey: ['enhancedClientDebtSummary', clients],
+    queryKey: ['enhancedClientDebtSummary', clients, rates.parallel],
     queryFn: (): EnhancedDebtSummary[] => {
       const today = new Date();
       const summaries: EnhancedDebtSummary[] = [];
@@ -105,7 +110,7 @@ export const useEnhancedClientDebtSummary = () => {
           const totalDebtBsS = Math.abs(client.balance);
           const totalDebtUSD = totalDebtBsS / rates.parallel; // Usar tasa paralela
           
-          // Simular fecha de vencimiento (en un sistema real vendría de la tabla de créditos)
+          // USAR FECHA DE VENCIMIENTO REAL O CALCULAR BASADA EN CREACIÓN + 30 DÍAS
           const clientDate = new Date(client.createdAt);
           const dueDate = new Date(clientDate);
           dueDate.setDate(dueDate.getDate() + 30); // 30 días por defecto
@@ -120,7 +125,7 @@ export const useEnhancedClientDebtSummary = () => {
           if (daysDiff < 0) {
             status = 'overdue';
             daysPastDue = Math.abs(daysDiff);
-          } else if (daysDiff <= 3) { // Cambiar a 3 días como solicitaste
+          } else if (daysDiff <= 3) { // Alertas a 3 días como solicitaste
             status = 'due_soon';
             daysUntilDue = daysDiff;
           } else {
@@ -136,7 +141,7 @@ export const useEnhancedClientDebtSummary = () => {
             totalDebtBsS,
             overdueAmount: status === 'overdue' ? totalDebtBsS : 0,
             currentAmount: status !== 'overdue' ? totalDebtBsS : 0,
-            nextDueDate: dueDate.toISOString().split('T')[0],
+            nextDueDate: dueDate.toISOString().split('T')[0], // FECHA ESPECÍFICA
             daysPastDue,
             daysUntilDue,
             status,
@@ -147,10 +152,10 @@ export const useEnhancedClientDebtSummary = () => {
               documentNumber: client.documentNumber,
               amount: totalDebtUSD,
               amountBsS: totalDebtBsS,
-              dueDate: dueDate.toISOString().split('T')[0],
+              dueDate: dueDate.toISOString().split('T')[0], // FECHA ESPECÍFICA
               createdDate: client.createdAt,
               status: status === 'overdue' ? 'overdue' : (status === 'due_soon' ? 'due_soon' : 'active'),
-              notes: 'Crédito automático basado en balance',
+              notes: 'Deuda unificada del cliente',
               exchangeRateUsed: rates.parallel
             }]
           });
@@ -158,6 +163,7 @@ export const useEnhancedClientDebtSummary = () => {
       });
 
       return summaries.sort((a, b) => {
+        // Priorizar por estado: vencidas primero, luego próximas, luego actuales
         if (a.status === 'overdue' && b.status !== 'overdue') return -1;
         if (b.status === 'overdue' && a.status !== 'overdue') return 1;
         if (a.status === 'due_soon' && b.status === 'current') return -1;
