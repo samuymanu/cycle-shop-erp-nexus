@@ -19,7 +19,7 @@ const MainLayout = () => {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard onPageChange={setCurrentPage} />;
+        return <Dashboard />;
       case 'pos':
         return <POS />;
       case 'inventory':
@@ -37,7 +37,7 @@ const MainLayout = () => {
       case 'settings':
         return <Settings />;
       default:
-        return <Dashboard onPageChange={setCurrentPage} />;
+        return <Dashboard />;
     }
   };
 
@@ -49,10 +49,7 @@ const MainLayout = () => {
     <div className="h-screen flex bg-gray-50">
       {/* Sidebar - Now responsive */}
       <div className="flex-shrink-0">
-        <Sidebar 
-          currentPage={currentPage} 
-          onPageChange={setCurrentPage}
-        />
+        <Sidebar />
       </div>
 
       {/* Main Content */}
