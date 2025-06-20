@@ -11,14 +11,14 @@ const TopSellingProductsCard: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Card className="bikeERP-card col-span-1 md:col-span-2 lg:col-span-3">
-        <CardHeader className="pb-2">
+      <Card className="bikeERP-card h-full flex flex-col">
+        <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg flex items-center gap-2">
             <Trophy className="h-5 w-5 text-yellow-500" />
             Productos Más Vendidos
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1">
           <div className="animate-pulse space-y-2">
             <div className="h-4 bg-gray-200 rounded w-full"></div>
             <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -32,8 +32,8 @@ const TopSellingProductsCard: React.FC = () => {
   const topProducts = dashboardData?.topSellingProducts || [];
 
   return (
-    <Card className="bikeERP-card col-span-1 md:col-span-2 lg:col-span-3">
-      <CardHeader className="pb-2">
+    <Card className="bikeERP-card h-full flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
         <CardTitle className="text-lg flex items-center gap-2">
           <Trophy className="h-5 w-5 text-yellow-500" />
           Top 3 Productos del Mes
@@ -43,19 +43,19 @@ const TopSellingProductsCard: React.FC = () => {
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="flex-1 flex flex-col justify-between">
         {topProducts.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1">
             {topProducts.map((item, index) => (
               <div key={item.product.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-white ${
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full font-bold text-white text-sm ${
                   index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-400'
                 }`}>
                   {index + 1}
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900">{item.product.name}</h4>
-                  <p className="text-sm text-gray-600">{item.product.category}</p>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 text-sm truncate">{item.product.name}</h4>
+                  <p className="text-xs text-gray-600">{item.product.category}</p>
                 </div>
                 <div className="text-right">
                   <div className="font-bold text-lg text-green-600">{item.quantity}</div>
@@ -65,23 +65,25 @@ const TopSellingProductsCard: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8">
+          <div className="text-center py-8 flex-1 flex flex-col justify-center">
             <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-2">No hay datos de ventas este mes</p>
             <p className="text-sm text-gray-500">Los productos más vendidos aparecerán aquí</p>
           </div>
         )}
 
-        {topProducts.length > 0 && (
-          <div className="flex items-center justify-center gap-2 text-yellow-600 pt-2 border-t">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-sm">Basado en ventas del mes actual</span>
-          </div>
-        )}
+        <div className="flex-shrink-0 mt-4">
+          {topProducts.length > 0 && (
+            <div className="flex items-center justify-center gap-2 text-yellow-600 pt-2 border-t">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-sm">Basado en ventas del mes actual</span>
+            </div>
+          )}
 
-        <Button variant="outline" size="sm" className="w-full">
-          Ver Reportes Completos
-        </Button>
+          <Button variant="outline" size="sm" className="w-full mt-2">
+            Ver Reportes Completos
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

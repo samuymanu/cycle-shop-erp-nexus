@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +37,7 @@ const Dashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">Cargando dashboard...</p>
@@ -47,7 +48,7 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">Error al cargar dashboard</p>
           <p className="text-gray-600">
@@ -60,29 +61,29 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header con botón de actualización funcional */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-8 py-6">
+    <div className="h-full bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col overflow-hidden">
+      {/* Header compacto */}
+      <div className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
+        <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-primary" />
+                <BarChart3 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600">
+                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-sm text-gray-600">
                   Bienvenido, {user?.email || 'Usuario'}
                 </p>
               </div>
             </div>
             
-            {/* Botón de actualizar funcional */}
+            {/* Botón de actualizar compacto */}
             <Button 
               onClick={handleRefresh}
               disabled={isRefreshing}
               variant="outline"
-              size="lg"
+              size="sm"
               className="flex items-center gap-2"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -92,14 +93,18 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Contenido principal */}
-      <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <TodaysSalesReportCard />
-        <MonthlySalesReportCard />
-        <LowStockAlertsCard />
-        <ActiveServiceOrdersCard />
-        <DebtAlertsCard />
-        <TopSellingProductsCard />
+      {/* Contenido principal - Grid optimizado sin scroll */}
+      <div className="flex-1 p-4 overflow-hidden">
+        <div className="h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+          <TodaysSalesReportCard />
+          <MonthlySalesReportCard />
+          <LowStockAlertsCard />
+          <ActiveServiceOrdersCard />
+          <DebtAlertsCard />
+          <div className="md:col-span-2 lg:col-span-1">
+            <TopSellingProductsCard />
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Sidebar from './Sidebar';
 import Dashboard from '@/components/dashboard/Dashboard';
@@ -14,7 +15,21 @@ import CurrencyCalculator from '@/components/modules/CurrencyCalculator';
 
 const MainLayout = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState('dashboard');
+
+  // Sincronizar la página actual con la URL
+  useEffect(() => {
+    const path = location.pathname.slice(1) || 'dashboard';
+    setCurrentPage(path);
+  }, [location.pathname]);
+
+  // Función para cambiar página y actualizar URL
+  const handlePageChange = (page: string) => {
+    setCurrentPage(page);
+    navigate(`/${page}`);
+  };
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -46,14 +61,14 @@ const MainLayout = () => {
   }
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="h-screen flex bg-gray-50 overflow-hidden">
       {/* Sidebar - Now responsive */}
       <div className="flex-shrink-0">
-        <Sidebar />
+        <Sidebar onPageChange={handlePageChange} currentPage={currentPage} />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-hidden">
         {renderCurrentPage()}
       </div>
     </div>
