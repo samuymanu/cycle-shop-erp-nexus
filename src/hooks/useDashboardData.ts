@@ -89,9 +89,20 @@ const fetchDashboardStats = async (): Promise<DashboardStats> => {
         product: productsMap[productId] || { 
           id: productId, 
           name: "Producto desconocido",
-          category: "N/A",
+          description: "",
+          sku: "N/A",
+          category: "N/A" as any,
+          type: "part" as any,
+          salePrice: 0,
+          costPrice: 0,
+          currentStock: 0,
+          minStock: 0,
+          maxStock: 0,
           brand: "N/A",
-          salePrice: 0
+          model: "N/A",
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
         } as Product,
         quantity,
       }))

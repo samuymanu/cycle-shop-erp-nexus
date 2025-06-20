@@ -64,7 +64,7 @@ const createEnhancedClientCredit = async (creditData: {
     method: 'POST',
     body: JSON.stringify({
       ...creditData,
-      amountBsS,
+      amountBsS: amountInBsS,
       createdDate: new Date().toISOString(),
       dueDate: creditData.dueDate,
     }),

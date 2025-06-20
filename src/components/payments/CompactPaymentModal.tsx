@@ -120,27 +120,30 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
               <div className="flex-1 mt-3 overflow-y-auto">
                 <TabsContent value="quick" className="mt-0 h-full">
                   <QuickPaymentMethods
-                    remainingAmount={remaining}
+                    totalAmount={remaining}
                     onAddPayment={addPayment}
                   />
                 </TabsContent>
 
                 <TabsContent value="cash" className="mt-0 h-full">
                   <CashPaymentForm
-                    maxAmount={remaining}
-                    onAddPayment={addPayment}
+                    paymentInfo={{}}
+                    onUpdate={() => {}}
+                    totalAmount={remaining}
                   />
                 </TabsContent>
 
                 <TabsContent value="digital" className="mt-0 h-full">
                   <div className="space-y-4">
                     <ZellePaymentForm
-                      maxAmount={remaining}
-                      onAddPayment={addPayment}
+                      paymentInfo={{}}
+                      onUpdate={() => {}}
+                      totalAmount={remaining}
                     />
                     <TransferPaymentForm
-                      maxAmount={remaining}
-                      onAddPayment={addPayment}
+                      paymentInfo={{}}
+                      onUpdate={() => {}}
+                      totalAmount={remaining}
                     />
                   </div>
                 </TabsContent>
