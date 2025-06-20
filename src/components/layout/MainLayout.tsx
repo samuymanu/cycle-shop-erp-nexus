@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Sidebar from './Sidebar';
 import Dashboard from '@/components/dashboard/Dashboard';
@@ -15,26 +14,12 @@ import CurrencyCalculator from '@/components/modules/CurrencyCalculator';
 
 const MainLayout = () => {
   const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState('dashboard');
-
-  // Sincronizar la página actual con la URL
-  useEffect(() => {
-    const path = location.pathname.slice(1) || 'dashboard';
-    setCurrentPage(path);
-  }, [location.pathname]);
-
-  // Función para cambiar página y actualizar URL
-  const handlePageChange = (page: string) => {
-    setCurrentPage(page);
-    navigate(`/${page}`);
-  };
 
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onPageChange={setCurrentPage} />;
       case 'pos':
         return <POS />;
       case 'inventory':
@@ -52,7 +37,7 @@ const MainLayout = () => {
       case 'settings':
         return <Settings />;
       default:
-        return <Dashboard />;
+        return <Dashboard onPageChange={setCurrentPage} />;
     }
   };
 
@@ -61,14 +46,17 @@ const MainLayout = () => {
   }
 
   return (
-    <div className="h-screen flex bg-gray-50 overflow-hidden">
+    <div className="h-screen flex bg-gray-50">
       {/* Sidebar - Now responsive */}
       <div className="flex-shrink-0">
-        <Sidebar onPageChange={handlePageChange} currentPage={currentPage} />
+        <Sidebar 
+          currentPage={currentPage} 
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-auto">
         {renderCurrentPage()}
       </div>
     </div>

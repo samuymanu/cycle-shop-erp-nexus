@@ -1,82 +1,108 @@
 
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState } from 'react';
 import { 
-  BarChart3, 
+  Home, 
   ShoppingCart, 
   Package, 
   Wrench, 
   Users, 
   ShoppingBag, 
   Calculator,
-  FileText, 
+  BarChart3, 
   Settings,
-  LogOut 
+  ChevronLeft,
+  ChevronRight,
+  Menu
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface SidebarProps {
-  onPageChange: (page: string) => void;
   currentPage: string;
+  onPageChange: (page: string) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onPageChange, currentPage }) => {
-  const { logout } = useAuth();
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'pos', label: 'Punto de Venta', icon: ShoppingCart },
     { id: 'inventory', label: 'Inventario', icon: Package },
     { id: 'workshop', label: 'Taller', icon: Wrench },
     { id: 'clients', label: 'Clientes', icon: Users },
     { id: 'purchases', label: 'Compras', icon: ShoppingBag },
     { id: 'currency-calculator', label: 'Calculadora', icon: Calculator },
-    { id: 'reports', label: 'Reportes', icon: FileText },
+    { id: 'reports', label: 'Reportes', icon: BarChart3 },
     { id: 'settings', label: 'Configuración', icon: Settings },
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-full flex flex-col">
-      {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900">BikeERP</h2>
-        <p className="text-sm text-gray-600">Sistema de Gestión</p>
+    <div className={`bg-white shadow-lg border-r border-gray-200 transition-all duration-300 flex-shrink-0 ${
+      isCollapsed ? 'w-16' : 'w-80'
+    }`}>
+      {/* Header with Toggle */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          {!isCollapsed && (
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">BikeERP</h1>
+              <p className="text-sm text-gray-600">Sistema de Gestión</p>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 hover:bg-gray-100"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.id;
-          
-          return (
-            <Button
-              key={item.id}
-              variant={isActive ? "default" : "ghost"}
-              className={`w-full justify-start gap-3 h-10 ${
-                isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-gray-100'
-              }`}
-              onClick={() => onPageChange(item.id)}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Button>
-          );
-        })}
+      {/* Navigation Menu */}
+      <nav className="py-4">
+        <div className="space-y-1 px-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentPage === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => onPageChange(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-primary'
+                }`}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <Icon className={`h-5 w-5 flex-shrink-0 ${
+                  isActive ? 'text-white' : 'text-gray-500 group-hover:text-primary'
+                }`} />
+                {!isCollapsed && (
+                  <span className="font-medium text-sm">{item.label}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 h-10 text-red-600 hover:text-red-700 hover:bg-red-50"
-          onClick={logout}
-        >
-          <LogOut className="h-4 w-4" />
-          Cerrar Sesión
-        </Button>
-      </div>
+      {!isCollapsed && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50">
+          <div className="text-xs text-gray-500 text-center">
+            <p>BikeERP v1.0</p>
+            <p>© 2024 Todos los derechos reservados</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
