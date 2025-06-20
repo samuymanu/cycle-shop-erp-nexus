@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,8 +55,10 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
       title: 'Producto Agregado',
       description: 'El producto ha sido agregado al inventario.',
     });
+    // Actualizar todas las queries relacionadas
     queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
     queryClient.invalidateQueries({ queryKey: ['products'] });
+    queryClient.invalidateQueries({ queryKey: ['inventory'] });
   };
 
   const handleGenerateReport = () => {
@@ -72,16 +75,44 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
     });
   };
 
-  const handleRefreshData = () => {
-    // Forzar actualización inmediata de todas las estadísticas
-    queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
-    queryClient.invalidateQueries({ queryKey: ['sales'] });
-    queryClient.invalidateQueries({ queryKey: ['products'] });
-    refetch();
-    toast({
-      title: "Actualizando datos",
-      description: "Obteniendo la información más reciente de la base de datos.",
-    });
+  const handleRefreshData = async () => {
+    console.log('🔄 Actualizando datos del dashboard en tiempo real...');
+    
+    try {
+      // Invalidar TODAS las queries relacionadas para actualización completa
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['dashboardStats'] }),
+        queryClient.invalidateQueries({ queryKey: ['sales'] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+        queryClient.invalidateQueries({ queryKey: ['sale_items'] }),
+        queryClient.invalidateQueries({ queryKey: ['clientDebts'] }),
+        queryClient.invalidateQueries({ queryKey: ['enhancedClientDebtSummary'] }),
+        queryClient.invalidateQueries({ queryKey: ['clientCredits'] }),
+      ]);
+
+      // Forzar refetch inmediato de datos críticos
+      await Promise.all([
+        refetch(),
+        queryClient.refetchQueries({ queryKey: ['dashboardStats'] }),
+        queryClient.refetchQueries({ queryKey: ['clientDebts'] }),
+        queryClient.refetchQueries({ queryKey: ['products'] }),
+      ]);
+
+      console.log('✅ Datos del dashboard actualizados exitosamente');
+      
+      toast({
+        title: "✅ Datos Actualizados",
+        description: "Toda la información ha sido sincronizada con la base de datos.",
+      });
+    } catch (updateError) {
+      console.error('❌ Error actualizando datos:', updateError);
+      toast({
+        title: "❌ Error de Actualización",
+        description: "Hubo un problema al sincronizar los datos. Reintentando...",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -283,7 +314,7 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
             <Card className="bikeERP-card">
               <CardHeader>
                 <CardTitle className="text-slate-900">Productos Más Vendidos</CardTitle>
-                <CardDescription className="text-slate-600">Top 3 del mes actual</CardDescription>
+                <CardDescription className="text-slate-600">Top 3 del mes actual (datos reales)</CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoading ? (
@@ -292,10 +323,10 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                     <Skeleton className="h-16 w-full rounded-lg" />
                     <Skeleton className="h-16 w-full rounded-lg" />
                   </div>
-                ) : (
+                ) : stats?.topSellingProducts && stats.topSellingProducts.length > 0 ? (
                   <div className="space-y-4">
-                    {(stats?.topSellingProducts ?? []).map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    {stats.topSellingProducts.map((item, index) => (
+                      <div key={`${item.product.id}-${index}`} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
                             {index + 1}
@@ -305,6 +336,12 @@ const Dashboard = ({ onPageChange }: DashboardProps) => {
                         <span className="text-sm font-semibold text-slate-600">{item.quantity} unidades</span>
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                    <p>No hay productos vendidos este mes</p>
+                    <p className="text-sm">Los datos se mostrarán cuando se registren ventas</p>
                   </div>
                 )}
               </CardContent>
