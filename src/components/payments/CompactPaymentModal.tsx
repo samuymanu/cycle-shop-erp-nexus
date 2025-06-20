@@ -133,7 +133,6 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                       totalAmount={remaining}
                       onCompletePayment={handleQuickCompletePayment}
                       onOpenMixedPayment={handleOpenMixedPayment}
-                      isCompact={true}
                     />
                   </div>
                 </TabsContent>
