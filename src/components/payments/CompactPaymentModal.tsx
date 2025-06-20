@@ -72,7 +72,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0 pb-4 border-b">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
@@ -84,7 +84,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
             </Button>
           </div>
           
-          {/* Resumen de pago - FIXED: más compacto */}
+          {/* Resumen de pago - más compacto */}
           <div className="bg-gray-50 rounded-lg p-3 mt-3">
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
@@ -105,8 +105,8 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
           </div>
         </DialogHeader>
 
-        {/* Contenido principal - FIXED: sin scroll, layout optimizado */}
-        <div className="flex-1 overflow-hidden flex gap-4">
+        {/* Contenido principal - optimizado para evitar scroll */}
+        <div className="flex-1 overflow-hidden flex gap-6">
           {/* Panel izquierdo: Métodos de pago */}
           <div className="flex-1 min-w-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
@@ -117,8 +117,8 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                 <TabsTrigger value="credit">Crédito</TabsTrigger>
               </TabsList>
 
-              <div className="flex-1 mt-3 overflow-y-auto">
-                <TabsContent value="quick" className="mt-0 h-full">
+              <div className="flex-1 mt-3 overflow-hidden">
+                <TabsContent value="quick" className="mt-0 h-full overflow-y-auto">
                   <QuickPaymentMethods
                     totalAmount={remaining}
                     payments={payments}
@@ -126,7 +126,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                   />
                 </TabsContent>
 
-                <TabsContent value="cash" className="mt-0 h-full">
+                <TabsContent value="cash" className="mt-0 h-full overflow-y-auto">
                   <CashPaymentForm
                     paymentInfo={{}}
                     onUpdate={() => {}}
@@ -134,7 +134,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                   />
                 </TabsContent>
 
-                <TabsContent value="digital" className="mt-0 h-full">
+                <TabsContent value="digital" className="mt-0 h-full overflow-y-auto">
                   <div className="space-y-4">
                     <ZellePaymentForm
                       paymentInfo={{}}
@@ -149,7 +149,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                   </div>
                 </TabsContent>
 
-                <TabsContent value="credit" className="mt-0 h-full">
+                <TabsContent value="credit" className="mt-0 h-full overflow-y-auto">
                   <EnhancedCreditPaymentForm
                     totalAmount={remaining}
                     onAddPayment={addPayment}
@@ -159,7 +159,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
             </Tabs>
           </div>
 
-          {/* Panel derecho: Resumen de pagos - FIXED: más compacto */}
+          {/* Panel derecho: Resumen de pagos - más compacto */}
           <div className="w-80 flex-shrink-0 bg-gray-50 rounded-lg p-4 flex flex-col">
             <h3 className="font-semibold mb-3 text-gray-900">Pagos Registrados</h3>
             
@@ -171,7 +171,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="flex-1 space-y-2 overflow-y-auto">
+              <div className="flex-1 space-y-2 overflow-y-auto min-h-0">
                 {payments.map((payment, index) => (
                   <div key={index} className="bg-white rounded p-3 border border-gray-200">
                     <div className="flex items-center justify-between mb-2">
@@ -200,7 +200,7 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
               </div>
             )}
 
-            {/* Botón de procesar - FIXED: siempre visible */}
+            {/* Botón de procesar - siempre visible */}
             <div className="mt-4 pt-3 border-t border-gray-200">
               <Button
                 onClick={handleProcess}

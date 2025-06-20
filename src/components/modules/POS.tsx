@@ -70,16 +70,6 @@ const POS = () => {
     }
   });
 
-  // Keyboard shortcuts mejorados
-  usePOSShortcuts({
-    onClearCart: () => clearCart(),
-    onSearchFocus: () => {
-      const searchInput = document.getElementById('advanced-product-search');
-      searchInput?.focus();
-    },
-    onPaymentFocus: () => setShowPaymentModal(true),
-  });
-
   // Auto-enfoque al cargar
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -115,7 +105,7 @@ const POS = () => {
       userId: parseInt(user.id),
       payments: payments,
       items: cart.map(item => ({
-        productId: parseInt(item.id), // Convert string id back to number for API
+        productId: parseInt(item.id),
         quantity: item.quantity,
         unitPrice: item.price * (1 - (item.discount || 0) / 100),
         subtotal: item.price * item.quantity * (1 - (item.discount || 0) / 100),
@@ -200,7 +190,7 @@ const POS = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header mejorado */}
+      {/* Header mejorado con subtotal y total */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
@@ -211,26 +201,34 @@ const POS = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">POS Optimizado</h1>
                 <p className="text-gray-600">
-                  {getItemCount()} productos • ${calculateTotal().toFixed(2)} total
+                  {getItemCount()} productos • {cart.length} items
                 </p>
               </div>
             </div>
             
-            <div className="flex gap-2">
-              <Badge variant="secondary" className="text-xs">F2: Buscar</Badge>
-              <Badge variant="secondary" className="text-xs">Ctrl+Del: Limpiar</Badge>
-              <Badge variant="secondary" className="text-xs">Ctrl+P: Pagar</Badge>
-            </div>
+            {/* Subtotal y Total en el header */}
+            {cart.length > 0 && (
+              <div className="flex items-center gap-8">
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-1">Subtotal</div>
+                  <MultiCurrencyPrice usdAmount={calculateSubtotal()} size="sm" />
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-600 mb-1">TOTAL</div>
+                  <MultiCurrencyPrice usdAmount={calculateTotal()} size="md" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <div className="p-6">
-        {/* Layout mejorado según referencia */}
+        {/* Layout mejorado */}
         <div className="grid grid-cols-12 gap-6">
-          {/* Panel izquierdo: Búsqueda más pequeña */}
+          {/* Panel izquierdo: Búsqueda */}
           <div className="col-span-3 space-y-4">
-            {/* Búsqueda de productos - más compacta */}
+            {/* Búsqueda de productos */}
             <Card className="bikeERP-card">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium">Buscar Productos</CardTitle>
@@ -271,7 +269,7 @@ const POS = () => {
             </Card>
           </div>
 
-          {/* Panel central: Carrito con más protagonismo */}
+          {/* Panel central: Carrito con layout optimizado */}
           <div className="col-span-6 space-y-4">
             <Card className="bikeERP-card">
               <CardHeader className="pb-4">
@@ -314,36 +312,37 @@ const POS = () => {
                   <>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {cart.map((item) => (
-                        <div key={item.id} className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                          <div className="flex-1 min-w-0">
+                        <div key={item.id} className="grid grid-cols-12 gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                          {/* Información del producto - 6 columnas */}
+                          <div className="col-span-6 min-w-0">
                             <h5 className="font-semibold text-slate-900 truncate">{item.name}</h5>
                             <p className="text-sm text-slate-500">{item.brand} - {item.model}</p>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="mt-1">
                               <MultiCurrencyPrice usdAmount={item.price} size="sm" />
                               {item.discount && (
-                                <Badge variant="secondary" className="text-xs">
+                                <Badge variant="secondary" className="text-xs ml-2">
                                   -{item.discount}%
                                 </Badge>
                               )}
                             </div>
                           </div>
                           
-                          {/* Descuento individual */}
-                          <div className="flex items-center gap-1">
+                          {/* Descuento individual - 2 columnas */}
+                          <div className="col-span-2 flex items-center gap-1">
                             <Input
                               type="number"
                               value={item.discount || ''}
                               onChange={(e) => applyItemDiscount(item.id, parseFloat(e.target.value) || 0)}
                               placeholder="0"
-                              className="w-14 h-7 text-xs"
+                              className="w-full h-7 text-xs"
                               min="0"
                               max="100"
                             />
                             <span className="text-xs text-gray-500">%</span>
                           </div>
                           
-                          {/* Controles de cantidad */}
-                          <div className="flex items-center gap-2">
+                          {/* Controles de cantidad - 4 columnas */}
+                          <div className="col-span-4 flex items-center gap-2 justify-end">
                             <Button
                               variant="outline"
                               size="sm"
@@ -375,25 +374,6 @@ const POS = () => {
                       ))}
                     </div>
 
-                    {/* Resumen de totales - más prominente */}
-                    <Separator />
-                    <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                      <div className="flex justify-between text-base">
-                        <span>Subtotal:</span>
-                        <MultiCurrencyPrice usdAmount={calculateSubtotal()} size="sm" />
-                      </div>
-                      {calculateGlobalDiscount() > 0 && (
-                        <div className="flex justify-between text-base text-red-600">
-                          <span>Descuento total:</span>
-                          <span>-${calculateGlobalDiscount().toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-xl font-bold border-t pt-3">
-                        <span>TOTAL:</span>
-                        <MultiCurrencyPrice usdAmount={calculateTotal()} size="lg" />
-                      </div>
-                    </div>
-
                     {/* Notas */}
                     <div>
                       <Input
@@ -404,7 +384,7 @@ const POS = () => {
                       />
                     </div>
 
-                    {/* Botones de acción - más prominentes */}
+                    {/* Botones de acción */}
                     <div className="flex gap-3 pt-4">
                       <Button 
                         variant="outline" 
@@ -431,7 +411,7 @@ const POS = () => {
             </Card>
           </div>
 
-          {/* Panel derecho: Pagos rápidos más prominentes */}
+          {/* Panel derecho: Pagos rápidos */}
           <div className="col-span-3 space-y-4">
             {cart.length > 0 && (
               <QuickCompletePayment
