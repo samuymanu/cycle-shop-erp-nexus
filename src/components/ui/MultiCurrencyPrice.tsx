@@ -76,7 +76,7 @@ const MultiCurrencyPrice: React.FC<MultiCurrencyPriceProps> = ({
         BCV: {formatVES(bcvAmount)}
       </div>
       <div className={`${classes.secondary} text-purple-600`}>
-        Paralelo: {formatVES(parallelAmount)}
+        Costo: {formatVES(parallelAmount)}
       </div>
       {!showUSDFirst && (
         <div className={`${classes.primary} text-green-600 flex items-center gap-1`}>
