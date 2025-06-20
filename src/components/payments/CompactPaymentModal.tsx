@@ -121,7 +121,8 @@ const CompactPaymentModal: React.FC<CompactPaymentModalProps> = ({
                 <TabsContent value="quick" className="mt-0 h-full">
                   <QuickPaymentMethods
                     totalAmount={remaining}
-                    onAddPayment={addPayment}
+                    payments={payments}
+                    onPaymentsUpdate={setPayments}
                   />
                 </TabsContent>
 
